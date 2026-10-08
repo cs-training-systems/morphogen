@@ -110,6 +110,9 @@
 }
 .rd__param input[type="number"] { width: 7.5ch; }
 .rd__select { width: 100%; cursor: pointer; }
+/* the resolution group splits in two: Resolution on the left, Brush width on the right; the measure spans both */
+.rd__pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.rd__pair > label { display: grid; gap: 4px; font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-2, #4A4A4A); min-width: 0; }
 .rd__number-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 /* the accessibility row: a check box and a button at the in-field controls' height; either toggles */
 .rd__acc { display: flex; align-items: center; gap: 10px; }

@@ -72,6 +72,7 @@ fetched at run time, and the script makes no network request of any kind.
 | `data-steps` | base steps per frame | 8 |
 | `data-quality` | the resolution ceiling: `auto` (up to the display) or a ladder index 0–8 (320 … 1600 cells wide); the engine adapts beneath it | `auto` |
 | `data-gpu` | `off` to force the processor path | on |
+| `data-brush` | the pointer's mark as a share of the field's height | 0.03 |
 | `data-fade-start` · `data-fade-end` | seconds after the pointer leaves at which the chemistry winds down and dies; unset = never | unset |
 
 ## Controls
@@ -96,6 +97,7 @@ All of them are optional.
 | `mode` | any element | Receives the current pattern's name in capitals |
 | `loading` | any element with `hidden` | Shown while a reduced-motion still is computed |
 | `quality` | `<select>` | The resolution ceiling: `auto` or a ladder index; plain numbers in the demo |
+| `brush` | `<select>` | Brush width: the pointer's mark as a share of the field's height (0.02 … 0.20; default 0.03) |
 | `measure` | any element | Receives the grid in use, the frame rate and the engine in use, twice a second |
 | `state` | any element | Receives a visible one-line state: pattern, colors, animating / paused / reduced motion |
 | `status` | any element with `aria-live="polite"` | Receives a short plain-text status on every change |

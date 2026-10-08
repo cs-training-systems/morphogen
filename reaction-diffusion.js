@@ -74,9 +74,8 @@
     vmax: 0.4,
     palette: "canopy",
     seedValue: 0.5,
-    seedRadius: 3,
-    seedSpeedGain: 0.25,
-    seedRadiusMax: 12,
+    brush: 0.03,                 // the pointer's mark: its diameter as a share of the field's height (0.02 … 0.20)
+    seedSpeedGain: 0.25,         // extra radius per cell of pointer travel, relative to the brush
     aliveThreshold: 0.01,
     chronoSteps: 2400,           // simulation steps the reduced-motion chronogram spans, seed → emergence
     chronoStrips: 12,            // vertical strips, left early → right late
@@ -407,6 +406,7 @@
 
     function reset() { be.reset(); alive = false; leftAt = null; gain = 1; grow = null; growN = 0; pending.length = 0; }
     function scaleR(r) { return r * be.width() / 320; }
+    function brushR() { return Math.max(1, o.brush * be.height() / 2); }   // the mark's radius in cells
     function markSeeded() { alive = true; leftAt = null; gain = 1; }
     function flushSeeds() { if (pending.length) { be.seed(pending, o.seedValue); pending.length = 0; } }
     function growStep() {
@@ -499,7 +499,7 @@
       if (o.reducedMotion) return;
       pointerIn = true;
       var p = gridPoint(e), W = be.width(), speed = last ? Math.hypot(p.x - last.x, p.y - last.y) : 0;
-      var r = scaleR(Math.min(o.seedRadiusMax, o.seedRadius + o.seedSpeedGain * speed * 320 / W));
+      var base = brushR(), r = Math.min(base * 4, base + o.seedSpeedGain * speed * base / scaleR(3));
       if (last && speed > r) { var n = Math.ceil(speed / r); for (var i = 1; i <= n; i++) pending.push({ x: last.x + (p.x - last.x) * i / n, y: last.y + (p.y - last.y) * i / n, r: r }); }
       else pending.push({ x: p.x, y: p.y, r: r });
       markSeeded(); last = p; wake();
@@ -535,7 +535,9 @@
       play: function () { paused = false; wake(); emit("play"); return api; },
       isPaused: function () { return paused; }, isAlive: function () { return alive; },
       clear: function () { reset(); if (o.reducedMotion) chronogram(); else be.render(lut, o.vmax); emit("clear"); return api; },
-      seed: function (x, y, r) { if (o.reducedMotion) { chronogram(); return api; } pending.push({ x: x, y: y, r: r || scaleR(o.seedRadius) }); markSeeded(); wake(); return api; },
+      seed: function (x, y, r) { if (o.reducedMotion) { chronogram(); return api; } pending.push({ x: x, y: y, r: r || brushR() }); markSeeded(); wake(); return api; },
+      setBrush: function (share) { if (typeof share === "number" && !isNaN(share)) o.brush = Math.max(0.005, Math.min(0.5, share)); emit("brush"); return api; },
+      brush: function () { return o.brush; },
       seedSpec: function (spec, salt) {
         chronoSpec = spec;
         if (o.reducedMotion) { chronogram(spec); emit("seed"); return api; }
@@ -588,7 +590,7 @@
     var pauseBtn = $(scope, "pause"), resetBtn = $(scope, "reset"), seedBtn = $(scope, "seed");
     var colorsToggle = $(scope, "colors-toggle"), colorsMenu = $(scope, "colors-menu"), paletteRadios = $$(scope, "palette-option");
     var motionBtn = $(scope, "motion"), motionCheck = $(scope, "motion-check"), quality = $(scope, "quality"), measure = $(scope, "measure"), stateLine = $(scope, "state");
-    var modeWord = $(scope, "mode"), loading = $(scope, "loading");
+    var modeWord = $(scope, "mode"), loading = $(scope, "loading"), brushSel = $(scope, "brush");
     var status = $(scope, "status"), steps = $(scope, "steps");
     var current = null, currentPalette = null, thumbs = [], seedClicks = 0;
 
@@ -694,10 +696,11 @@
     if (motionBtn) motionBtn.addEventListener("click", toggleMotion);
     if (motionCheck) motionCheck.addEventListener("change", function () { if (motionCheck.checked !== field.reducedMotion()) toggleMotion(); });
     if (quality) quality.addEventListener("change", function () { field.setQuality(quality.value); });
+    if (brushSel) { brushSel.addEventListener("change", function () { field.setBrush(parseFloat(brushSel.value)); say("Brush width " + brushSel.options[brushSel.selectedIndex].text + "."); }); field.setBrush(parseFloat(brushSel.value)); }
     if (steps) steps.addEventListener("change", function () { field.setSteps(parseInt(steps.value, 10)); });
     if (measure) (function readout() {
       var q = field.quality();
-      measure.textContent = q.width + " × " + q.height + " · " + (field.reducedMotion() ? "still" : (field.isAlive() ? Math.round(q.fps) + " fps" : "idle")) + " · " + (q.backend === "gpu" ? "graphics processor" : "processor");
+      measure.textContent = q.width + " × " + q.height + " · " + (field.reducedMotion() ? "still" : (field.isAlive() ? Math.round(q.fps) + " fps" : "idle")) + " · brush " + Math.round(field.brush() * 100) + "%";
       setTimeout(readout, 500);
     })();
 
@@ -728,6 +731,7 @@
         timeScale: d.timeScale !== undefined ? parseFloat(d.timeScale) : undefined,
         fadeStart: d.fadeStart !== undefined ? parseFloat(d.fadeStart) : undefined, fadeEnd: d.fadeEnd !== undefined ? parseFloat(d.fadeEnd) : undefined,
         palette: d.palette, baseSteps: d.steps !== undefined ? parseInt(d.steps, 10) : undefined,
+        brush: d.brush !== undefined ? parseFloat(d.brush) : undefined,
         quality: d.quality !== undefined && d.quality !== "auto" ? parseInt(d.quality, 10) : "auto",
         gpu: d.gpu !== "off", reducedMotion: mq ? mq.matches : false
       });

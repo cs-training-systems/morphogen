@@ -16,7 +16,7 @@
     <p class="links"><a href="https://github.com/cs-training-systems/morphogen">Source and README on GitHub ↗</a></p>
   </header>
 
-  <p class="instructions">Hover over the field to seed it; pick a pattern tile; Seed drops a point, Reset clears. Rate sets feed, kill and speed; Resolution caps the grid, which otherwise adapts to your machine. Reduced motion shows one still: seed at the left, full pattern at the right.</p>
+  <p class="instructions">Hover over the field to seed it; pick a pattern tile; Seed drops a point, Reset clears. Rate sets feed, kill and speed; Resolution caps the grid, which adapts to your machine; Brush width sets the pointer's mark. Reduced motion shows one still: seed at the left, full pattern at the right.</p>
 
   <section class="rd" data-rd-scope aria-labelledby="rd-heading">
     <p class="kicker" id="rd-heading">Interactive · Reaction–diffusion</p>
@@ -70,7 +70,7 @@
             <label for="rd-motion-check" class="visually-hidden">Reduced motion</label>
             <button type="button" class="rd__toggle" data-rd="motion" aria-pressed="false" aria-describedby="rd-acc-hint">Reduced motion</button>
           </div>
-          <p class="rd__hint" id="rd-acc-hint">By design, one still frame: seed at the left, full pattern at the right.</p>
+          <p class="rd__hint" id="rd-acc-hint">Show a still image view instead of a dynamic view.</p>
         </div>
         <div class="rd__group" role="group" aria-labelledby="rd-rate-h">
           <h4 class="rd__group-h" id="rd-rate-h">Rate</h4>
@@ -95,12 +95,21 @@
         </div>
         <div class="rd__group" role="group" aria-labelledby="rd-res-h">
           <h4 class="rd__group-h" id="rd-res-h">Resolution</h4>
-          <label class="rd__number-label" for="rd-quality">Resolution, the most cells allowed across the field</label>
-          <select id="rd-quality" class="rd__select" data-rd="quality">
-            <option value="auto" selected>Automatic</option>
-            <option value="0">320</option><option value="1">400</option><option value="2">480</option><option value="3">560</option>
-            <option value="4">640</option><option value="5">800</option><option value="6">1000</option><option value="7">1200</option><option value="8">1600</option>
-          </select>
+          <div class="rd__pair">
+            <label>Resolution
+              <select id="rd-quality" class="rd__select" data-rd="quality" aria-label="Resolution, the most cells allowed across the field">
+                <option value="auto" selected>Automatic</option>
+                <option value="0">320</option><option value="1">400</option><option value="2">480</option><option value="3">560</option>
+                <option value="4">640</option><option value="5">800</option><option value="6">1000</option><option value="7">1200</option><option value="8">1600</option>
+              </select>
+            </label>
+            <label>Brush width
+              <select id="rd-brush" class="rd__select" data-rd="brush" aria-label="Brush width, the pointer's mark as a share of the field's height">
+                <option value="0.02">2%</option><option value="0.03" selected>3%</option><option value="0.04">4%</option><option value="0.05">5%</option><option value="0.06">6%</option>
+                <option value="0.08">8%</option><option value="0.10">10%</option><option value="0.14">14%</option><option value="0.20">20%</option>
+              </select>
+            </label>
+          </div>
           <p class="rd__measure" data-rd="measure" aria-live="off">—</p>
         </div>
       </section>
