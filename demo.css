@@ -31,6 +31,10 @@ h1 { margin: 0 0 4px; font-size: 28px; font-weight: 600; letter-spacing: .02em; 
 .links { font-family: var(--font-mono); font-size: 13px; }
 .links a { color: var(--text-1); }
 .kicker { font-family: var(--font-mono); font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: var(--text-3); margin: 0 0 13px; }
+.instructions { margin: 0 0 34px; }
+.instructions h2 { font-size: 20px; font-weight: 600; margin: 0 0 13px; }
+.instructions ul { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; font-size: 15px; line-height: 1.5; color: var(--text-2); }
+.instructions b { color: var(--text-1); font-weight: 600; }
 .demo-only { margin-top: 34px; padding: 17px; border: 1px dashed var(--struct-med); background: var(--surface); }
 .demo-only h3 { margin: 0 0 13px; font-family: var(--font-mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); }
 .demo-only .row { display: flex; flex-wrap: wrap; gap: 13px 34px; align-items: center; }

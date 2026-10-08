@@ -1,8 +1,9 @@
 # Morphogen
 
 **A Gray–Scott reaction–diffusion field for the web.** One classic script, no dependencies, no
-build step. Pass the pointer over the field and a pattern grows; nine named regimes, seven colour
-ramps, adaptive resolution, and full keyboard and screen-reader operation.
+build step. Pass the pointer over the field and a pattern grows; nine named regimes, seven color
+ramps, the simulation on the graphics processor with adaptive resolution, and full keyboard and
+screen-reader operation.
 
 [**Live demo**](https://cs-training-systems.github.io/morphogen/) ·
 [Quick start](#quick-start) · [Controls](#controls) · [API](#api) · [Presets](#presets) ·
@@ -69,7 +70,8 @@ fetched at run time, and the script makes no network request of any kind.
 | `data-palette` | a palette id (see [Palettes](#palettes)) | `canopy` |
 | `data-time-scale` | 0.5 … 2.5; steps per frame = 8 × this | 0.75 |
 | `data-steps` | base steps per frame | 8 |
-| `data-quality` | `auto`, or a ladder index 0–5 (320 … 800 cells wide) | `auto` |
+| `data-quality` | the resolution ceiling: `auto` (up to the display) or a ladder index 0–8 (320 … 1600 cells wide); the engine adapts beneath it | `auto` |
+| `data-gpu` | `off` to force the processor path | on |
 | `data-fade-start` · `data-fade-end` | seconds after the pointer leaves at which the chemistry winds down and dies; unset = never | unset |
 
 ## Controls
@@ -80,18 +82,22 @@ All of them are optional.
 | `data-rd` | Element | What it does |
 |---|---|---|
 | `preset` | `<button data-rd-id="…">`, optionally holding a `thumb` canvas | Selects a named regime and seeds it; `aria-pressed` tracks the active one; `data-rd-default` marks the initial one |
-| `thumb` | `<canvas aria-hidden="true">` inside a preset button | Filled with a live-rendered thumbnail of that regime; repainted when the colours change |
+| `thumb` | `<canvas aria-hidden="true">` inside a preset button | Filled with a live-rendered thumbnail of that regime; repainted when the colors change |
 | `note` | any element with `data-rd-for="<preset id>"` | Shown while that preset is active, hidden otherwise |
 | `feed-range` / `feed-number` | `<input type="range">` / `<input type="number">` | Feed rate; the pair tracks itself |
 | `kill-range` / `kill-number` | as above | Kill rate |
 | `scale-range` / `scale-number` | as above | Time scale |
 | `pause` | `<button>` | Pause / Play; its text and label follow the state |
-| `reset` | `<button>` | Clears the field to the ground colour |
+| `reset` | `<button>` | Clears the field to the ground color |
 | `seed` | `<button>` | Seeds one point: the first at the centre, later ones at random |
 | `colors-toggle` · `colors-menu` | `<button aria-expanded aria-controls>` · `<fieldset>` | A drop-down of `palette-option` radios; a choice, Escape, or focus leaving closes it |
-| `palette-option` | `<input type="radio" value="<palette id>" data-rd-name="…">` | Colour ramp by id |
+| `palette-option` | `<input type="radio" value="<palette id>" data-rd-name="…">` | Color ramp by id |
+| `motion` | `<button aria-pressed>` | The accessibility toggle: reduced motion on or off (see [Accessibility](#accessibility)) |
+| `quality` | `<select>` | The resolution ceiling: `auto` or a ladder index; plain numbers in the demo |
+| `measure` | any element | Receives the grid in use, the frame rate and the engine in use, twice a second |
+| `state` | any element | Receives a visible one-line state: pattern, colors, animating / paused / reduced motion |
 | `status` | any element with `aria-live="polite"` | Receives a short plain-text status on every change |
-| `quality` · `steps` | `<select>` | Resolution rung or `auto` · base steps per frame |
+| `steps` | `<select>` | Base steps per frame |
 
 ## API
 
@@ -101,7 +107,9 @@ field.setParams(0.029, 0.057).setTimeScale(1).setPalette("aurora");
 field.seedSpec({ type: "spiral", n: 21, r: 3 });            // "spiral" | "strokes" | "discs" | "grow"
 field.pause(); field.play(); field.clear();
 field.on((type, f) => { /* "params" "palette" "pause" "play" "clear" "seed" "quiet" "quality" "motion" */ });
-field.quality();                                             // { auto, level, width, height, ms, steps }
+field.quality();                                             // { cap, level, width, height, ms, fps, steps, backend: "gpu" | "cpu" }
+field.setQuality("auto"); field.setQuality(5);               // the resolution ceiling; the engine adapts beneath it
+field.setReducedMotion(true);                                // the chronogram still (see Accessibility)
 field.tick();                                                // one frame of work, no scheduling (tests)
 field.destroy();
 ```
@@ -132,10 +140,10 @@ spin up spiral waves; `discs` scatters *n* discs.
 
 ## Palettes
 
-Each ramp is four colours: the ground (black, so a decaying edge fades into it), a trail, a body
+Each ramp is four colors: the ground (black, so a decaying edge fades into it), a trail, a body
 and a front, mapped over the concentration of *V*.
 
-| Id | Colours |
+| Id | Colors |
 |---|---|
 | `canopy` (default) | black · deep blue `#003E99` · green `#009149` · buff `#FEEEA3` |
 | `aurora` | black · green `#009149` · violet `#7728A8` · white |
@@ -163,12 +171,20 @@ Your own ramp: `field.setPalette(["#000000", "#102040", "#2080c0", "#ffffff"])`.
 
 ### Back end (what the engine decides, and how to re-tune it)
 
-- **Adaptive resolution.** Starting at 400 cells wide, the engine keeps a running mean of its own
-  compute time per frame and climbs the ladder (320, 400, 480, 560, 640, 800) while the mean stays
-  under `budgetMs` (8 ms, half of a 60 fps frame); it steps down above `ceilingMs` (12 ms) or when
-  two of the last thirty frames exceed 16 ms; it never simulates more cells across than the canvas
-  has device pixels; it holds one second after each change; and it resamples the running state
-  bilinearly, so a change is invisible. Re-tune by passing `budgetMs` / `ceilingMs` to `mount`.
+- **Two engines, one mathematics.** On WebGL2 with float render targets (every current desktop
+  and mobile browser) the simulation runs on the graphics processor: one fragment-shader pass per
+  step over a ping-pong pair of float textures, the palette applied in a final pass, seeding and
+  resampling as passes too. Otherwise, and in Node for the tests and the media renderer, the
+  processor path runs the identical update on typed arrays. Force the processor path with
+  `data-gpu="off"` or `gpu: false`.
+- **Adaptive resolution beneath a ceiling.** The resolution control sets the most cells allowed
+  across the field (plain numbers in the demo; `auto` means up to the display). Beneath that, from
+  400 wide, the engine climbs the ladder (320 … 1600) while its own compute time stays under
+  `budgetMs` (8 ms) and frames arrive on time; it steps down above `ceilingMs` (12 ms), when two
+  of the last thirty frames exceed 16 ms, or when frames arrive late (the graphics processor's own
+  limit); any change of a setting re-evaluates at once; it holds one second after each change;
+  and it resamples the running state bilinearly, so a change is invisible. Re-tune by passing
+  `budgetMs` / `ceilingMs` to `mount`.
 - **Fade window.** Off by default: patterns run until Reset. With `fadeStart`/`fadeEnd` set, the
   autocatalytic gain winds down smoothly between those times after the pointer leaves, and every
   regime starves at about the same moment. `npm test` runs `tests/verify-fade.js`, which proves
@@ -181,10 +197,19 @@ Your own ramp: `field.setPalette(["#000000", "#102040", "#2080c0", "#ffffff"])`.
 - The canvas is `role="img"` with a text alternative; the pointer interaction is decorative, so
   everything is operable without a pointer: presets, Seed, Pause and Reset are real buttons; feed,
   kill and time scale are native range and number inputs with labels.
-- Every change is announced through a polite live region; state is never conveyed by colour alone
-  (the active preset and colour are marked by border and mark).
-- `prefers-reduced-motion: reduce` stops the animation and shows a computed still; the controls
-  recompute that still. The colour menu's animation is removed under the same preference.
+- Every change is announced through a polite live region; state is never conveyed by color alone
+  (the active preset and color are marked by border and mark).
+- **Reduced motion** is an accessibility mode, for people for whom moving content causes
+  vestibular symptoms, and it starts on when the operating system asks for it
+  (`prefers-reduced-motion: reduce`); the page can also expose it as a toggle (`data-rd="motion"`).
+  By design it replaces the animation with one still frame that is substantially equivalent to the
+  animation for the current settings: a chronogram whose left edge is the seed state, whose right
+  edge is the regime at full development, and whose middle is the transition, recomputed for any
+  change of pattern, rates or colors. The color menu's animation is removed under the same
+  preference.
+- A visible state line (`data-rd="state"`) always says which pattern and colors are engaged and
+  whether the field is animating, paused or in reduced motion, and the active pattern's note sits
+  beneath it, so the tool's mode is never ambiguous.
 - The frame, corner brackets, thumbnails and swatches keep their borders under Windows high
   contrast (`forced-colors: active`).
 - Vertical touch swipes over the field scroll the page (`touch-action: pan-y`); only sideways
@@ -192,9 +217,11 @@ Your own ramp: `field.setPalette(["#000000", "#102040", "#2080c0", "#ffffff"])`.
 
 ## Browser support
 
-Any current browser: the script uses Canvas 2D, `requestAnimationFrame`, pointer events,
-`matchMedia` and typed arrays, all baseline for years. The demo's notes use inline MathML, which
-every current browser renders natively.
+Any current browser. The graphics-processor path needs WebGL2 with the `EXT_color_buffer_float`
+extension, which every current desktop and mobile browser provides; without it the processor path
+takes over with the same mathematics. Everything else is Canvas 2D, `requestAnimationFrame`,
+pointer events, `matchMedia` and typed arrays. The demo's notes use inline MathML, which every
+current browser renders natively.
 
 ## Forking and contributing
 

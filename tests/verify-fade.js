@@ -24,7 +24,7 @@ function stubCanvas() {
 
 function survival(preset) {
   let clockMs = 0;
-  const field = RD.mount(stubCanvas(), { quality: 0, feed: preset.feed, kill: preset.kill, fadeStart: FADE_START, fadeEnd: FADE_END, clock: () => clockMs });
+  const field = RD.mount(stubCanvas(), { quality: [320, 180], gpu: false, feed: preset.feed, kill: preset.kill, fadeStart: FADE_START, fadeEnd: FADE_END, clock: () => clockMs });
   field.setPointer(true);
   field.seedSpec(preset.seed, 11);
   for (let i = 0; i < DEVELOP_S * FPS; i++) { clockMs += 1000 / FPS; field.tick(); }

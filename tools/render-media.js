@@ -1,5 +1,5 @@
 // tools/render-media.js — renders the README's stills and GIFs straight from the engine, in Node,
-// with no screen recording: frames come from the simulation itself, so colours are exact and the
+// with no screen recording: frames come from the simulation itself, so colors are exact and the
 // output is reproducible. Stills are written as PNG by a small encoder here (zlib is built into
 // Node); GIFs are encoded by ffmpeg from raw RGB frames (ffmpeg must be on the PATH).
 //
@@ -67,7 +67,7 @@ function rgb(rgba, w, h) {
 function scene(opts) {
   let clockMs = 0;
   const canvas = stubCanvas();
-  const field = RD.mount(canvas, { quality: [opts.width, opts.height], feed: opts.feed, kill: opts.kill, palette: opts.palette || "canopy", timeScale: opts.timeScale || 0.75, clock: () => clockMs });
+  const field = RD.mount(canvas, { quality: [opts.width, opts.height], gpu: false, feed: opts.feed, kill: opts.kill, palette: opts.palette || "canopy", timeScale: opts.timeScale || 0.75, clock: () => clockMs });
   if (opts.seed) field.seedSpec(opts.seed, opts.salt || 11);
   const fps = 60, frames = [];
   const total = Math.round(opts.seconds * fps), every = Math.round(fps / (opts.gifFps || 20));

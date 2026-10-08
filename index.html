@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Morphogen — a Gray–Scott reaction–diffusion field</title>
-<meta name="description" content="Morphogen: a Gray–Scott reaction–diffusion field for the web. One classic script, no dependencies. Hover to seed a pattern; nine named regimes; seven colour ramps; adaptive resolution.">
+<meta name="description" content="Morphogen: a Gray–Scott reaction–diffusion field for the web. One classic script, no dependencies. Hover to seed a pattern; nine named regimes; seven color ramps; adaptive resolution on the graphics processor.">
 <link rel="stylesheet" href="demo.css">
 <link rel="stylesheet" href="reaction-diffusion.css">
 </head>
@@ -15,6 +15,19 @@
     <p class="tagline">A Gray–Scott reaction–diffusion field for the web. One classic script, no dependencies, no build step.</p>
     <p class="links"><a href="https://github.com/cs-training-systems/morphogen">Source and README on GitHub ↗</a></p>
   </header>
+
+  <section class="instructions" aria-labelledby="how-h">
+    <h2 id="how-h">How to use it</h2>
+    <ul>
+      <li><b>Hover.</b> Move the pointer over the field and a pattern starts where you pass; faster movement seeds a wider trail. No click is needed. On a touch screen, drag sideways; vertical swipes scroll the page.</li>
+      <li><b>Patterns.</b> The nine tiles above the field are named regimes of the same chemistry; each tile shows its own pattern. Choose one and the field is reseeded with it; its note appears under the field.</li>
+      <li><b>Pause, Reset, Seed.</b> Pause freezes the field; Reset clears it to black; Seed drops one point, the first at the centre and later ones at random.</li>
+      <li><b>Colors.</b> Seven color ramps, each shown as its four colors. The ground is black; the other three run from the pattern's trailing edge to its front.</li>
+      <li><b>Accessibility.</b> Reduced motion replaces the animation with one still frame by design: the pattern's whole development for the current settings, seed state at the left edge, full emergence at the right, the transition across the middle. If your operating system asks for reduced motion, Morphogen starts in this mode.</li>
+      <li><b>Rate.</b> Feed and Kill are the two numbers of the Gray–Scott model; small changes move the field between regimes. Time scale is simulation speed: 1 runs 8 simulation steps per frame, 0.5 half that, 2.5 two and a half times that.</li>
+      <li><b>Resolution.</b> The number is the most simulation cells allowed across the field's width; the height follows the field's shape. Within that limit the engine always picks the finest grid your machine animates without dropping frames, never finer than your screen can show, and steps down the moment a setting gets heavier, so nothing you choose can make it stutter. Automatic means up to your screen's own resolution. The line beneath shows the grid in use. Patterns look the same at every resolution, with finer features on finer grids.</li>
+    </ul>
+  </section>
 
   <section class="rd" data-rd-scope aria-labelledby="rd-heading">
     <p class="kicker" id="rd-heading">Interactive · Reaction–diffusion</p>
@@ -34,7 +47,7 @@
     <div class="rd__stage">
       <figure class="rd__frame">
         <canvas id="rd-field" class="rd__canvas" data-reaction-diffusion data-feed="0.010" data-kill="0.035" data-palette="canopy" data-steps="8"
-          role="img" aria-label="A reaction–diffusion simulation. A black field; moving the pointer over it seeds a chemical pattern that grows and spreads. The pattern buttons, the feed, kill and time-scale controls, and the colour options change its behaviour and look."></canvas>
+          role="img" aria-label="A reaction–diffusion simulation. A black field; moving the pointer over it seeds a chemical pattern that grows and spreads. The pattern tiles, the feed, kill and time-scale controls, and the color options change its behaviour and look."></canvas>
         <span class="corner corner--tl" aria-hidden="true"></span><span class="corner corner--tr" aria-hidden="true"></span>
         <span class="corner corner--bl" aria-hidden="true"></span><span class="corner corner--br" aria-hidden="true"></span>
         <div class="rd__hud">
@@ -57,28 +70,47 @@
         </div>
       </figure>
 
-      <section class="rd__rate" aria-labelledby="rd-rate-h">
-        <h3 class="rd__rate-h" id="rd-rate-h">Rate</h3>
-        <div class="rd__param">
-          <label for="rd-feed-range">Feed</label>
-          <input id="rd-feed-range" type="range" min="0.008" max="0.070" step="0.001" value="0.010" data-rd="feed-range">
-          <label class="rd__number-label" for="rd-feed-number">Feed, exact value</label>
-          <input id="rd-feed-number" type="number" min="0.008" max="0.070" step="0.001" value="0.010" inputmode="decimal" data-rd="feed-number">
+      <section class="rd__panel" aria-labelledby="rd-controls-h">
+        <h3 class="rd__panel-h" id="rd-controls-h">Controls</h3>
+        <div class="rd__group" role="group" aria-labelledby="rd-acc-h">
+          <h4 class="rd__group-h" id="rd-acc-h">Accessibility</h4>
+          <button type="button" class="rd__toggle" data-rd="motion" aria-pressed="false" aria-describedby="rd-acc-hint">Reduced motion</button>
+          <p class="rd__hint" id="rd-acc-hint">By design, shows one still frame instead of the animation: the pattern's whole development for the current settings, seed at the left, full emergence at the right.</p>
         </div>
-        <div class="rd__param">
-          <label for="rd-kill-range">Kill</label>
-          <input id="rd-kill-range" type="range" min="0.030" max="0.066" step="0.001" value="0.035" data-rd="kill-range">
-          <label class="rd__number-label" for="rd-kill-number">Kill, exact value</label>
-          <input id="rd-kill-number" type="number" min="0.030" max="0.066" step="0.001" value="0.035" inputmode="decimal" data-rd="kill-number">
+        <div class="rd__group" role="group" aria-labelledby="rd-rate-h">
+          <h4 class="rd__group-h" id="rd-rate-h">Rate</h4>
+          <div class="rd__param">
+            <label for="rd-feed-range">Feed:</label>
+            <input id="rd-feed-range" type="range" min="0.008" max="0.070" step="0.001" value="0.010" data-rd="feed-range">
+            <label class="rd__number-label" for="rd-feed-number">Feed, exact value</label>
+            <input id="rd-feed-number" type="number" min="0.008" max="0.070" step="0.001" value="0.010" inputmode="decimal" data-rd="feed-number">
+          </div>
+          <div class="rd__param">
+            <label for="rd-kill-range">Kill:</label>
+            <input id="rd-kill-range" type="range" min="0.030" max="0.066" step="0.001" value="0.035" data-rd="kill-range">
+            <label class="rd__number-label" for="rd-kill-number">Kill, exact value</label>
+            <input id="rd-kill-number" type="number" min="0.030" max="0.066" step="0.001" value="0.035" inputmode="decimal" data-rd="kill-number">
+          </div>
+          <div class="rd__param">
+            <label for="rd-scale-range">Time scale:</label>
+            <input id="rd-scale-range" type="range" min="0.5" max="2.5" step="0.05" value="0.75" data-rd="scale-range">
+            <label class="rd__number-label" for="rd-scale-number">Time scale, exact value</label>
+            <input id="rd-scale-number" type="number" min="0.5" max="2.5" step="0.05" value="0.75" inputmode="decimal" data-rd="scale-number">
+          </div>
         </div>
-        <div class="rd__param">
-          <label for="rd-scale-range">Time scale</label>
-          <input id="rd-scale-range" type="range" min="0.5" max="2.5" step="0.05" value="0.75" data-rd="scale-range">
-          <label class="rd__number-label" for="rd-scale-number">Time scale, exact value</label>
-          <input id="rd-scale-number" type="number" min="0.5" max="2.5" step="0.05" value="0.75" inputmode="decimal" data-rd="scale-number">
+        <div class="rd__group" role="group" aria-labelledby="rd-res-h">
+          <h4 class="rd__group-h" id="rd-res-h">Resolution</h4>
+          <label class="rd__number-label" for="rd-quality">Resolution, the most cells allowed across the field</label>
+          <select id="rd-quality" class="rd__select" data-rd="quality">
+            <option value="auto" selected>Automatic</option>
+            <option value="0">320</option><option value="1">400</option><option value="2">480</option><option value="3">560</option>
+            <option value="4">640</option><option value="5">800</option><option value="6">1000</option><option value="7">1200</option><option value="8">1600</option>
+          </select>
+          <p class="rd__measure" data-rd="measure" aria-live="off">—</p>
         </div>
       </section>
     </div>
+    <p class="rd__state" data-rd="state"></p>
     <p class="visually-hidden" data-rd="status" aria-live="polite"></p>
 
     <div class="rd__notes">
@@ -92,26 +124,6 @@
       <p class="rd__note" data-rd="note" data-rd-for="phyllotaxis"><b>Phyllotaxis pattern:</b> a sunflower head building itself: every few frames one more stable spot is placed on the spiral, from the centre outward, until the head is complete. Vogel's model places seed <math><mi>n</mi></math> at an angle of <math><mrow><mi>n</mi><mo>·</mo><mn>137.5</mn><mo>°</mo></mrow></math> from the last and a radius of <math><mrow><mi>c</mi><msqrt><mi>n</mi></msqrt></mrow></math>; that angle is the golden angle, <math><mrow><mn>360</mn><mo>°</mo><mo>/</mo><msup><mi>φ</mi><mn>2</mn></msup></mrow></math>, and it is why the spiral counts come out as Fibonacci numbers. Here the arrangement is placed; the chemistry then decides what to keep.</p>
       <p class="rd__note" data-rd="note" data-rd-for="vortex"><b>Vortex pattern:</b> spiral waves, or rotors, in an excitable medium — the pattern a broken wave front makes when its free end curls around and becomes its own pacemaker, as in the Belousov–Zhabotinsky reaction and in heart tissue. Its simplest law is the eikonal relation, <math><mrow><mi>c</mi><mo>=</mo><msub><mi>c</mi><mn>0</mn></msub><mo>−</mo><mi>D</mi><mi>κ</mi></mrow></math>: a front moves slower the more sharply it is curved, which is exactly what lets a tip rotate instead of racing away.</p>
     </div>
-
-    <div class="demo-only" aria-label="Demo controls">
-      <h3>Demo controls</h3>
-      <div class="row">
-        <label>Resolution
-          <select data-rd="quality">
-            <option value="auto" selected>Automatic (climbs while the frame stays under 8 ms)</option>
-            <option value="0">320 cells wide</option>
-            <option value="1">400 cells wide</option>
-            <option value="2">480 cells wide</option>
-            <option value="3">560 cells wide</option>
-            <option value="4">640 cells wide</option>
-            <option value="5">800 cells wide</option>
-          </select>
-        </label>
-        <label>Measured <output id="fps">—</output></label>
-        <button id="motion" type="button" aria-pressed="false">Reduced motion: off</button>
-      </div>
-      <p>Patterns run until Reset. Time scale multiplies the base of 8 simulation steps per frame. Resolution starts at 400 cells wide and moves by measurement; the grid's height follows the frame's shape, so nothing is ever stretched.</p>
-    </div>
   </section>
 
   <footer>
@@ -119,6 +131,5 @@
   </footer>
 </main>
 <script src="reaction-diffusion.js" defer></script>
-<script src="demo.js" defer></script>
 </body>
 </html>

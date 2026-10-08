@@ -18,11 +18,11 @@ stylesheet, no dependencies, no build step. Contributions that keep it that way 
   `ReactionDiffusion`). The declarative `data-rd` roles are the public interface; add roles rather
   than changing existing ones.
 - Keep the accessibility contract: every control is a native element with a visible name; status
-  changes go through the live region; nothing depends on a pointer or on colour alone; motion
+  changes go through the live region; nothing depends on a pointer or on color alone; motion
   honours `prefers-reduced-motion`.
 - A new preset needs: a `(feed, kill)` pair and a seeding spec in `PRESETS`; a button and a note in
   `index.html`; a run of `npm test`; and, ideally, a still rendered with `tools/render-media.js`.
-- A new palette needs: four colours (ground, trail, body, front) in `PALETTES` and a radio row with
+- A new palette needs: four colors (ground, trail, body, front) in `PALETTES` and a radio row with
   four swatches in `index.html`.
 
 ## Pull requests

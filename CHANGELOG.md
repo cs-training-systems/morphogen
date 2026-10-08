@@ -13,12 +13,18 @@ First release.
 - Nine named regimes with live-rendered thumbnails and a note each: Malachite, Meandric, Swarm,
   Honeycomb, Frost, Turbulence, Mitosis, Phyllotaxis (a head that grows on the golden angle),
   Vortex (spiral waves from broken strokes).
-- Seven colour ramps with swatch previews: Canopy, Aurora, Spectrum, Neon, Accretion, Physarum,
+- Seven color ramps with swatch previews: Canopy, Aurora, Spectrum, Neon, Accretion, Physarum,
   Cherenkov.
 - Feed, kill and time-scale controls as slider-and-number pairs; time scale 0.5–2.5 on a base of
   8 steps per frame, fractional steps carried between frames.
-- Adaptive resolution by measured compute time, grid shape following the frame, bilinear
-  resampling on change.
+- The simulation on the graphics processor (WebGL2, float textures) with the processor path as
+  fallback and as the reference for the tests; identical mathematics on both.
+- Adaptive resolution beneath a ceiling the user sets, by measured compute time and frame
+  arrival, grid shape following the frame, bilinear resampling on change, re-evaluated at once on
+  any setting change.
+- Reduced motion as a chronogram: one still, seed at the left edge, full development at the
+  right, for any settings; a visible state line and a note per pattern under the tool.
+- A Controls panel beside the field: Accessibility, Rate (feed, kill, time scale), Resolution.
 - Optional fade window (off by default) with a Node verifier, `tests/verify-fade.js`.
 - Declarative `data-rd` control binding; programmatic API; reduced-motion still; Windows
   high-contrast support.

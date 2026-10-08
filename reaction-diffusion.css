@@ -1,31 +1,32 @@
-/* reaction-diffusion.css — the component's own styles. Every colour/size falls back to a
-   sensible value so the component works on any page; on the portfolio the site's tokens win. */
+/* reaction-diffusion.css — the component's own styles. Every color/size falls back to a sensible
+   value so the component works on any page; on the portfolio the site's tokens win. Spacing follows
+   the site's gutter (17px) and module (38px); a toggled control carries aria-pressed="true", a green
+   border, the green-10 fill and an inset green ring. */
 
-.rd { display: grid; grid-template-columns: minmax(0, 1fr); gap: 13px; }
+.rd { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gutter, 17px); }
 .rd > * { min-width: 0; }
 
-/* ---- pattern selectors: live thumbnails with the one-word name beneath ---- */
-.rd__presets { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+/* ---- pattern selectors: live thumbnails with the name beneath, spread evenly across the full width ---- */
+.rd__presets { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: var(--gutter, 17px); margin: 0; padding: 0; list-style: none; }
 .rd__preset {
-  display: grid; justify-items: center; gap: 5px; padding: 5px 5px 6px;
+  display: grid; justify-items: center; gap: 6px; padding: 6px 6px 7px; width: 100%;
   background: var(--surface, #EDF1F4); border: 1px solid var(--struct-med, rgba(26,26,26,.5)); cursor: pointer;
   font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase;
   color: var(--text-2, #4A4A4A); line-height: 1;
 }
-.rd__thumb { display: block; width: 96px; height: 54px; background: #000; border: 1px solid var(--struct-card, rgba(26,26,26,.2)); image-rendering: auto; }
+.rd__thumb { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; background: #000; border: 1px solid var(--struct-card, rgba(26,26,26,.2)); image-rendering: auto; }
 .rd__preset:hover { border-color: var(--green, #008432); background: var(--green-10, rgba(0,132,50,.1)); color: var(--ink, #1B1B1B); }
-.rd__preset[aria-pressed="true"] { border-color: var(--green, #008432); border-width: 2px; padding: 4px 4px 5px; color: var(--ink, #1B1B1B); background: var(--green-10, rgba(0,132,50,.1)); }
+.rd__preset[aria-pressed="true"] { border-color: var(--green, #008432); box-shadow: inset 0 0 0 1px var(--green, #008432); background: var(--green-10, rgba(0,132,50,.1)); color: var(--ink, #1B1B1B); }
 .rd__preset[aria-pressed="true"] .rd__thumb { border-color: var(--green, #008432); }
-@media (max-width: 480px) { .rd__thumb { width: 72px; height: 40px; } .rd__preset { font-size: 10px; } }
+@media (max-width: 900px) { .rd__presets { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
-/* ---- the stage: the field (16:9) beside the Rate panel; together they fill the page's 3:1 box ---- */
-.rd__stage { display: grid; grid-template-columns: 16fr 11fr; gap: 13px; align-items: stretch; }
+/* ---- the stage: the field (16:9, wide) beside the controls panel ---- */
+.rd__stage { display: grid; grid-template-columns: minmax(0, 16fr) minmax(272px, 7fr); gap: var(--gutter, 17px); align-items: start; }
 .rd__frame {
   position: relative; width: 100%; aspect-ratio: 16 / 9; margin: 0;
   border: 1px solid var(--embed-frame, rgba(26,26,26,.6));
   background-color: var(--canvas, #F4F7F9);
-  background-image: linear-gradient(var(--hair, rgba(26,26,26,.1)) 1px, transparent 1px),
-                    linear-gradient(90deg, var(--hair, rgba(26,26,26,.1)) 1px, transparent 1px);
+  background-image: linear-gradient(var(--hair, rgba(26,26,26,.1)) 1px, transparent 1px), linear-gradient(90deg, var(--hair, rgba(26,26,26,.1)) 1px, transparent 1px);
   background-size: 38px 38px;
 }
 .rd__canvas { display: block; width: 100%; height: 100%; image-rendering: auto; background: #000; cursor: crosshair; touch-action: pan-y; }
@@ -37,19 +38,17 @@
 .rd__frame:hover > .corner, .rd__frame:focus-within > .corner { border-color: var(--green, #008432); }
 @media (max-width: 480px) { .rd__frame > .corner { width: calc(var(--corner-size, 38px) / 2); height: calc(var(--corner-size, 38px) / 2); } }
 
-/* ---- in-field controls, top right: the Home reel control's exact treatment, stacked ---- */
+/* ---- in-field controls, top right: the Home reel control's treatment, stacked, equal widths ---- */
 .rd__hud { position: absolute; top: 17px; right: 17px; z-index: 2; display: grid; gap: 8px; justify-items: stretch; }
 .rd__ctl {
-  min-width: 24px; min-height: 24px; text-align: left;
+  min-width: 24px; min-height: 24px; width: 100%; text-align: left;
   font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; letter-spacing: .05em; text-transform: uppercase;
   color: var(--text-1, #1A1A1A); background: var(--surface, #EDF1F4); border: 1px solid var(--struct-med, rgba(26,26,26,.5));
   padding: 7px 13px; cursor: pointer;
 }
 .rd__ctl:hover, .rd__ctl:focus-visible { border-color: var(--green, #008432); background: var(--green-10, rgba(0,132,50,.1)); color: var(--ink, #1B1B1B); }
-.rd__ctl[aria-expanded="true"] { border-color: var(--green, #008432); }
-.rd__colors { position: static; }
-/* the colour menu drops down beside the control stack, from the field's top edge, exactly as the
-   site's navigation menu drops from the header; seven rows fit inside the field at every size */
+.rd__ctl[aria-expanded="true"] { border-color: var(--green, #008432); box-shadow: inset 0 0 0 1px var(--green, #008432); }
+.rd__colors { display: grid; }
 .rd__colors-menu {
   position: absolute; top: 0; right: calc(100% + 8px); z-index: 3; margin: 0; padding: 0; border: 0; min-width: 0;
   display: grid; background: var(--surface, #EDF1F4);
@@ -67,8 +66,7 @@
 }
 .rd__palette input { position: absolute; width: 1px; height: 1px; margin: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .rd__palette:hover, .rd__palette:has(input:focus-visible) { border-color: var(--green, #008432); background: var(--green-10, rgba(0,132,50,.1)); color: var(--ink, #1B1B1B); }
-.rd__palette:has(input:checked) { border-color: var(--struct-card, rgba(26,26,26,.2)); color: var(--text-1, #1A1A1A); }
-.rd__palette:has(input:checked)::after { content: "■"; color: var(--green, #008432); margin-left: 8px; }
+.rd__palette:has(input:checked) { border-color: var(--green, #008432); box-shadow: inset 0 0 0 1px var(--green, #008432); background: var(--green-10, rgba(0,132,50,.1)); color: var(--ink, #1B1B1B); }
 .rd__swatches { display: inline-grid; grid-template-columns: repeat(4, 11px); gap: 2px; }
 .rd__sw { width: 11px; height: 11px; border: 1px solid var(--struct-med, rgba(26,26,26,.5)); }
 .rd__sw--black { background: #000000; }  .rd__sw--white { background: #FFFFFF; }
@@ -77,46 +75,55 @@
 .rd__sw--cyan { background: #0095DA; }   .rd__sw--blue { background: #003E99; }
 .rd__sw--violet { background: #7728A8; } .rd__sw--buff { background: #FEEEA3; }
 
-/* ---- the Rate panel: three sliders, each with an exact-value field ---- */
-.rd__rate { border: 1px solid var(--struct-card, rgba(26,26,26,.2)); background: var(--surface, #EDF1F4); padding: 17px; display: grid; align-content: start; gap: 13px; min-width: 0; }
-.rd__rate-h { margin: 0; font-family: var(--font-mono, ui-monospace, monospace); font-size: 14px; font-weight: 500; letter-spacing: .03em; text-transform: uppercase; color: var(--text-1, #1A1A1A); }
-.rd__param { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "label label" "range number"; align-items: center; gap: 6px 13px; }
+/* ---- the controls panel: Controls → Accessibility · Rate · Resolution ---- */
+.rd__panel { border: 1px solid var(--struct-card, rgba(26,26,26,.2)); background: var(--surface, #EDF1F4); padding: 17px; display: grid; align-content: start; gap: 13px; min-width: 0; }
+.rd__panel-h { margin: 0; font-family: var(--font-mono, ui-monospace, monospace); font-size: 14px; font-weight: 500; letter-spacing: .03em; text-transform: uppercase; color: var(--text-1, #1A1A1A); }
+.rd__group { display: grid; gap: 8px; padding-top: 13px; border-top: 1px solid var(--hair, rgba(26,26,26,.1)); }
+.rd__group-h { margin: 0; font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; color: var(--text-3, #6B6B6B); }
+.rd__param { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; }
 .rd__param > * { min-width: 0; }
-.rd__param label { grid-area: label; font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-2, #4A4A4A); }
-.rd__param input[type="range"] { grid-area: range; width: 100%; min-width: 0; min-height: var(--btn, 38px); accent-color: var(--green, #008432); margin: 0; }
-.rd__param input[type="number"] {
-  grid-area: number; width: 8ch; min-height: var(--btn, 38px); padding: 0 4px 0 8px;
-  font-family: var(--font-mono, ui-monospace, monospace); font-size: 14px;
+.rd__param label { font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-2, #4A4A4A); white-space: nowrap; }
+.rd__param input[type="range"] { width: 100%; min-width: 0; min-height: var(--btn, 38px); accent-color: var(--green, #008432); margin: 0; }
+.rd__param input[type="number"], .rd__select {
+  min-height: var(--btn, 38px); padding: 0 4px 0 8px; font-family: var(--font-mono, ui-monospace, monospace); font-size: 13px;
   color: var(--text-1, #1A1A1A); background: var(--paper, #FFFDF3); border: 1px solid var(--struct-med, rgba(26,26,26,.5));
 }
+.rd__param input[type="number"] { width: 7.5ch; }
+.rd__select { width: 100%; cursor: pointer; }
 .rd__number-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.rd__toggle {
+  justify-self: start; min-height: var(--btn, 38px); padding: 0 13px;
+  font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--text-1, #1A1A1A); background: var(--paper, #FFFDF3); border: 1px solid var(--struct-med, rgba(26,26,26,.5)); cursor: pointer;
+}
+.rd__toggle::before { content: "\25A1\00a0"; color: var(--text-3, #6B6B6B); }
+.rd__toggle:hover { border-color: var(--green, #008432); background: var(--green-10, rgba(0,132,50,.1)); color: var(--ink, #1B1B1B); }
+.rd__toggle[aria-pressed="true"] { border-color: var(--green, #008432); box-shadow: inset 0 0 0 1px var(--green, #008432); background: var(--green-10, rgba(0,132,50,.1)); color: var(--ink, #1B1B1B); }
+.rd__toggle[aria-pressed="true"]::before { content: "\25A0\00a0"; color: var(--green, #008432); }
+.rd__hint { margin: 0; font-size: 12px; line-height: 1.45; color: var(--text-3, #6B6B6B); }
+.rd__measure { margin: 0; font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; letter-spacing: .03em; color: var(--text-3, #6B6B6B); }
 
-/* ---- the note under the field: one per pattern, shown for the active one ---- */
+/* ---- under the tool: the state line, then the active pattern's note ---- */
+.rd__state { margin: 0; font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-2, #4A4A4A); }
 .rd__notes { margin: 0; }
 .rd__note { margin: 0; font-size: 14px; line-height: 1.55; color: var(--text-2, #4A4A4A); }
 .rd__note b { font-family: var(--font-mono, ui-monospace, monospace); font-weight: 500; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-1, #1A1A1A); }
 .rd__note math { font-size: 1em; }
 
-/* visible focus: the site's 2px green ring, offset so it is never obscured */
 .rd :focus-visible { outline: 2px solid var(--green, #008432); outline-offset: 2px; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-/* ---- below tablet: the field becomes a square and the Rate panel sits beneath it ---- */
+/* ---- below tablet: the field becomes a square and the panel sits beneath it ---- */
 @media (max-width: 768px) {
   .rd__stage { grid-template-columns: minmax(0, 1fr); }
   .rd__frame { aspect-ratio: 1 / 1; }
   .rd__hud { top: 9px; right: 9px; }
-  /* the Rate panel compresses: label, slider and value share one row */
-  .rd__rate { padding: 13px; gap: 8px; }
-  .rd__param { grid-template-columns: 7.5em minmax(0, 1fr) auto; grid-template-areas: "label range number"; gap: 8px; }
-  .rd__param label { white-space: nowrap; }
-  .rd__param input[type="range"], .rd__param input[type="number"] { min-height: 30px; }
-  .rd__param input[type="number"] { width: 7ch; font-size: 13px; }
+  .rd__panel { padding: 13px; gap: 8px; }
 }
 
 /* Windows high contrast: keep the frame, brackets, thumbnails and swatches visible */
 @media (forced-colors: active) {
   .rd__frame, .rd__frame > .corner, .rd__sw, .rd__thumb { border-color: CanvasText; }
-  .rd__preset[aria-pressed="true"] { border-width: 3px; }
+  .rd__preset[aria-pressed="true"], .rd__toggle[aria-pressed="true"] { border-width: 3px; }
   .rd__sw { forced-color-adjust: none; }
 }
