@@ -16,21 +16,11 @@
     <p class="links"><a href="https://github.com/cs-training-systems/morphogen">Source and README on GitHub ↗</a></p>
   </header>
 
-  <section class="instructions" aria-labelledby="how-h">
-    <h2 id="how-h">How to use it</h2>
-    <ul>
-      <li><b>Hover.</b> Move the pointer over the field and a pattern starts where you pass; faster movement seeds a wider trail. No click is needed. On a touch screen, drag sideways; vertical swipes scroll the page.</li>
-      <li><b>Patterns.</b> The nine tiles above the field are named regimes of the same chemistry; each tile shows its own pattern. Choose one and the field is reseeded with it; its note appears under the field.</li>
-      <li><b>Pause, Reset, Seed.</b> Pause freezes the field; Reset clears it to black; Seed drops one point, the first at the centre and later ones at random.</li>
-      <li><b>Colors.</b> Seven color ramps, each shown as its four colors. The ground is black; the other three run from the pattern's trailing edge to its front.</li>
-      <li><b>Accessibility.</b> Reduced motion replaces the animation with one still frame by design: the pattern's whole development for the current settings, seed state at the left edge, full emergence at the right, the transition across the middle. If your operating system asks for reduced motion, Morphogen starts in this mode.</li>
-      <li><b>Rate.</b> Feed and Kill are the two numbers of the Gray–Scott model; small changes move the field between regimes. Time scale is simulation speed: 1 runs 8 simulation steps per frame, 0.5 half that, 2.5 two and a half times that.</li>
-      <li><b>Resolution.</b> The number is the most simulation cells allowed across the field's width; the height follows the field's shape. Within that limit the engine always picks the finest grid your machine animates without dropping frames, never finer than your screen can show, and steps down the moment a setting gets heavier, so nothing you choose can make it stutter. Automatic means up to your screen's own resolution. The line beneath shows the grid in use. Patterns look the same at every resolution, with finer features on finer grids.</li>
-    </ul>
-  </section>
+  <p class="instructions">Hover over the field to seed it; pick a pattern tile; Seed drops a point, Reset clears. Rate sets feed, kill and speed; Resolution caps the grid, which otherwise adapts to your machine. Reduced motion shows one still: seed at the left, full pattern at the right.</p>
 
   <section class="rd" data-rd-scope aria-labelledby="rd-heading">
     <p class="kicker" id="rd-heading">Interactive · Reaction–diffusion</p>
+    <p class="rd__mode" data-rd="mode" aria-label="Current pattern">MALACHITE</p>
 
     <ul class="rd__presets" aria-label="Patterns">
       <li><button type="button" class="rd__preset" data-rd="preset" data-rd-id="malachite" data-rd-default aria-pressed="true"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Malachite</button></li>
@@ -50,9 +40,10 @@
           role="img" aria-label="A reaction–diffusion simulation. A black field; moving the pointer over it seeds a chemical pattern that grows and spreads. The pattern tiles, the feed, kill and time-scale controls, and the color options change its behaviour and look."></canvas>
         <span class="corner corner--tl" aria-hidden="true"></span><span class="corner corner--tr" aria-hidden="true"></span>
         <span class="corner corner--bl" aria-hidden="true"></span><span class="corner corner--br" aria-hidden="true"></span>
+        <div class="rd__loading" data-rd="loading" role="status" hidden><span>Loading…</span></div>
         <div class="rd__hud">
           <button type="button" class="rd__ctl" data-rd="pause">⏸ PAUSE</button>
-          <button type="button" class="rd__ctl" data-rd="reset">Reset</button>
+          <button type="button" class="rd__ctl" data-rd="reset">⏹ RESET</button>
           <button type="button" class="rd__ctl" data-rd="seed">Seed</button>
           <div class="rd__colors">
             <button type="button" class="rd__ctl" data-rd="colors-toggle" aria-expanded="false" aria-controls="rd-colors">Colors</button>
@@ -74,8 +65,12 @@
         <h3 class="rd__panel-h" id="rd-controls-h">Controls</h3>
         <div class="rd__group" role="group" aria-labelledby="rd-acc-h">
           <h4 class="rd__group-h" id="rd-acc-h">Accessibility</h4>
-          <button type="button" class="rd__toggle" data-rd="motion" aria-pressed="false" aria-describedby="rd-acc-hint">Reduced motion</button>
-          <p class="rd__hint" id="rd-acc-hint">By design, shows one still frame instead of the animation: the pattern's whole development for the current settings, seed at the left, full emergence at the right.</p>
+          <div class="rd__acc">
+            <input type="checkbox" id="rd-motion-check" data-rd="motion-check" aria-describedby="rd-acc-hint">
+            <label for="rd-motion-check" class="visually-hidden">Reduced motion</label>
+            <button type="button" class="rd__toggle" data-rd="motion" aria-pressed="false" aria-describedby="rd-acc-hint">Reduced motion</button>
+          </div>
+          <p class="rd__hint" id="rd-acc-hint">By design, one still frame: seed at the left, full pattern at the right.</p>
         </div>
         <div class="rd__group" role="group" aria-labelledby="rd-rate-h">
           <h4 class="rd__group-h" id="rd-rate-h">Rate</h4>

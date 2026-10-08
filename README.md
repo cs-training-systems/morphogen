@@ -92,7 +92,9 @@ All of them are optional.
 | `seed` | `<button>` | Seeds one point: the first at the centre, later ones at random |
 | `colors-toggle` · `colors-menu` | `<button aria-expanded aria-controls>` · `<fieldset>` | A drop-down of `palette-option` radios; a choice, Escape, or focus leaving closes it |
 | `palette-option` | `<input type="radio" value="<palette id>" data-rd-name="…">` | Color ramp by id |
-| `motion` | `<button aria-pressed>` | The accessibility toggle: reduced motion on or off (see [Accessibility](#accessibility)) |
+| `motion` · `motion-check` | `<button aria-pressed>` · `<input type="checkbox">` | The accessibility toggle, reduced motion on or off; either control toggles and both stay in step (see [Accessibility](#accessibility)) |
+| `mode` | any element | Receives the current pattern's name in capitals |
+| `loading` | any element with `hidden` | Shown while a reduced-motion still is computed |
 | `quality` | `<select>` | The resolution ceiling: `auto` or a ladder index; plain numbers in the demo |
 | `measure` | any element | Receives the grid in use, the frame rate and the engine in use, twice a second |
 | `state` | any element | Receives a visible one-line state: pattern, colors, animating / paused / reduced motion |

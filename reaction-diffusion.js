@@ -40,7 +40,7 @@
 
   var PRESETS = [
     // chrono: simulation steps the reduced-motion chronogram spans, seed (left) → full development (right)
-    { id: "malachite",   name: "Malachite",   feed: 0.010, kill: 0.035, seed: { type: "discs",   n: 5,  r: 3 }, chrono: 420 },
+    { id: "malachite",   name: "Malachite",   feed: 0.010, kill: 0.035, seed: { type: "pacemaker", n: 3, r: 3, every: 75 }, chrono: 420 },
     { id: "meandric",    name: "Meandric",    feed: 0.029, kill: 0.057, seed: { type: "spiral",  n: 21, r: 3 }, chrono: 2400 },
     { id: "swarm",       name: "Swarm",       feed: 0.014, kill: 0.054, seed: { type: "spiral",  n: 21, r: 3 }, chrono: 1800 },
     { id: "honeycomb",   name: "Honeycomb",   feed: 0.039, kill: 0.058, seed: { type: "spiral",  n: 13, r: 4 }, chrono: 2400 },
@@ -133,9 +133,25 @@
     } else if (spec.type === "grow") {
       var n = growCount || 3;
       for (i = 0; i < n; i++) { p = spiralPoint(W, H, i, spec.n); list.push({ x: p.x, y: p.y, r: r }); }
+    } else if (spec.type === "pacemaker") {           // fixed points that fire again and again (see growStep)
+      var rnd3 = mulberry32((salt || 3) * 2654435761);
+      for (i = 0; i < spec.n; i++) list.push({ x: W * (0.2 + 0.6 * rnd3()), y: H * (0.2 + 0.6 * rnd3()), r: r });
     } else {
       var rnd2 = mulberry32((salt || 7) * 2654435761);
       for (i = 0; i < spec.n; i++) list.push({ x: W * (0.1 + 0.8 * rnd2()), y: H * (0.15 + 0.7 * rnd2()), r: r });
+    }
+    return list;
+  }
+
+  // Dense, even seeding of the whole field for the chronogram: a hexagonal lattice of the preset's
+  // own seed kind, so every column of the chronogram holds pattern from the start.
+  function latticeSeedList(W, H, spec) {
+    var sc = W / 320, r = (spec.r || 3) * sc, s = 30 * sc, list = [], row = 0;
+    for (var y = s * 0.6; y < H; y += s * 0.87, row++) {
+      for (var x = (row % 2 ? s : s * 0.5); x < W; x += s) {
+        if (spec.type === "strokes") { var a = (row % 2 ? 0.6 : -0.6) + 0.35 * Math.sin(x * 0.01), len = s * 0.55; for (var t = 0; t <= 1; t += 0.1) list.push({ x: x + Math.cos(a) * len * (t - 0.5), y: y + Math.sin(a) * len * (t - 0.5), r: r }); }
+        else list.push({ x: x, y: y, r: r });
+      }
     }
     return list;
   }
@@ -198,9 +214,9 @@
         for (var i = 0, p = 0; i < N; i++, p += 4) { var idx = (src[i] * scale) | 0; if (idx > 255) idx = 255; idx *= 3; px[p] = lut[idx]; px[p + 1] = lut[idx + 1]; px[p + 2] = lut[idx + 2]; px[p + 3] = 255; }
         ctx.putImageData(image, 0, 0);
       },
-      // chronogram: copy strip `i` of `n` from the current state into the composite shown instead of the state
+      // chronogram: copy columns [x0, x1) of the current state into the composite shown instead of the state
       stripBegin: function () { composite = new Float32Array(N); },
-      stripCopy: function (i, n) { var x0 = Math.floor(i * W / n), x1 = Math.floor((i + 1) * W / n); for (var y = 0; y < H; y++) for (var x = x0; x < x1; x++) composite[y * W + x] = V[y * W + x]; },
+      copyColumns: function (x0, x1) { for (var y = 0; y < H; y++) for (var x = x0; x < x1; x++) composite[y * W + x] = V[y * W + x]; },
       stripEnd: function () {},
       showState: function () { composite = null; },
       getV: function () { return V; },
@@ -313,8 +329,7 @@
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       },
       stripBegin: function () { if (comp) { gl.deleteTexture(comp.t); gl.deleteFramebuffer(comp.f); } comp = makeTex(W, H); clearTex(comp, W, H, 1, 0); },
-      stripCopy: function (i, n) {
-        var x0 = Math.floor(i * W / n), x1 = Math.floor((i + 1) * W / n);
+      copyColumns: function (x0, x1) {
         gl.enable(gl.SCISSOR_TEST); gl.scissor(x0, 0, x1 - x0, H);
         draw("copy", comp.f, W, H, tex[cur].t);
         gl.disable(gl.SCISSOR_TEST);
@@ -395,7 +410,13 @@
     function markSeeded() { alive = true; leftAt = null; gain = 1; }
     function flushSeeds() { if (pending.length) { be.seed(pending, o.seedValue); pending.length = 0; } }
     function growStep() {
-      if (!grow || growN >= grow.n || ++growTick % grow.every !== 0) return;
+      if (!grow || ++growTick % grow.every !== 0) return;
+      if (grow.type === "pacemaker") {             // the same points fire again: concentric target rings
+        var pts = seedDiscList(be.width(), be.height(), grow, 3);
+        for (var i = 0; i < pts.length; i++) pending.push(pts[i]);
+        alive = true; return;
+      }
+      if (growN >= grow.n) return;
       var p = spiralPoint(be.width(), be.height(), growN++, grow.n);
       pending.push({ x: p.x, y: p.y, r: (grow.r || 3) * be.width() / 320 }); alive = true;
     }
@@ -440,28 +461,31 @@
     }
     function wake() { if (global.requestAnimationFrame && !rafId && !paused && !o.reducedMotion) rafId = global.requestAnimationFrame(frame); }
 
-    // the reduced-motion chronogram: seed → emergence across the width, for the current settings
+    // the reduced-motion chronogram: time runs continuously across the width — column x shows the
+    // field at step T·x/W — from a dense, even seeding, so the still is the development from seed
+    // (left edge) to the regime at full strength (right edge) with no seams
     function chronogram(spec) {
       if (chronoJob) { clearTimeout(chronoJob); chronoJob = null; }
-      var W = be.width(), H = be.height(), n = o.chronoStrips;
+      var W = be.width(), H = be.height();
       spec = spec || chronoSpec || { type: "spiral", n: 21, r: 3 };
-      var per = Math.round((spec.chrono || o.chronoSteps) / (n - 1));
-      // the chronogram must hold pattern in every strip, so the seeding is multiplied and spread across the whole field
-      var cover = spec.type === "strokes" ? { type: "strokes", n: Math.max(8, spec.n * 3), r: spec.r }
-                : spec.type === "grow" ? { type: "spiral", n: spec.n, r: spec.r, spread: 0.98 }
-                : spec.type === "discs" ? { type: "discs", n: Math.max(21, spec.n * 4), r: spec.r }
-                : { type: "spiral", n: Math.max(34, spec.n * 2), r: spec.r, spread: 0.98 };
-      be.reset(); be.seed(seedDiscList(W, H, cover, 11), o.seedValue);
+      var T = spec.chrono || o.chronoSteps, per = Math.max(1, Math.floor(T / W)), ops = Math.ceil(T / per);
+      be.reset(); be.seed(latticeSeedList(W, H, spec), o.seedValue);
       be.stripBegin();
+      emit("busy");
+      var i = 0;
+      function op() {                                    // one op: `per` steps, then copy the columns whose time this is
+        var x0 = Math.floor(W * i / ops), x1 = i === ops - 1 ? W : Math.floor(W * (i + 1) / ops);
+        if (i) be.step(f, k, 1, per);
+        if (x1 > x0) be.copyColumns(x0, x1);
+        i++;
+      }
       if (be.kind === "gpu") {
-        for (var i = 0; i < n; i++) { if (i) be.step(f, k, 1, per); be.stripCopy(i, n); }
+        while (i < ops) op();
         be.stripEnd(); be.render(lut, o.vmax); alive = true; emit("still"); return;
       }
-      var i2 = 0;                                        // processor path: one strip per idle slice
-      (function slice() {
-        if (i2) be.step(f, k, 1, per);
-        be.stripCopy(i2, n); i2++;
-        if (i2 < n) { be.render(lut, o.vmax); chronoJob = setTimeout(slice, 0); }
+      (function slice() {                                // processor path: a few ops per slice, the page stays responsive
+        var budget = 12; while (i < ops && budget--) op();
+        if (i < ops) chronoJob = setTimeout(slice, 0);
         else { be.stripEnd(); be.render(lut, o.vmax); alive = true; chronoJob = null; emit("still"); }
       })();
     }
@@ -511,13 +535,13 @@
       play: function () { paused = false; wake(); emit("play"); return api; },
       isPaused: function () { return paused; }, isAlive: function () { return alive; },
       clear: function () { reset(); if (o.reducedMotion) chronogram(); else be.render(lut, o.vmax); emit("clear"); return api; },
-      seed: function (x, y, r) { pending.push({ x: x, y: y, r: r || scaleR(o.seedRadius) }); markSeeded(); if (o.reducedMotion) { flushSeeds(); be.showState(); be.step(f, k, 1, 600); be.render(lut, o.vmax); } else wake(); return api; },
+      seed: function (x, y, r) { if (o.reducedMotion) { chronogram(); return api; } pending.push({ x: x, y: y, r: r || scaleR(o.seedRadius) }); markSeeded(); wake(); return api; },
       seedSpec: function (spec, salt) {
         chronoSpec = spec;
         if (o.reducedMotion) { chronogram(spec); emit("seed"); return api; }
         var list = seedDiscList(be.width(), be.height(), spec, salt);
         for (var i = 0; i < list.length; i++) pending.push(list[i]);
-        if (spec.type === "grow") { grow = spec; growN = 3; growTick = 0; } else grow = null;
+        if (spec.type === "grow" || spec.type === "pacemaker") { grow = spec; growN = 3; growTick = 0; } else grow = null;
         markSeeded(); wake(); emit("seed"); return api;
       },
       seedRandom: function (count, salt) { return api.seedSpec({ type: "discs", n: count || 9, r: 3 }, salt); },
@@ -563,7 +587,8 @@
     var scaleRange = $(scope, "scale-range"), scaleNumber = $(scope, "scale-number");
     var pauseBtn = $(scope, "pause"), resetBtn = $(scope, "reset"), seedBtn = $(scope, "seed");
     var colorsToggle = $(scope, "colors-toggle"), colorsMenu = $(scope, "colors-menu"), paletteRadios = $$(scope, "palette-option");
-    var motionBtn = $(scope, "motion"), quality = $(scope, "quality"), measure = $(scope, "measure"), stateLine = $(scope, "state");
+    var motionBtn = $(scope, "motion"), motionCheck = $(scope, "motion-check"), quality = $(scope, "quality"), measure = $(scope, "measure"), stateLine = $(scope, "state");
+    var modeWord = $(scope, "mode"), loading = $(scope, "loading");
     var status = $(scope, "status"), steps = $(scope, "steps");
     var current = null, currentPalette = null, thumbs = [], seedClicks = 0;
 
@@ -585,6 +610,7 @@
       current = preset;
       for (var i = 0; i < presets.length; i++) presets[i].setAttribute("aria-pressed", preset && presets[i].getAttribute("data-rd-id") === preset.id ? "true" : "false");
       for (var j = 0; j < notes.length; j++) notes[j].hidden = !(preset && notes[j].getAttribute("data-rd-for") === preset.id);
+      if (modeWord) modeWord.textContent = preset ? preset.name.toUpperCase() : "CUSTOM";
       updateState();
     }
     function applyPreset(preset, seed) {
@@ -655,11 +681,18 @@
       if (radio.checked) { currentPalette = radio.getAttribute("data-rd-name") || radio.value; field.setPalette(radio.value); }
     })(paletteRadios[j]);
 
-    function setMotionState() { if (motionBtn) motionBtn.setAttribute("aria-pressed", field.reducedMotion() ? "true" : "false"); updateState(); }
-    if (motionBtn) motionBtn.addEventListener("click", function () {
+    function setMotionState() {
+      var on = field.reducedMotion();
+      if (motionBtn) motionBtn.setAttribute("aria-pressed", on ? "true" : "false");
+      if (motionCheck) motionCheck.checked = on;
+      updateState();
+    }
+    function toggleMotion() {
       var on = !field.reducedMotion(); field.setReducedMotion(on); setMotionState();
       say(on ? "Reduced motion on: one still frame, seed at the left, full emergence at the right." : "Reduced motion off: animating.");
-    });
+    }
+    if (motionBtn) motionBtn.addEventListener("click", toggleMotion);
+    if (motionCheck) motionCheck.addEventListener("change", function () { if (motionCheck.checked !== field.reducedMotion()) toggleMotion(); });
     if (quality) quality.addEventListener("change", function () { field.setQuality(quality.value); });
     if (steps) steps.addEventListener("change", function () { field.setSteps(parseInt(steps.value, 10)); });
     if (measure) (function readout() {
@@ -672,6 +705,8 @@
       if (type === "quiet") say("The pattern has faded; the field is quiet.");
       if (type === "motion") setMotionState();
       if (type === "clear") seedClicks = 0;
+      if (loading && type === "busy") loading.hidden = false;
+      if (loading && (type === "still" || type === "motion" && !field.reducedMotion())) loading.hidden = true;
     });
 
     var initial = null;
