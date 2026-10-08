@@ -1,7 +1,7 @@
 /*!
  * Morphogen — reaction-diffusion.js — a Gray–Scott reaction–diffusion field on a canvas.
  * Copyright (c) 2026 Christopher A. Stamplis. Released under the MIT License.
- * Source: https://github.com/cs-training-systems/morphogen   Version 1.0.0
+ * Source: https://github.com/cs-training-systems/morphogen   Version 1.0.1
  *
  * Written from the published equations — Gray & Scott (1984), Pearson (1993) —
  * with no borrowed code. Visual inspiration: pmneila/jsexp (BSD-3-Clause).
@@ -13,16 +13,24 @@
  *   preset (button; may hold a `thumb` canvas) · note (per-preset text, `data-rd-for`) ·
  *   state (visible one-line state) · feed-range / feed-number · kill-range / kill-number ·
  *   scale-range / scale-number · pause · reset · seed · colors-toggle · colors-menu ·
- *   palette-option (radios) · motion (reduced-motion toggle) · quality (resolution select) ·
- *   measure (resolution / frame-rate readout) · status (live region) · steps
+ *   palette-option (radios) · motion / motion-check (reduced-motion toggle) · hover / hover-check
+ *   (hover mode: the pointer paints without a button held) · quality (resolution select) ·
+ *   brush (brush width select) · measure (resolution / frame-rate readout) · status (live
+ *   region) · steps
  * No dependencies.
+ *
+ * Painting: by default the pointer paints only while a button is held (click and drag); in hover
+ * mode it paints on hover alone. Nothing is seeded until the visitor paints or presses Seed, which
+ * places the first point at the center and later ones at random until Reset or a new pattern.
+ * A preset may carry a diffusion scale (`dscale`): both diffusion rates multiplied, which sets the
+ * wave spacing (the negative space between fronts) without changing the regime.
  *
  * Two engines, one interface: WebGL2 (the simulation runs on the graphics processor,
  * every setting smooth on every machine) with the processor path as the fallback and
  * as the reference the tests run against. Both compute the same mathematics:
  *   U' = U + (Du·∇²U − g·U·V² + f·(1 − U))·dt       Du = 0.2097
  *   V' = V + (Dv·∇²V + g·U·V² − (f + k)·V)·dt       Dv = 0.105
- * (3×3 Laplacian: centre −1, edges 0.2, corners 0.05; dt = 1; g = autocatalytic gain, 1
+ * (3×3 Laplacian: center −1, edges 0.2, corners 0.05; dt = 1; g = autocatalytic gain, 1
  * unless an optional fade window is configured.)
  *
  * Time scale: steps per frame = baseSteps × timeScale, fractional values carried.
@@ -44,11 +52,16 @@
     { id: "meandric",    name: "Meandric",    feed: 0.029, kill: 0.057, seed: { type: "spiral",  n: 21, r: 3 }, chrono: 2400 },
     { id: "swarm",       name: "Swarm",       feed: 0.014, kill: 0.054, seed: { type: "spiral",  n: 21, r: 3 }, chrono: 1800 },
     { id: "honeycomb",   name: "Honeycomb",   feed: 0.039, kill: 0.058, seed: { type: "spiral",  n: 13, r: 4 }, chrono: 2400 },
-    { id: "frost",       name: "Frost",       feed: 0.046, kill: 0.063, seed: { type: "spiral",  n: 8,  r: 3 }, chrono: 3000 },
+    // Frost: six-fold anisotropic diffusion of the activator (owner ruling 2026-10-08): D_v(θ) = D_v (1 + ε cos 6θ)
+    // as a flux through each cell face, three copies of the field turned −15°/0°/+15° grown from the same
+    // point and shown together (the maximum of the three), on Pearson's 0.037/0.060 pair
+    { id: "frost",       name: "Frost",       feed: 0.037, kill: 0.060, aniso: { eps: 0.6, fold: 6, phases: [-15, 0, 15] }, seed: { type: "center", r: 3 }, chrono: 3000, thumbSteps: 1800 },
     { id: "turbulence",  name: "Turbulence",  feed: 0.026, kill: 0.051, seed: { type: "discs",   n: 7,  r: 4 }, chrono: 1800 },
     { id: "mitosis",     name: "Mitosis",     feed: 0.037, kill: 0.065, seed: { type: "spiral",  n: 8,  r: 3 }, chrono: 2400 },
     { id: "phyllotaxis", name: "Phyllotaxis", feed: 0.030, kill: 0.062, seed: { type: "grow",    n: 144, r: 1.6, every: 4 }, chrono: 1200 },
-    { id: "vortex",      name: "Vortex",      feed: 0.014, kill: 0.045, seed: { type: "strokes", n: 3,  r: 2 }, chrono: 900 }
+    // Vortex: jsexp's "Waves" pair, with the diffusion scale that reproduces its 5-point kernel at its 0.8 time step
+    // (4 × 0.8 = 3.2) and kill raised 0.045 → 0.047 for more negative space between fronts (owner ruling 2026-10-08)
+    { id: "vortex",      name: "Vortex",      feed: 0.014, kill: 0.047, dscale: 3.2, seed: { type: "strokes", n: 3,  r: 2 }, chrono: 900 }
   ];
 
   var PALETTES = {
@@ -68,6 +81,9 @@
   var DEFAULTS = {
     quality: "auto",
     feed: 0.010, kill: 0.035,
+    dscale: 1,                   // both diffusion rates × this (a preset may set it; see PRESETS)
+    aniso: null,                 // { eps, fold, phases[] }: anisotropic activator diffusion, one field per phase, composited
+    hover: false,                // false: the pointer paints only while a button is held; true: on hover alone
     baseSteps: 8,
     timeScale: 0.75,
     fadeStart: Infinity, fadeEnd: Infinity,
@@ -132,6 +148,8 @@
     } else if (spec.type === "grow") {
       var n = growCount || 3;
       for (i = 0; i < n; i++) { p = spiralPoint(W, H, i, spec.n); list.push({ x: p.x, y: p.y, r: r }); }
+    } else if (spec.type === "center") {              // one disc at the exact center
+      list.push({ x: W / 2, y: H / 2, r: r });
     } else if (spec.type === "pacemaker") {           // fixed points that fire again and again (see growStep)
       var rnd3 = mulberry32((salt || 3) * 2654435761);
       for (i = 0; i < spec.n; i++) list.push({ x: W * (0.2 + 0.6 * rnd3()), y: H * (0.2 + 0.6 * rnd3()), r: r });
@@ -156,18 +174,22 @@
   }
 
   // ---- processor backend --------------------------------------------------------
+  // The state is a list of LAYERS (one normally; one per anisotropy phase for Frost), stepped alike,
+  // seeded alike, and shown as the maximum of V across layers.
   function cpuBackend(canvas) {
     var ctx = (canvas && canvas.getContext) ? canvas.getContext("2d", { alpha: false }) : null;
-    var W = 0, H = 0, N = 0, U, V, U2, V2, image, px, composite = null;
+    var W = 0, H = 0, N = 0, Ls = [], nLayers = 1, image, px, shown = null;
 
+    function layer() { var l = { U: new Float32Array(N), V: new Float32Array(N), U2: new Float32Array(N), V2: new Float32Array(N), comp: null }; l.U.fill(1); return l; }
     function alloc(w, h) {
       W = w; H = h; N = w * h;
-      U = new Float32Array(N); V = new Float32Array(N); U2 = new Float32Array(N); V2 = new Float32Array(N);
-      U.fill(1);
+      Ls = []; for (var i = 0; i < nLayers; i++) Ls.push(layer());
+      shown = nLayers > 1 ? new Float32Array(N) : null;
       if (canvas) { canvas.width = w; canvas.height = h; }
       if (ctx) { image = ctx.createImageData(w, h); px = image.data; }
     }
-    function resample(oU, oV, oW, oH) {
+    function resample(Lr, oU, oV, oW, oH) {
+      var U = Lr.U, V = Lr.V;
       for (var y = 0; y < H; y++) {
         var fy = (y + 0.5) * oH / H - 0.5, yi = Math.floor(fy), ty = fy - yi;
         var ya = Math.max(0, Math.min(oH - 1, yi)) * oW, yb = Math.max(0, Math.min(oH - 1, yi + 1)) * oW;
@@ -179,46 +201,72 @@
         }
       }
     }
+    // the field shown: each layer's V (or its chronogram composite), the maximum across layers
+    function visible() {
+      if (nLayers === 1) return Ls[0].comp || Ls[0].V;
+      for (var i = 0; i < N; i++) shown[i] = 0;
+      for (var l = 0; l < nLayers; l++) { var src = Ls[l].comp || Ls[l].V; for (var j = 0; j < N; j++) if (src[j] > shown[j]) shown[j] = src[j]; }
+      return shown;
+    }
+    function stepLayer(Lr, f, k, g, n, du, dv, eps, fold, phase) {
+      var U = Lr.U, V = Lr.V, U2 = Lr.U2, V2 = Lr.V2;
+      for (var s = 0; s < n; s++) {
+        for (var y = 0; y < H; y++) {
+          var y0 = y * W, ym = (y > 0 ? y - 1 : y) * W, yp = (y < H - 1 ? y + 1 : y) * W;
+          for (var x = 0; x < W; x++) {
+            var xm = x > 0 ? x - 1 : x, xp = x < W - 1 ? x + 1 : x, i = y0 + x, u = U[i], v = V[i];
+            var e = V[y0 + xp], w = V[y0 + xm], nn = V[yp + x], ss = V[ym + x];
+            var lu = 0.2 * (U[y0 + xm] + U[y0 + xp] + U[ym + x] + U[yp + x]) + 0.05 * (U[ym + xm] + U[ym + xp] + U[yp + xm] + U[yp + xp]) - u;
+            var lv = 0.2 * (e + w + nn + ss) + 0.05 * (V[ym + xm] + V[ym + xp] + V[yp + xm] + V[yp + xp]) - v;
+            if (eps) {                                 // anisotropic flux through each face: D(θ) = D (1 + ε cos(fold·(θ − phase)))
+              var ne = V[yp + xp], nw = V[yp + xm], se = V[ym + xp], sw = V[ym + xm], av = 0, gx, gy, c6;
+              gx = e - v;  gy = 0.25 * ((nn - ss) + (ne - se)); c6 = gx * gx + gy * gy > 1e-8 ? Math.cos(fold * (Math.atan2(gy, gx) - phase)) : 0; av += c6 * (e - v);
+              gx = v - w;  gy = 0.25 * ((nn - ss) + (nw - sw)); c6 = gx * gx + gy * gy > 1e-8 ? Math.cos(fold * (Math.atan2(gy, gx) - phase)) : 0; av += c6 * (w - v);
+              gy = nn - v; gx = 0.25 * ((e - w) + (ne - nw));   c6 = gx * gx + gy * gy > 1e-8 ? Math.cos(fold * (Math.atan2(gy, gx) - phase)) : 0; av += c6 * (nn - v);
+              gy = v - ss; gx = 0.25 * ((e - w) + (se - sw));   c6 = gx * gx + gy * gy > 1e-8 ? Math.cos(fold * (Math.atan2(gy, gx) - phase)) : 0; av += c6 * (ss - v);
+              lv += eps * 0.25 * av;
+            }
+            var uvv = g * u * v * v, un = u + (du * lu - uvv + f * (1 - u)), vn = v + (dv * lv + uvv - (f + k) * v);
+            U2[i] = un < 0 ? 0 : (un > 1 ? 1 : un); V2[i] = vn < 0 ? 0 : (vn > 1 ? 1 : vn);
+          }
+        }
+        var tu = U; U = U2; U2 = tu; var tv = V; V = V2; V2 = tv;
+      }
+      Lr.U = U; Lr.V = V; Lr.U2 = U2; Lr.V2 = V2;
+    }
     var be = {
       kind: "cpu",
       width: function () { return W; }, height: function () { return H; },
-      resize: function (w, h, keep) { var oU = U, oV = V, oW = W, oH = H; alloc(w, h); if (keep && oU) resample(oU, oV, oW, oH); composite = null; },
-      reset: function () { U.fill(1); V.fill(0); composite = null; },
-      step: function (f, k, g, n) {
-        for (var s = 0; s < n; s++) {
-          for (var y = 0; y < H; y++) {
-            var y0 = y * W, ym = (y > 0 ? y - 1 : y) * W, yp = (y < H - 1 ? y + 1 : y) * W;
-            for (var x = 0; x < W; x++) {
-              var xm = x > 0 ? x - 1 : x, xp = x < W - 1 ? x + 1 : x, i = y0 + x, u = U[i], v = V[i];
-              var lu = 0.2 * (U[y0 + xm] + U[y0 + xp] + U[ym + x] + U[yp + x]) + 0.05 * (U[ym + xm] + U[ym + xp] + U[yp + xm] + U[yp + xp]) - u;
-              var lv = 0.2 * (V[y0 + xm] + V[y0 + xp] + V[ym + x] + V[yp + x]) + 0.05 * (V[ym + xm] + V[ym + xp] + V[yp + xm] + V[yp + xp]) - v;
-              var uvv = g * u * v * v, un = u + (DU * lu - uvv + f * (1 - u)), vn = v + (DV * lv + uvv - (f + k) * v);
-              U2[i] = un < 0 ? 0 : (un > 1 ? 1 : un); V2[i] = vn < 0 ? 0 : (vn > 1 ? 1 : vn);
-            }
-          }
-          var tu = U; U = U2; U2 = tu; var tv = V; V = V2; V2 = tv;
-        }
+      layers: function () { return nLayers; },
+      setLayers: function (n) { n = Math.max(1, n | 0); if (n === nLayers) return; nLayers = n; if (W) alloc(W, H); },
+      resize: function (w, h, keep) { var old = Ls, oW = W, oH = H; alloc(w, h); if (keep && old.length) for (var l = 0; l < nLayers; l++) { var o = old[Math.min(l, old.length - 1)]; resample(Ls[l], o.U, o.V, oW, oH); } },
+      reset: function () { for (var l = 0; l < nLayers; l++) { Ls[l].U.fill(1); Ls[l].V.fill(0); Ls[l].comp = null; } },
+      step: function (f, k, g, n, ds, an) {
+        var du = DU * (ds || 1), dv = DV * (ds || 1), eps = an ? an.eps : 0, fold = an ? (an.fold || 6) : 6;
+        for (var l = 0; l < nLayers; l++) stepLayer(Ls[l], f, k, g, n, du, dv, eps, fold, an && an.phases ? (an.phases[l] || 0) * Math.PI / 180 : 0);
       },
       seed: function (discs, value) {
-        for (var d = 0; d < discs.length; d++) {
-          var cx = discs[d].x, cy = discs[d].y, r = discs[d].r, r2 = r * r;
-          var x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(W - 1, Math.ceil(cx + r)), y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(H - 1, Math.ceil(cy + r));
-          for (var y = y0; y <= y1; y++) for (var x = x0; x <= x1; x++) { var dx = x - cx, dy = y - cy; if (dx * dx + dy * dy <= r2) { var i = y * W + x; if (V[i] < value) V[i] = value; } }
+        for (var l = 0; l < nLayers; l++) { var V = Ls[l].V;
+          for (var d = 0; d < discs.length; d++) {
+            var cx = discs[d].x, cy = discs[d].y, r = discs[d].r, r2 = r * r;
+            var x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(W - 1, Math.ceil(cx + r)), y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(H - 1, Math.ceil(cy + r));
+            for (var y = y0; y <= y1; y++) for (var x = x0; x <= x1; x++) { var dx = x - cx, dy = y - cy; if (dx * dx + dy * dy <= r2) { var i = y * W + x; if (V[i] < value) V[i] = value; } }
+          }
         }
       },
-      maxV: function () { var m = 0, src = composite || V; for (var i = 0; i < N; i++) if (src[i] > m) m = src[i]; return m; },
+      maxV: function () { var m = 0, src = visible(); for (var i = 0; i < N; i++) if (src[i] > m) m = src[i]; return m; },
       render: function (lut, vmax) {
         if (!ctx) return;
-        var src = composite || V, scale = 255 / vmax;
+        var src = visible(), scale = 255 / vmax;
         for (var i = 0, p = 0; i < N; i++, p += 4) { var idx = (src[i] * scale) | 0; if (idx > 255) idx = 255; idx *= 3; px[p] = lut[idx]; px[p + 1] = lut[idx + 1]; px[p + 2] = lut[idx + 2]; px[p + 3] = 255; }
         ctx.putImageData(image, 0, 0);
       },
       // chronogram: copy columns [x0, x1) of the current state into the composite shown instead of the state
-      stripBegin: function () { composite = new Float32Array(N); },
-      copyColumns: function (x0, x1) { for (var y = 0; y < H; y++) for (var x = x0; x < x1; x++) composite[y * W + x] = V[y * W + x]; },
+      stripBegin: function () { for (var l = 0; l < nLayers; l++) Ls[l].comp = new Float32Array(N); },
+      copyColumns: function (x0, x1) { for (var l = 0; l < nLayers; l++) { var V = Ls[l].V, C = Ls[l].comp; for (var y = 0; y < H; y++) for (var x = x0; x < x1; x++) C[y * W + x] = V[y * W + x]; } },
       stripEnd: function () {},
-      showState: function () { composite = null; },
-      getV: function () { return V; },
+      showState: function () { for (var l = 0; l < nLayers; l++) Ls[l].comp = null; },
+      getV: function () { return visible(); },
       destroy: function () {}
     };
     return be;
@@ -226,22 +274,33 @@
 
   // ---- graphics-processor backend (WebGL2, float textures) ------------------------
   var VS = "#version 300 es\nvoid main(){vec2 p=vec2((gl_VertexID<<1)&2,gl_VertexID&2);gl_Position=vec4(p*2.0-1.0,0.0,1.0);}";
-  var FS_STEP = "#version 300 es\nprecision highp float;uniform sampler2D uS;uniform float uF,uK,uG;out vec4 o;\n" +
+  // one face of the anisotropic flux: gx/gy the gradient at the face, d the difference across it
+  function faceGLSL(gx, gy, d) { return "gx=" + gx + ";gy=" + gy + ";c6=(gx*gx+gy*gy>1e-8)?cos(uFold*(atan(gy,gx)-uPhase)):0.0;av+=c6*(" + d + ");"; }
+  var FS_STEP = "#version 300 es\nprecision highp float;uniform sampler2D uS;uniform float uF,uK,uG,uDs,uEps,uFold,uPhase;out vec4 o;\n" +
     "vec2 T(ivec2 p,ivec2 d,ivec2 s){return texelFetch(uS,clamp(p+d,ivec2(0),s-1),0).rg;}\n" +
     "void main(){ivec2 p=ivec2(gl_FragCoord.xy);ivec2 s=textureSize(uS,0);vec2 c=texelFetch(uS,p,0).rg;" +
-    "vec2 l=0.2*(T(p,ivec2(-1,0),s)+T(p,ivec2(1,0),s)+T(p,ivec2(0,-1),s)+T(p,ivec2(0,1),s))+0.05*(T(p,ivec2(-1,-1),s)+T(p,ivec2(1,-1),s)+T(p,ivec2(-1,1),s)+T(p,ivec2(1,1),s))-c;" +
-    "float a=uG*c.r*c.g*c.g;float u=c.r+(0.2097*l.r-a+uF*(1.0-c.r));float v=c.g+(0.105*l.g+a-(uF+uK)*c.g);o=vec4(clamp(u,0.0,1.0),clamp(v,0.0,1.0),0.0,1.0);}";
+    "vec2 e=T(p,ivec2(1,0),s),w=T(p,ivec2(-1,0),s),n=T(p,ivec2(0,1),s),so=T(p,ivec2(0,-1),s),ne=T(p,ivec2(1,1),s),nw=T(p,ivec2(-1,1),s),se=T(p,ivec2(1,-1),s),sw=T(p,ivec2(-1,-1),s);" +
+    "vec2 l=0.2*(e+w+n+so)+0.05*(ne+nw+se+sw)-c;" +
+    "if(uEps!=0.0){float gx,gy,c6,av=0.0;" +
+    faceGLSL("e.g-c.g", "0.25*((n.g-so.g)+(ne.g-se.g))", "e.g-c.g") +
+    faceGLSL("c.g-w.g", "0.25*((n.g-so.g)+(nw.g-sw.g))", "w.g-c.g") +
+    faceGLSL("0.25*((e.g-w.g)+(ne.g-nw.g))", "n.g-c.g", "n.g-c.g") +
+    faceGLSL("0.25*((e.g-w.g)+(se.g-sw.g))", "c.g-so.g", "so.g-c.g") +
+    "l.g+=uEps*0.25*av;}" +
+    "float a=uG*c.r*c.g*c.g;float u=c.r+(uDs*0.2097*l.r-a+uF*(1.0-c.r));float v=c.g+(uDs*0.105*l.g+a-(uF+uK)*c.g);o=vec4(clamp(u,0.0,1.0),clamp(v,0.0,1.0),0.0,1.0);}";
   var FS_SEED = "#version 300 es\nprecision highp float;uniform sampler2D uS;uniform vec3 uD[32];uniform int uN;uniform float uVal;out vec4 o;\n" +
     "void main(){ivec2 p=ivec2(gl_FragCoord.xy);vec2 c=texelFetch(uS,p,0).rg;vec2 q=vec2(p)+0.5;for(int i=0;i<32;i++){if(i>=uN)break;vec2 d=q-uD[i].xy;if(dot(d,d)<=uD[i].z*uD[i].z)c.g=max(c.g,uVal);}o=vec4(c,0.0,1.0);}";
-  var FS_SHOW = "#version 300 es\nprecision highp float;uniform sampler2D uS;uniform sampler2D uL;uniform float uVmax;out vec4 o;\n" +
-    "void main(){ivec2 s=textureSize(uS,0);ivec2 p=ivec2(int(gl_FragCoord.x),s.y-1-int(gl_FragCoord.y));float v=texelFetch(uS,p,0).g;o=vec4(texture(uL,vec2(clamp(v/uVmax,0.0,1.0),0.5)).rgb,1.0);}";
+  // show and max: the maximum of V across up to three layers
+  var FS_SHOW = "#version 300 es\nprecision highp float;uniform sampler2D uS,uS1,uS2;uniform int uN;uniform sampler2D uL;uniform float uVmax;out vec4 o;\n" +
+    "void main(){ivec2 s=textureSize(uS,0);ivec2 p=ivec2(int(gl_FragCoord.x),s.y-1-int(gl_FragCoord.y));float v=texelFetch(uS,p,0).g;" +
+    "if(uN>1)v=max(v,texelFetch(uS1,p,0).g);if(uN>2)v=max(v,texelFetch(uS2,p,0).g);o=vec4(texture(uL,vec2(clamp(v/uVmax,0.0,1.0),0.5)).rgb,1.0);}";
   var FS_RESAMPLE = "#version 300 es\nprecision highp float;uniform sampler2D uS;uniform ivec2 uNew;out vec4 o;\n" +
     "void main(){ivec2 s=textureSize(uS,0);vec2 p=gl_FragCoord.xy;vec2 f=(p/vec2(uNew))*vec2(s)-0.5;ivec2 i0=ivec2(floor(f));vec2 t=f-vec2(i0);" +
     "ivec2 a=clamp(i0,ivec2(0),s-1),b=clamp(i0+ivec2(1,0),ivec2(0),s-1),c=clamp(i0+ivec2(0,1),ivec2(0),s-1),d=clamp(i0+ivec2(1,1),ivec2(0),s-1);" +
     "vec2 v=mix(mix(texelFetch(uS,a,0).rg,texelFetch(uS,b,0).rg,t.x),mix(texelFetch(uS,c,0).rg,texelFetch(uS,d,0).rg,t.x),t.y);o=vec4(v,0.0,1.0);}";
   var FS_COPY = "#version 300 es\nprecision highp float;uniform sampler2D uS;out vec4 o;void main(){o=vec4(texelFetch(uS,ivec2(gl_FragCoord.xy),0).rg,0.0,1.0);}";
-  var FS_MAX = "#version 300 es\nprecision highp float;uniform sampler2D uS;out vec4 o;\n" +
-    "void main(){ivec2 s=textureSize(uS,0);ivec2 b=ivec2(gl_FragCoord.xy)*16;float m=0.0;for(int y=0;y<16;y++)for(int x=0;x<16;x++){ivec2 p=b+ivec2(x,y);if(p.x<s.x&&p.y<s.y)m=max(m,texelFetch(uS,p,0).g);}o=vec4(m,0.0,0.0,1.0);}";
+  var FS_MAX = "#version 300 es\nprecision highp float;uniform sampler2D uS,uS1,uS2;uniform int uN;out vec4 o;\n" +
+    "void main(){ivec2 s=textureSize(uS,0);ivec2 b=ivec2(gl_FragCoord.xy)*16;float m=0.0;for(int y=0;y<16;y++)for(int x=0;x<16;x++){ivec2 p=b+ivec2(x,y);if(p.x<s.x&&p.y<s.y){m=max(m,texelFetch(uS,p,0).g);if(uN>1)m=max(m,texelFetch(uS1,p,0).g);if(uN>2)m=max(m,texelFetch(uS2,p,0).g);}}o=vec4(m,0.0,0.0,1.0);}";
 
   function gpuBackend(canvas) {
     var gl = canvas.getContext && canvas.getContext("webgl2", { alpha: false, antialias: false, preserveDrawingBuffer: false, powerPreference: "high-performance" });
@@ -254,8 +313,9 @@
     var vao = gl.createVertexArray(); gl.bindVertexArray(vao);
     // uniform locations, looked up once
     var L = {};
-    for (var pn in P) { L[pn] = {}; ["uS", "uL", "uF", "uK", "uG", "uD", "uN", "uVal", "uVmax", "uNew"].forEach(function (u) { L[pn][u] = gl.getUniformLocation(P[pn], u); }); }
-    var W = 0, H = 0, tex = [], fbo = [], cur = 0, comp = null, compFbo = null, showComp = false, maxTex = null, maxFbo = null, maxW = 0, maxH = 0, maxBuf = null;
+    for (var pn in P) { L[pn] = {}; ["uS", "uS1", "uS2", "uL", "uF", "uK", "uG", "uDs", "uEps", "uFold", "uPhase", "uD", "uN", "uVal", "uVmax", "uNew"].forEach(function (u) { L[pn][u] = gl.getUniformLocation(P[pn], u); }); }
+    // per layer: a ping-pong pair `tex[l]`, its current index `cur[l]`, and its chronogram composite `comp[l]`
+    var W = 0, H = 0, nLayers = 1, tex = [], cur = [], comp = [], showComp = false, maxTex = null, maxW = 0, maxH = 0, maxBuf = null;
     var lutTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, lutTex);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -275,32 +335,52 @@
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, src); gl.uniform1i(L[name].uS, 0);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     }
+    function freeTex(x) { if (x) { gl.deleteTexture(x.t); gl.deleteFramebuffer(x.f); } }
+    function freeAll() { tex.forEach(function (pr) { pr.forEach(freeTex); }); comp.forEach(freeTex); tex = []; comp = []; cur = []; }
     function alloc(w, h) {
-      var old = tex.length ? { t: tex[cur].t, w: W, h: H } : null;
+      var old = tex.length ? tex.map(function (pr, l) { return { t: pr[cur[l]].t, w: W, h: H }; }) : null;
       W = w; H = h; canvas.width = w; canvas.height = h;
-      var a = makeTex(w, h), b = makeTex(w, h);
-      clearTex(a, w, h, 1, 0); clearTex(b, w, h, 1, 0);
-      if (old) { gl.useProgram(P.resample); gl.uniform2i(L.resample.uNew, w, h); draw("resample", a.f, w, h, old.t); }
-      tex.forEach(function (x) { gl.deleteTexture(x.t); gl.deleteFramebuffer(x.f); });
-      tex = [a, b]; cur = 0;
-      if (comp) { gl.deleteTexture(comp.t); gl.deleteFramebuffer(comp.f); comp = null; }
+      var fresh = [], l;
+      for (l = 0; l < nLayers; l++) {
+        var a = makeTex(w, h), b = makeTex(w, h);
+        clearTex(a, w, h, 1, 0); clearTex(b, w, h, 1, 0);
+        if (old) { var o = old[Math.min(l, old.length - 1)]; gl.useProgram(P.resample); gl.uniform2i(L.resample.uNew, w, h); draw("resample", a.f, w, h, o.t); }
+        fresh.push([a, b]);
+      }
+      freeAll(); tex = fresh; cur = []; comp = []; for (l = 0; l < nLayers; l++) { cur.push(0); comp.push(null); }
       maxW = Math.ceil(w / 16); maxH = Math.ceil(h / 16);
-      if (maxTex) { gl.deleteTexture(maxTex.t); gl.deleteFramebuffer(maxTex.f); }
+      freeTex(maxTex);
       maxTex = makeTex(maxW, maxH, gl.RGBA32F); maxBuf = new Float32Array(maxW * maxH * 4);
       showComp = false;
+    }
+    // bind the visible texture of each layer (state, or its chronogram composite) to units 0, 2, 3 for a show/max pass
+    function bindVisible(name) {
+      for (var l = 0; l < 3; l++) {
+        var src = l < nLayers ? (showComp && comp[l] ? comp[l].t : tex[l][cur[l]].t) : tex[0][cur[0]].t;
+        gl.activeTexture(gl.TEXTURE0 + (l === 0 ? 0 : l + 1)); gl.bindTexture(gl.TEXTURE_2D, src);
+      }
+      gl.uniform1i(L[name].uS, 0); gl.uniform1i(L[name].uS1, 2); gl.uniform1i(L[name].uS2, 3); gl.uniform1i(L[name].uN, nLayers);
     }
     var be = {
       kind: "gpu",
       width: function () { return W; }, height: function () { return H; },
-      resize: function (w, h, keep) { if (!keep) tex.forEach(function (x) { gl.deleteTexture(x.t); gl.deleteFramebuffer(x.f); }), tex = []; alloc(w, h); },
-      reset: function () { clearTex(tex[0], W, H, 1, 0); clearTex(tex[1], W, H, 1, 0); cur = 0; showComp = false; },
-      step: function (f, k, g, n) {
+      layers: function () { return nLayers; },
+      setLayers: function (n) { n = Math.max(1, Math.min(3, n | 0)); if (n === nLayers) return; nLayers = n; if (W) { freeAll(); alloc(W, H); } },
+      resize: function (w, h, keep) { if (!keep) freeAll(); alloc(w, h); },
+      reset: function () { for (var l = 0; l < nLayers; l++) { clearTex(tex[l][0], W, H, 1, 0); clearTex(tex[l][1], W, H, 1, 0); cur[l] = 0; } showComp = false; },
+      step: function (f, k, g, n, ds, an) {
         gl.useProgram(P.step); gl.viewport(0, 0, W, H); gl.activeTexture(gl.TEXTURE0); gl.uniform1i(L.step.uS, 0);
-        gl.uniform1f(L.step.uF, f); gl.uniform1f(L.step.uK, k); gl.uniform1f(L.step.uG, g);
-        for (var s = 0; s < n; s++) {          // ping-pong: bind only what changes per step
-          var nxt = 1 - cur;
-          gl.bindFramebuffer(gl.FRAMEBUFFER, tex[nxt].f); gl.bindTexture(gl.TEXTURE_2D, tex[cur].t);
-          gl.drawArrays(gl.TRIANGLES, 0, 3); cur = nxt;
+        gl.uniform1f(L.step.uF, f); gl.uniform1f(L.step.uK, k); gl.uniform1f(L.step.uG, g); gl.uniform1f(L.step.uDs, ds || 1);
+        gl.uniform1f(L.step.uEps, an ? an.eps : 0); gl.uniform1f(L.step.uFold, an ? (an.fold || 6) : 6);
+        for (var l = 0; l < nLayers; l++) {
+          gl.uniform1f(L.step.uPhase, an && an.phases ? (an.phases[l] || 0) * Math.PI / 180 : 0);
+          var pr = tex[l], c = cur[l];
+          for (var s = 0; s < n; s++) {        // ping-pong: bind only what changes per step
+            var nxt = 1 - c;
+            gl.bindFramebuffer(gl.FRAMEBUFFER, pr[nxt].f); gl.bindTexture(gl.TEXTURE_2D, pr[c].t);
+            gl.drawArrays(gl.TRIANGLES, 0, 3); c = nxt;
+          }
+          cur[l] = c;
         }
       },
       seed: function (discs, value) {
@@ -309,28 +389,28 @@
           var n = Math.min(32, discs.length - i);
           for (var j = 0; j < n; j++) { arr[j * 3] = discs[i + j].x; arr[j * 3 + 1] = discs[i + j].y; arr[j * 3 + 2] = discs[i + j].r; }
           gl.useProgram(P.seed); gl.uniform3fv(L.seed.uD, arr); gl.uniform1i(L.seed.uN, n); gl.uniform1f(L.seed.uVal, value);
-          var nxt = 1 - cur; draw("seed", tex[nxt].f, W, H, tex[cur].t); cur = nxt;
+          for (var l = 0; l < nLayers; l++) { var nxt = 1 - cur[l]; draw("seed", tex[l][nxt].f, W, H, tex[l][cur[l]].t); cur[l] = nxt; }
         }
       },
       maxV: function () {
-        var src = showComp && comp ? comp.t : tex[cur].t;
-        draw("max", maxTex.f, maxW, maxH, src);
+        gl.useProgram(P.max); gl.bindFramebuffer(gl.FRAMEBUFFER, maxTex.f); gl.viewport(0, 0, maxW, maxH);
+        bindVisible("max"); gl.drawArrays(gl.TRIANGLES, 0, 3);
         gl.readPixels(0, 0, maxW, maxH, gl.RGBA, gl.FLOAT, maxBuf);
         var m = 0; for (var i = 0; i < maxBuf.length; i += 4) if (maxBuf[i] > m) m = maxBuf[i];
         return m;
       },
       render: function (lut, vmax) {
-        if (lutLoaded !== lut) { gl.bindTexture(gl.TEXTURE_2D, lutTex); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 256, 1, 0, gl.RGB, gl.UNSIGNED_BYTE, lut); lutLoaded = lut; }
+        if (lutLoaded !== lut) { gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, lutTex); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 256, 1, 0, gl.RGB, gl.UNSIGNED_BYTE, lut); lutLoaded = lut; }
         gl.useProgram(P.show); gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, W, H);
-        gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, showComp && comp ? comp.t : tex[cur].t); gl.uniform1i(L.show.uS, 0);
+        bindVisible("show");
         gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, lutTex); gl.uniform1i(L.show.uL, 1);
         gl.uniform1f(L.show.uVmax, vmax);
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       },
-      stripBegin: function () { if (comp) { gl.deleteTexture(comp.t); gl.deleteFramebuffer(comp.f); } comp = makeTex(W, H); clearTex(comp, W, H, 1, 0); },
+      stripBegin: function () { for (var l = 0; l < nLayers; l++) { freeTex(comp[l]); comp[l] = makeTex(W, H); clearTex(comp[l], W, H, 1, 0); } },
       copyColumns: function (x0, x1) {
         gl.enable(gl.SCISSOR_TEST); gl.scissor(x0, 0, x1 - x0, H);
-        draw("copy", comp.f, W, H, tex[cur].t);
+        for (var l = 0; l < nLayers; l++) draw("copy", comp[l].f, W, H, tex[l][cur[l]].t);
         gl.disable(gl.SCISSOR_TEST);
       },
       stripEnd: function () { showComp = true; },
@@ -343,9 +423,9 @@
 
   // ---- thumbnails (processor, small) ----------------------------------------------
   function renderThumb(preset, size) {
-    var be = cpuBackend(null); be.resize(size.width, size.height, false);
+    var be = cpuBackend(null); be.setLayers(preset.aniso && preset.aniso.phases ? preset.aniso.phases.length : 1); be.resize(size.width, size.height, false);
     be.seed(seedDiscList(size.width, size.height, preset.seed, 11, 55), 0.5);
-    be.step(preset.feed, preset.kill, 1, size.steps);
+    be.step(preset.feed, preset.kill, 1, preset.thumbSteps || size.steps, preset.dscale || 1, preset.aniso || null);   // a crystal from one point needs longer than a scattered seeding
     return { V: be.getV(), W: size.width, H: size.height };
   }
   function paintArray(V, W, H, ctx, lut, vmax) {
@@ -363,6 +443,7 @@
 
     var be = (o.gpu && canvas.getContext) ? gpuBackend(canvas) : null;
     if (!be) be = cpuBackend(canvas);
+    be.setLayers(o.aniso && o.aniso.phases ? o.aniso.phases.length : 1);
 
     var f = o.feed, k = o.kill, gain = 1, leftAt = null, stepAcc = 0;
     var grow = null, growN = 0, growTick = 0;
@@ -433,7 +514,7 @@
       updateGain(t0); growStep(); flushSeeds();
       stepAcc += o.baseSteps * o.timeScale;
       var n = Math.floor(stepAcc); stepAcc -= n;
-      if (n) be.step(f, k, gain, n);
+      if (n) be.step(f, k, gain, n, o.dscale, o.aniso);
       be.render(lut, o.vmax);
       var wasAlive = alive;
       if (++sinceMax >= (be.kind === "gpu" ? 10 : 1)) { sinceMax = 0; alive = be.maxV() >= o.aliveThreshold || pending.length > 0; }
@@ -475,7 +556,7 @@
       var i = 0;
       function op() {                                    // one op: `per` steps, then copy the columns whose time this is
         var x0 = Math.floor(W * i / ops), x1 = i === ops - 1 ? W : Math.floor(W * (i + 1) / ops);
-        if (i) be.step(f, k, 1, per);
+        if (i) be.step(f, k, 1, per, o.dscale, o.aniso);
         if (x1 > x0) be.copyColumns(x0, x1);
         i++;
       }
@@ -491,25 +572,44 @@
     }
     var chronoSpec = null;
 
-    // ---- pointer: hover alone disturbs the field ----
+    // ---- pointer: click and drag paints; in hover mode the pointer paints on hover alone ----
+    var down = false;
     function gridPoint(e) { var rect = canvas.getBoundingClientRect(); return { x: (e.clientX - rect.left) / rect.width * be.width(), y: (e.clientY - rect.top) / rect.height * be.height() }; }
     function onEnter() { pointerIn = true; last = null; wake(); }
-    function onLeave() { pointerIn = false; last = null; }
-    function onMove(e) {
-      if (o.reducedMotion) return;
-      pointerIn = true;
-      var p = gridPoint(e), W = be.width(), speed = last ? Math.hypot(p.x - last.x, p.y - last.y) : 0;
+    function onLeave() { pointerIn = false; down = false; last = null; }
+    function paintAt(e) {
+      var p = gridPoint(e), speed = last ? Math.hypot(p.x - last.x, p.y - last.y) : 0;
       var base = brushR(), r = Math.min(base * 4, base + o.seedSpeedGain * speed * base / scaleR(3));
       if (last && speed > r) { var n = Math.ceil(speed / r); for (var i = 1; i <= n; i++) pending.push({ x: last.x + (p.x - last.x) * i / n, y: last.y + (p.y - last.y) * i / n, r: r }); }
       else pending.push({ x: p.x, y: p.y, r: r });
       markSeeded(); last = p; wake();
     }
-    if (canvas.addEventListener) { canvas.addEventListener("pointerenter", onEnter); canvas.addEventListener("pointerleave", onLeave); canvas.addEventListener("pointermove", onMove); }
+    function onDown(e) { if (o.reducedMotion || o.hover) return; if (e.button !== undefined && e.button !== 0) return; down = true; last = null; paintAt(e); if (canvas.setPointerCapture && e.pointerId !== undefined) { try { canvas.setPointerCapture(e.pointerId); } catch (x) {} } }
+    function onUp() { down = false; last = null; }
+    function onMove(e) {
+      if (o.reducedMotion) return;
+      pointerIn = true;
+      if (!o.hover && !down) { last = null; return; }
+      paintAt(e);
+    }
+    if (canvas.addEventListener) {
+      canvas.addEventListener("pointerenter", onEnter); canvas.addEventListener("pointerleave", onLeave); canvas.addEventListener("pointermove", onMove);
+      canvas.addEventListener("pointerdown", onDown); canvas.addEventListener("pointerup", onUp); canvas.addEventListener("pointercancel", onUp);
+    }
 
     var api = {
       canvas: canvas, presets: PRESETS, palettes: PALETTES, ladder: LADDER,
       backend: function () { return be.kind; },
-      getParams: function () { return { feed: f, kill: k, timeScale: o.timeScale }; },
+      getParams: function () { return { feed: f, kill: k, timeScale: o.timeScale, dscale: o.dscale }; },
+      setDiffusionScale: function (s) { if (typeof s === "number" && !isNaN(s) && s > 0) o.dscale = s; reevaluate(); if (o.reducedMotion) chronogram(); emit("params"); return api; },
+      setAniso: function (a) {   // { eps, fold, phases[] } or null; one layer per phase, composited as the maximum
+        o.aniso = a && a.eps ? a : null;
+        be.setLayers(o.aniso && o.aniso.phases ? o.aniso.phases.length : 1);
+        reset(); reevaluate(); if (o.reducedMotion) chronogram(); else be.render(lut, o.vmax); emit("params"); return api;
+      },
+      aniso: function () { return o.aniso; },
+      setHover: function (on) { o.hover = !!on; down = false; last = null; emit("hover"); return api; },
+      hover: function () { return o.hover; },
       setParams: function (feed, kill) {
         if (typeof feed === "number" && !isNaN(feed)) f = feed;
         if (typeof kill === "number" && !isNaN(kill)) k = kill;
@@ -538,6 +638,7 @@
       seed: function (x, y, r) { if (o.reducedMotion) { chronogram(); return api; } pending.push({ x: x, y: y, r: r || brushR() }); markSeeded(); wake(); return api; },
       setBrush: function (share) { if (typeof share === "number" && !isNaN(share)) o.brush = Math.max(0.005, Math.min(0.5, share)); emit("brush"); return api; },
       brush: function () { return o.brush; },
+      setChronoSpec: function (spec) { chronoSpec = spec; return api; },
       seedSpec: function (spec, salt) {
         chronoSpec = spec;
         if (o.reducedMotion) { chronogram(spec); emit("seed"); return api; }
@@ -563,7 +664,10 @@
       destroy: function () {
         if (rafId) global.cancelAnimationFrame(rafId);
         if (global.removeEventListener) global.removeEventListener("resize", onResize);
-        if (canvas.removeEventListener) { canvas.removeEventListener("pointerenter", onEnter); canvas.removeEventListener("pointerleave", onLeave); canvas.removeEventListener("pointermove", onMove); }
+        if (canvas.removeEventListener) {
+          canvas.removeEventListener("pointerenter", onEnter); canvas.removeEventListener("pointerleave", onLeave); canvas.removeEventListener("pointermove", onMove);
+          canvas.removeEventListener("pointerdown", onDown); canvas.removeEventListener("pointerup", onUp); canvas.removeEventListener("pointercancel", onUp);
+        }
         be.destroy(); listeners.length = 0;
       }
     };
@@ -590,12 +694,13 @@
     var pauseBtn = $(scope, "pause"), resetBtn = $(scope, "reset"), seedBtn = $(scope, "seed");
     var colorsToggle = $(scope, "colors-toggle"), colorsMenu = $(scope, "colors-menu"), paletteRadios = $$(scope, "palette-option");
     var motionBtn = $(scope, "motion"), motionCheck = $(scope, "motion-check"), quality = $(scope, "quality"), measure = $(scope, "measure"), stateLine = $(scope, "state");
+    var hoverBtn = $(scope, "hover"), hoverCheck = $(scope, "hover-check");
     var modeWord = $(scope, "mode"), loading = $(scope, "loading"), brushSel = $(scope, "brush");
     var status = $(scope, "status"), steps = $(scope, "steps");
     var current = null, currentPalette = null, thumbs = [], seedClicks = 0;
 
     function say(text) { if (status) status.textContent = text; }
-    function paramsText() { var p = field.getParams(); return "feed " + fmt(p.feed) + ", kill " + fmt(p.kill) + ", time scale " + fmt2(p.timeScale); }
+    function paramsText() { var p = field.getParams(); return "feed " + fmt(p.feed) + ", kill " + fmt(p.kill) + ", speed " + fmt2(p.timeScale); }
     function currentName() { return current ? current.name : "custom"; }
     function updateState() {
       if (!stateLine) return;
@@ -615,13 +720,17 @@
       if (modeWord) modeWord.textContent = preset ? preset.name.toUpperCase() : "CUSTOM";
       updateState();
     }
-    function applyPreset(preset, seed) {
-      field.setParams(preset.feed, preset.kill); markPreset(preset); syncInputs();
-      if (seed) { field.clear(); seedClicks = 0; var spec = {}; for (var kk in preset.seed) spec[kk] = preset.seed[kk]; spec.chrono = preset.chrono; field.seedSpec(spec, 11); if (field.isPaused()) field.play(); setPauseState(true);
-        say(preset.name + " pattern: " + paramsText() + ". " + (field.reducedMotion() ? "Still image." : "Animating.")); }
+    // A pattern tile selects the regime only: the field clears to black and the Seed sequence restarts;
+    // nothing appears until the visitor paints or presses Seed (owner ruling 2026-10-08). In reduced
+    // motion the chronogram is computed for the new regime from the preset's own seeding.
+    function applyPreset(preset, announce) {
+      field.setAniso(preset.aniso || null); field.setDiffusionScale(preset.dscale || 1); field.setParams(preset.feed, preset.kill); markPreset(preset); syncInputs();
+      var spec = {}; for (var kk in preset.seed) spec[kk] = preset.seed[kk]; spec.chrono = preset.chrono;
+      field.setChronoSpec(spec); field.clear(); seedClicks = 0;
+      if (announce) say(preset.name + " pattern selected: " + paramsText() + ". " + (field.reducedMotion() ? "Still image." : "The field is black; press Seed, or click and drag on it, to start."));
     }
     for (var i = 0; i < presets.length; i++) (function (btn) {
-      var preset = presetById(btn.getAttribute("data-rd-id")) || { id: btn.getAttribute("data-rd-id"), name: btn.getAttribute("data-rd-name") || btn.textContent.trim(), feed: parseFloat(btn.getAttribute("data-rd-feed")), kill: parseFloat(btn.getAttribute("data-rd-kill")), seed: { type: "spiral", n: 21, r: 3 } };
+      var preset = presetById(btn.getAttribute("data-rd-id")) || { id: btn.getAttribute("data-rd-id"), name: btn.getAttribute("data-rd-name") || btn.textContent.trim(), feed: parseFloat(btn.getAttribute("data-rd-feed")), kill: parseFloat(btn.getAttribute("data-rd-kill")), seed: { type: "center", r: 3 } };
       btn.addEventListener("click", function () { applyPreset(preset, true); });
       var thumb = btn.querySelector("[data-rd='thumb']");
       if (thumb && thumb.getContext) thumbs.push({ preset: preset, canvas: thumb, data: null });
@@ -645,7 +754,7 @@
       if (which === "feed") field.setFeed(v); else if (which === "kill") field.setKill(v); else field.setTimeScale(v);
       if (which !== "scale") markPreset(null); else updateState();
       syncInputs();
-      say((which === "scale" ? currentName() + " pattern" : "Custom") + ": " + paramsText() + "." + (field.isAlive() ? "" : " The field is quiet; hover it, seed it, or choose a pattern."));
+      say((which === "scale" ? currentName() + " pattern" : "Custom") + ": " + paramsText() + "." + (field.isAlive() ? "" : " The field is quiet; press Seed, paint on it, or choose a pattern."));
     }
     if (feedRange) feedRange.addEventListener("input", function () { onParam("feed", feedRange); });
     if (feedNumber) feedNumber.addEventListener("change", function () { onParam("feed", feedNumber); });
@@ -661,7 +770,7 @@
       var q = field.quality(), first = seedClicks === 0;
       field.seed(first ? q.width / 2 : Math.random() * q.width, first ? q.height / 2 : Math.random() * q.height, 4 * q.width / 320);
       seedClicks++; if (field.isPaused()) { field.play(); setPauseState(true); }
-      say("Seeded one point" + (first ? " at the centre" : "") + ": " + currentName() + ", " + paramsText() + ".");
+      say("Seeded one point" + (first ? " at the center" : " at random") + ": " + currentName() + ", " + paramsText() + ".");
     });
 
     function setColorsOpen(open) {
@@ -697,6 +806,12 @@
     }
     if (motionBtn) motionBtn.addEventListener("click", toggleMotion);
     if (motionCheck) motionCheck.addEventListener("change", function () { if (motionCheck.checked !== field.reducedMotion()) toggleMotion(); });
+    // hover mode: the pointer paints on hover alone; off by default, so the field answers only a click and drag
+    function setHoverState() { var on = field.hover(); if (hoverBtn) hoverBtn.setAttribute("aria-pressed", on ? "true" : "false"); if (hoverCheck) hoverCheck.checked = on; }
+    function toggleHover() { var on = !field.hover(); field.setHover(on); setHoverState(); say(on ? "Hover mode on: moving the pointer over the field paints." : "Hover mode off: click and drag on the field to paint."); }
+    if (hoverBtn) hoverBtn.addEventListener("click", toggleHover);
+    if (hoverCheck) hoverCheck.addEventListener("change", function () { if (hoverCheck.checked !== field.hover()) toggleHover(); });
+    setHoverState();
     if (quality) quality.addEventListener("change", function () { field.setQuality(quality.value); });
     if (brushSel) { brushSel.addEventListener("change", function () { field.setBrush(parseFloat(brushSel.value)); say("Brush width " + brushSel.options[brushSel.selectedIndex].text + "."); }); field.setBrush(parseFloat(brushSel.value)); }
     if (steps) steps.addEventListener("change", function () { field.setSteps(parseInt(steps.value, 10)); });
@@ -718,7 +833,7 @@
     for (var n = 0; n < presets.length; n++) if (presets[n].hasAttribute("data-rd-default")) initial = presetById(presets[n].getAttribute("data-rd-id"));
     if (initial) applyPreset(initial, false); else syncInputs();
     setMotionState();
-    say((initial ? initial.name + " pattern: " : "") + paramsText() + ". The field is black until it is disturbed.");
+    say((initial ? initial.name + " pattern: " : "") + paramsText() + ". The field is black until you press Seed or click and drag on it.");
   }
 
   var registry = [];
@@ -734,6 +849,8 @@
         fadeStart: d.fadeStart !== undefined ? parseFloat(d.fadeStart) : undefined, fadeEnd: d.fadeEnd !== undefined ? parseFloat(d.fadeEnd) : undefined,
         palette: d.palette, baseSteps: d.steps !== undefined ? parseInt(d.steps, 10) : undefined,
         brush: d.brush !== undefined ? parseFloat(d.brush) : undefined,
+        dscale: d.dscale !== undefined ? parseFloat(d.dscale) : undefined,
+        hover: d.hover === "on" || d.hover === "true",
         quality: d.quality !== undefined && d.quality !== "auto" ? parseInt(d.quality, 10) : "auto",
         gpu: d.gpu !== "off", reducedMotion: mq ? mq.matches : false
       });
@@ -744,6 +861,6 @@
   }
   function get(canvas) { for (var i = 0; i < registry.length; i++) if (registry[i].canvas === canvas) return registry[i].field; return null; }
 
-  global.ReactionDiffusion = { mount: mount, bind: bind, auto: auto, get: get, presets: PRESETS, palettes: PALETTES, ladder: LADDER, buildLut: buildLut, renderThumb: renderThumb, seedDiscList: seedDiscList, version: "1.0.0" };
+  global.ReactionDiffusion = { mount: mount, bind: bind, auto: auto, get: get, presets: PRESETS, palettes: PALETTES, ladder: LADDER, buildLut: buildLut, renderThumb: renderThumb, seedDiscList: seedDiscList, version: "1.0.1" };
   if (global.document && global.document.querySelectorAll) { if (global.document.readyState === "loading") global.document.addEventListener("DOMContentLoaded", function () { auto(); }); else auto(); }
 })(typeof window !== "undefined" ? window : this);

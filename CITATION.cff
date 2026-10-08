@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use Morphogen in work you publish, please cite it as below."
 title: "Morphogen: a Gray–Scott reaction–diffusion field for the web"
 type: software
-version: 1.0.0
+version: 1.0.1
 date-released: 2026-10-08
 license: MIT
 repository-code: "https://github.com/cs-training-systems/morphogen"

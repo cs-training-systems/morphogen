@@ -67,7 +67,8 @@ function rgb(rgba, w, h) {
 function scene(opts) {
   let clockMs = 0;
   const canvas = stubCanvas();
-  const field = RD.mount(canvas, { quality: [opts.width, opts.height], gpu: false, feed: opts.feed, kill: opts.kill, palette: opts.palette || "canopy", timeScale: opts.timeScale || 0.75, clock: () => clockMs });
+  // the whole recipe travels: feed and kill, and a preset's diffusion scale and anisotropy where it has them
+  const field = RD.mount(canvas, { quality: [opts.width, opts.height], gpu: false, feed: opts.feed, kill: opts.kill, dscale: opts.dscale, aniso: opts.aniso, palette: opts.palette || "canopy", timeScale: opts.timeScale || 0.75, clock: () => clockMs });
   if (opts.seed) field.seedSpec(opts.seed, opts.salt || 11);
   const fps = 60, frames = [];
   const total = Math.round(opts.seconds * fps), every = Math.round(fps / (opts.gifFps || 20));
@@ -116,6 +117,14 @@ function strokePointer(t, w, h) {
 const W = 400, H = 225;
 const presets = {};
 RD.presets.forEach(p => { presets[p.id] = p; });
+// "stir": a drag stroke across the field every four seconds, as a visitor would, so fronts keep breaking
+// into free ends that curl into rotors (the Vortex stills and GIF; a one-off seeding runs off the frame)
+function stirPointer(t, w, h) {
+  const period = 4, s = t % period; if (s > 1.2) return null;
+  const k = Math.floor(t / period), ang = (k * 2.4) % Math.PI, cx = w * (0.3 + 0.4 * ((k * 0.618) % 1)), cy = h * (0.3 + 0.4 * ((k * 0.382) % 1));
+  const len = Math.min(w, h) * 0.5, u = s / 1.2 - 0.5;
+  return { x: cx + Math.cos(ang) * len * u, y: cy + Math.sin(ang) * len * u, r: 3 * w / 320 };
+}
 // a pacemaker: three pulses at the exact centre, 1.3 s apart, which the excitable regime turns into target rings
 function pulsePointer(t, w, h) {
   const firing = [0, 1.3, 2.6].some(t0 => t >= t0 && t < t0 + 0.05);
@@ -123,13 +132,13 @@ function pulsePointer(t, w, h) {
 }
 
 // ---- scenes ----
-still("hero-vortex", { width: 640, height: 360, feed: 0.014, kill: 0.045, seed: { type: "strokes", n: 4, r: 2 }, salt: 9, seconds: 16, palette: "canopy" });
+still("hero-vortex", { width: 640, height: 360, feed: presets.vortex.feed, kill: presets.vortex.kill, dscale: presets.vortex.dscale, pointer: stirPointer, seconds: 18, palette: "canopy" });
 for (const p of RD.presets) {
-  const malachite = p.id === "malachite";    // its fronts sweep out of frame: a central pacemaker, caught early
-  still("preset-" + p.id, { width: 320, height: 180, feed: p.feed, kill: p.kill, seed: malachite ? null : p.seed, pointer: malachite ? pulsePointer : null, seconds: malachite ? 5.5 : (p.id === "phyllotaxis" ? 12 : 10), palette: "canopy" });
+  const malachite = p.id === "malachite", vortex = p.id === "vortex";    // malachite: fronts sweep out of frame, a central pacemaker caught early; vortex: stirred, at twice the size so rotors have room
+  still("preset-" + p.id, { width: vortex ? 640 : 320, height: vortex ? 360 : 180, feed: p.feed, kill: p.kill, dscale: p.dscale, aniso: p.aniso, seed: (malachite || vortex) ? null : p.seed, pointer: malachite ? pulsePointer : (vortex ? stirPointer : null), seconds: malachite ? 5.5 : (p.id === "phyllotaxis" ? 12 : (p.id === "frost" ? 14 : (vortex ? 12 : 10))), palette: "canopy" });
 }
 gif("hover-seeding", { width: W, height: H, feed: 0.010, kill: 0.035, seconds: 8, pointer: strokePointer, gifFps: 12, palette: "canopy" });
 gif("phyllotaxis", { width: W, height: H, feed: 0.030, kill: 0.062, seed: presets.phyllotaxis.seed, seconds: 12, gifFps: 10, palette: "aurora" });
-gif("vortex", { width: W, height: H, feed: 0.014, kill: 0.045, seed: presets.vortex.seed, seconds: 12, skipSeconds: 3, gifFps: 10, palette: "cherenkov" });
+gif("vortex", { width: W, height: H, feed: presets.vortex.feed, kill: presets.vortex.kill, dscale: presets.vortex.dscale, pointer: stirPointer, seconds: 16, skipSeconds: 8, gifFps: 8, palette: "cherenkov" });
 gif("turbulence", { width: W, height: H, feed: 0.026, kill: 0.051, seed: presets.turbulence.seed, seconds: 13, skipSeconds: 4, gifFps: 10, palette: "spectrum" });
 console.log("done →", OUT);

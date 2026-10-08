@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Morphogen — a Gray–Scott reaction–diffusion field</title>
-<meta name="description" content="Morphogen: a Gray–Scott reaction–diffusion field for the web. One classic script, no dependencies. Hover to seed a pattern; nine named regimes; seven color ramps; adaptive resolution on the graphics processor.">
+<meta name="description" content="Morphogen: a Gray–Scott reaction–diffusion field for the web. One classic script, no dependencies. Click and drag to seed a pattern; nine named regimes; seven color ramps; adaptive resolution on the graphics processor.">
 <link rel="stylesheet" href="demo.css">
 <link rel="stylesheet" href="reaction-diffusion.css">
 </head>
@@ -16,7 +16,7 @@
     <p class="links"><a href="https://github.com/cs-training-systems/morphogen">Source and README on GitHub ↗</a></p>
   </header>
 
-  <p class="instructions">Hover over the field to seed it; pick a pattern tile; Seed drops a point, Reset clears. Rate sets feed, kill and speed; Resolution caps the grid, which adapts to your machine; Brush width sets the pointer's mark. Reduced motion shows one still: seed at the left, full pattern at the right.</p>
+  <p class="instructions">Click and drag on the field to paint it, or switch on Hover mode and just move the pointer. Pick a pattern tile; Seed drops one point (the first at the center, later ones at random); Reset clears. Feed, Kill and Speed set the chemistry and its pace; Resolution caps the grid, which adapts to your machine; Brush width sets the pointer's mark. Reduced motion shows one still: seed at the left, full pattern at the right. <b>Photosensitivity notice:</b> the field animates and can flicker or pulse; use Reduced motion if flashing affects you.</p>
 
   <section class="rd" data-rd-scope aria-labelledby="rd-heading">
     <p class="kicker" id="rd-heading">Interactive · Reaction–diffusion</p>
@@ -37,7 +37,7 @@
     <div class="rd__stage">
       <figure class="rd__frame">
         <canvas id="rd-field" class="rd__canvas" data-reaction-diffusion data-feed="0.010" data-kill="0.035" data-palette="canopy" data-steps="8"
-          role="img" aria-label="A reaction–diffusion simulation. A black field; moving the pointer over it seeds a chemical pattern that grows and spreads. The pattern tiles, the feed, kill and time-scale controls, and the color options change its behaviour and look."></canvas>
+          role="img" aria-label="A reaction–diffusion simulation. A black field; click and drag on it, or move the pointer over it in hover mode, to seed a chemical pattern that grows and spreads. The pattern tiles, the feed, kill and speed controls, and the color options change its behavior and look."></canvas>
         <span class="corner corner--tl" aria-hidden="true"></span><span class="corner corner--tr" aria-hidden="true"></span>
         <span class="corner corner--bl" aria-hidden="true"></span><span class="corner corner--br" aria-hidden="true"></span>
         <div class="rd__loading" data-rd="loading" role="status" hidden><span>Loading…</span></div>
@@ -65,15 +65,22 @@
         <h3 class="rd__panel-h" id="rd-controls-h">Controls</h3>
         <div class="rd__group" role="group" aria-labelledby="rd-acc-h">
           <h4 class="rd__group-h" id="rd-acc-h">Accessibility</h4>
-          <div class="rd__acc">
-            <input type="checkbox" id="rd-motion-check" data-rd="motion-check" aria-describedby="rd-acc-hint">
-            <label for="rd-motion-check" class="visually-hidden">Reduced motion</label>
-            <button type="button" class="rd__toggle" data-rd="motion" aria-pressed="false" aria-describedby="rd-acc-hint">Reduced motion</button>
+          <div class="rd__pair rd__pair--acc">
+            <div class="rd__acc">
+              <input type="checkbox" id="rd-motion-check" data-rd="motion-check" aria-describedby="rd-acc-hint">
+              <label for="rd-motion-check" class="visually-hidden">Reduced motion</label>
+              <button type="button" class="rd__toggle" data-rd="motion" aria-pressed="false" aria-describedby="rd-acc-hint">Reduced motion</button>
+            </div>
+            <div class="rd__acc">
+              <input type="checkbox" id="rd-hover-check" data-rd="hover-check" aria-describedby="rd-hover-hint">
+              <label for="rd-hover-check" class="visually-hidden">Hover mode</label>
+              <button type="button" class="rd__toggle" data-rd="hover" aria-pressed="false" aria-describedby="rd-hover-hint">Hover mode</button>
+            </div>
           </div>
-          <p class="rd__hint" id="rd-acc-hint">Show a still image view instead of a dynamic view.</p>
+          <p class="rd__hint" id="rd-acc-hint">Reduced motion: show a still image view instead of a dynamic view.</p>
+          <p class="rd__hint" id="rd-hover-hint">Hover mode: paint by moving the pointer, no button held. Off, the field answers click and drag only.</p>
         </div>
-        <div class="rd__group" role="group" aria-labelledby="rd-rate-h">
-          <h4 class="rd__group-h" id="rd-rate-h">Rate</h4>
+        <div class="rd__group" role="group" aria-label="Rate">
           <div class="rd__param">
             <label for="rd-feed-range">Feed:</label>
             <input id="rd-feed-range" type="range" min="0.008" max="0.070" step="0.001" value="0.010" data-rd="feed-range">
@@ -87,14 +94,13 @@
             <input id="rd-kill-number" type="number" min="0.030" max="0.066" step="0.001" value="0.035" inputmode="decimal" data-rd="kill-number">
           </div>
           <div class="rd__param">
-            <label for="rd-scale-range">Time scale:</label>
+            <label for="rd-scale-range">Speed:</label>
             <input id="rd-scale-range" type="range" min="0.5" max="2.5" step="0.05" value="0.75" data-rd="scale-range">
-            <label class="rd__number-label" for="rd-scale-number">Time scale, exact value</label>
+            <label class="rd__number-label" for="rd-scale-number">Speed, exact value</label>
             <input id="rd-scale-number" type="number" min="0.5" max="2.5" step="0.05" value="0.75" inputmode="decimal" data-rd="scale-number">
           </div>
         </div>
-        <div class="rd__group" role="group" aria-labelledby="rd-res-h">
-          <h4 class="rd__group-h" id="rd-res-h">Resolution</h4>
+        <div class="rd__group" role="group" aria-label="Resolution">
           <div class="rd__pair">
             <label>Resolution
               <select id="rd-quality" class="rd__select" data-rd="quality" aria-label="Resolution, the most cells allowed across the field">
@@ -120,12 +126,12 @@
     <div class="rd__notes">
       <p class="rd__note" data-rd="note" data-rd-for="malachite"><b>Malachite pattern:</b> target patterns — concentric waves radiating from a point in an excitable medium, the form first seen in the Belousov–Zhabotinsky reaction, whose chemistry oscillates in time and space. The whole system rests on one autocatalytic step, <math><mrow><mi>U</mi><mo>+</mo><mn>2</mn><mi>V</mi><mo>→</mo><mn>3</mn><mi>V</mi></mrow></math>: a substance that makes more of itself wherever it already is, until the local supply is spent and the wave moves on, leaving the banded wake a cut malachite shows.</p>
       <p class="rd__note" data-rd="note" data-rd-for="meandric"><b>Meandric pattern:</b> a labyrinthine Turing pattern. Stripes form when a slow, self-amplifying activator is held in check by a fast-spreading inhibitor; the condition is that the inhibitor diffuses faster, <math><mrow><msub><mi>D</mi><mi>U</mi></msub><mo>&gt;</mo><msub><mi>D</mi><mi>V</mi></msub></mrow></math>. The same mechanism lays down fingerprints, zebra stripes and the magnetic domains of a thin film: order with no blueprint, only two rates in competition.</p>
-      <p class="rd__note" data-rd="note" data-rd-for="swarm"><b>Swarm pattern:</b> spatiotemporal chaos of localised spots — travelling structures that collide, split and die without ever settling. Each spot is a packet of the activator sustained by the equation <math><mrow><mfrac><mrow><mo>∂</mo><mi>V</mi></mrow><mrow><mo>∂</mo><mi>t</mi></mrow></mfrac><mo>=</mo><msub><mi>D</mi><mi>V</mi></msub><msup><mi>∇</mi><mn>2</mn></msup><mi>V</mi><mo>+</mo><mi>U</mi><msup><mi>V</mi><mn>2</mn></msup><mo>−</mo><mo>(</mo><mi>f</mi><mo>+</mo><mi>k</mi><mo>)</mo><mi>V</mi></mrow></math>; the crowd behaves like a swarming culture, or an agent-based model whose agents are nothing but chemistry.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="swarm"><b>Swarm pattern:</b> spatiotemporal chaos of localized spots — traveling structures that collide, split and die without ever settling. Each spot is a packet of the activator sustained by the equation <math><mrow><mfrac><mrow><mo>∂</mo><mi>V</mi></mrow><mrow><mo>∂</mo><mi>t</mi></mrow></mfrac><mo>=</mo><msub><mi>D</mi><mi>V</mi></msub><msup><mi>∇</mi><mn>2</mn></msup><mi>V</mi><mo>+</mo><mi>U</mi><msup><mi>V</mi><mn>2</mn></msup><mo>−</mo><mo>(</mo><mi>f</mi><mo>+</mo><mi>k</mi><mo>)</mo><mi>V</mi></mrow></math>; the crowd behaves like a swarming culture, or an agent-based model whose agents are nothing but chemistry.</p>
       <p class="rd__note" data-rd="note" data-rd-for="honeycomb"><b>Honeycomb pattern:</b> a hexagonal Turing pattern of holes — a filled sheet that opens into pores at one preferred spacing. That spacing is the pattern's wavelength, set by the critical wavenumber of the instability, <math><mrow><mi>λ</mi><mo>=</mo><mfrac><mrow><mn>2</mn><mi>π</mi></mrow><msub><mi>q</mi><mi>c</mi></msub></mfrac></mrow></math>, which is why foams, convection cells and porous membranes all arrive at the same tiling.</p>
-      <p class="rd__note" data-rd="note" data-rd-for="frost"><b>Frost pattern:</b> dendritic growth, the tip-splitting form driven by the Mullins–Sekerka instability: a growing front is fed fastest at its most exposed point, so bumps grow into arms and arms split again. In its most distilled form the field around the arm obeys Laplace's equation, <math><mrow><msup><mi>∇</mi><mn>2</mn></msup><mi>c</mi><mo>=</mo><mn>0</mn></mrow></math>, and the arm advances where its gradient is steepest — the geometry of frost on glass, a solidifying alloy, and a lightning leader.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="frost"><b>Frost pattern:</b> a six-fold crystal. Here the activator's diffusion is anisotropic: faster along six directions sixty degrees apart, <math><mrow><mi>D</mi><mo>(</mo><mi>θ</mi><mo>)</mo><mo>=</mo><mi>D</mi><mo>(</mo><mn>1</mn><mo>+</mo><mi>ε</mi><mo>⁢</mo><mi>cos</mi><mo>⁡</mo><mn>6</mn><mi>θ</mi><mo>)</mo></mrow></math>, the symmetry a snowflake inherits from the hexagonal ice lattice, which is why every real one has six arms. Three copies of the field, turned fifteen degrees apart, grow from the same point and are shown together. The branching itself is the Mullins–Sekerka instability: a growing front is fed fastest at its most exposed point, so bumps grow into arms and arms split again, the geometry of frost on glass and a solidifying alloy.</p>
       <p class="rd__note" data-rd="note" data-rd-for="turbulence"><b>Turbulence pattern:</b> spatiotemporal chaos — soft spots that spread, collide, split and die without ever settling into a steady form. The signature of chaos is a positive Lyapunov exponent, <math><mrow><mi>λ</mi><mo>&gt;</mo><mn>0</mn></mrow></math>: two fields that differ by the smallest amount drift apart exponentially, <math><mrow><mo>|</mo><mi>δ</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>|</mo><mo>≈</mo><mo>|</mo><mi>δ</mi><mo>(</mo><mn>0</mn><mo>)</mo><mo>|</mo><msup><mi>e</mi><mrow><mi>λ</mi><mi>t</mi></mrow></msup></mrow></math>, so the future of this field is unpredictable in detail even though every rule in it is known — the same reason weather forecasts have a horizon.</p>
-      <p class="rd__note" data-rd="note" data-rd-for="mitosis"><b>Mitosis pattern:</b> self-replicating spots, first reported in the Gray–Scott system by Pearson in 1993 and in a real gel reactor by Lee, McCormick, Pearson and Swinney in 1994. A spot grows until it is too large to feed its own centre, pinches in two, and each half grows again; chemically it is only autocatalysis and decay, <math><mrow><mi>U</mi><mo>+</mo><mn>2</mn><mi>V</mi><mo>→</mo><mn>3</mn><mi>V</mi><mo>,</mo><mspace width="0.5em"/><mi>V</mi><mo>→</mo><mi>P</mi></mrow></math>, yet it divides like a cell.</p>
-      <p class="rd__note" data-rd="note" data-rd-for="phyllotaxis"><b>Phyllotaxis pattern:</b> a sunflower head building itself: every few frames one more stable spot is placed on the spiral, from the centre outward, until the head is complete. Vogel's model places seed <math><mi>n</mi></math> at an angle of <math><mrow><mi>n</mi><mo>·</mo><mn>137.5</mn><mo>°</mo></mrow></math> from the last and a radius of <math><mrow><mi>c</mi><msqrt><mi>n</mi></msqrt></mrow></math>; that angle is the golden angle, <math><mrow><mn>360</mn><mo>°</mo><mo>/</mo><msup><mi>φ</mi><mn>2</mn></msup></mrow></math>, and it is why the spiral counts come out as Fibonacci numbers. Here the arrangement is placed; the chemistry then decides what to keep.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="mitosis"><b>Mitosis pattern:</b> self-replicating spots, first reported in the Gray–Scott system by Pearson in 1993 and in a real gel reactor by Lee, McCormick, Pearson and Swinney in 1994. A spot grows until it is too large to feed its own center, pinches in two, and each half grows again; chemically it is only autocatalysis and decay, <math><mrow><mi>U</mi><mo>+</mo><mn>2</mn><mi>V</mi><mo>→</mo><mn>3</mn><mi>V</mi><mo>,</mo><mspace width="0.5em"/><mi>V</mi><mo>→</mo><mi>P</mi></mrow></math>, yet it divides like a cell.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="phyllotaxis"><b>Phyllotaxis pattern:</b> a sunflower head building itself: every few frames one more stable spot is placed on the spiral, from the center outward, until the head is complete. Vogel's model places seed <math><mi>n</mi></math> at an angle of <math><mrow><mi>n</mi><mo>·</mo><mn>137.5</mn><mo>°</mo></mrow></math> from the last and a radius of <math><mrow><mi>c</mi><msqrt><mi>n</mi></msqrt></mrow></math>; that angle is the golden angle, <math><mrow><mn>360</mn><mo>°</mo><mo>/</mo><msup><mi>φ</mi><mn>2</mn></msup></mrow></math>, and it is why the spiral counts come out as Fibonacci numbers. Here the arrangement is placed; the chemistry then decides what to keep.</p>
       <p class="rd__note" data-rd="note" data-rd-for="vortex"><b>Vortex pattern:</b> spiral waves, or rotors, in an excitable medium — the pattern a broken wave front makes when its free end curls around and becomes its own pacemaker, as in the Belousov–Zhabotinsky reaction and in heart tissue. Its simplest law is the eikonal relation, <math><mrow><mi>c</mi><mo>=</mo><msub><mi>c</mi><mn>0</mn></msub><mo>−</mo><mi>D</mi><mi>κ</mi></mrow></math>: a front moves slower the more sharply it is curved, which is exactly what lets a tip rotate instead of racing away.</p>
     </div>
   </section>

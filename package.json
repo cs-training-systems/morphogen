@@ -1,6 +1,6 @@
 {
   "name": "morphogen",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Morphogen: a Gray–Scott reaction–diffusion field for the web. One classic script, no dependencies, no build step.",
   "main": "reaction-diffusion.js",
   "style": "reaction-diffusion.css",

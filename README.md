@@ -1,7 +1,7 @@
 # Morphogen
 
 **A Gray–Scott reaction–diffusion field for the web.** One classic script, no dependencies, no
-build step. Pass the pointer over the field and a pattern grows; nine named regimes, seven color
+build step. Click and drag on the field and a pattern grows; nine named regimes, seven color
 ramps, the simulation on the graphics processor with adaptive resolution, and full keyboard and
 screen-reader operation.
 
@@ -13,7 +13,7 @@ screen-reader operation.
 
 ![Spiral waves spun from broken strokes, in the Canopy palette](docs/media/hero-vortex.png)
 
-| Hover seeds the field | A head grows on the golden angle | Spiral waves | Spatiotemporal chaos |
+| A drag stroke seeds the field | A head grows on the golden angle | Spiral waves | Spatiotemporal chaos |
 |---|---|---|---|
 | ![hover seeding](docs/media/hover-seeding.gif) | ![phyllotaxis](docs/media/phyllotaxis.gif) | ![vortex](docs/media/vortex.gif) | ![turbulence](docs/media/turbulence.gif) |
 
@@ -27,7 +27,7 @@ equations produce spots, stripes, labyrinths, spiral waves, dividing cells and c
 runs the equations on a canvas, in the page, at the finest grid the visitor's machine can animate
 without dropping frames.
 
-The model, per step, with the 3×3 Laplacian (centre −1, edges 0.2, corners 0.05) and dt = 1:
+The model, per step, with the 3×3 Laplacian (center −1, edges 0.2, corners 0.05) and dt = 1:
 
 ```
 U' = U + (Du·∇²U − U·V² + f·(1 − U))·dt      Du = 0.2097
@@ -42,7 +42,7 @@ Copy `reaction-diffusion.js` and `reaction-diffusion.css` into your site and wri
 <link rel="stylesheet" href="reaction-diffusion.css">
 <div data-rd-scope>
   <canvas data-reaction-diffusion data-feed="0.010" data-kill="0.035" data-palette="canopy"
-          role="img" aria-label="A reaction–diffusion simulation. Move the pointer over it to seed a pattern."></canvas>
+          role="img" aria-label="A reaction–diffusion simulation. Click and drag on it to seed a pattern."></canvas>
 </div>
 <script src="reaction-diffusion.js" defer></script>
 ```
@@ -56,7 +56,7 @@ what you need.
 As a dependency, pinned to a release:
 
 ```
-npm install github:cs-training-systems/morphogen#v1.0.0
+npm install github:cs-training-systems/morphogen#v1.0.1
 ```
 
 The package ships the script and the stylesheet only. Serve them from your own origin; nothing is
@@ -68,7 +68,9 @@ fetched at run time, and the script makes no network request of any kind.
 |---|---|---|
 | `data-feed` · `data-kill` | the Gray–Scott rates | 0.010 · 0.035 |
 | `data-palette` | a palette id (see [Palettes](#palettes)) | `canopy` |
-| `data-time-scale` | 0.5 … 2.5; steps per frame = 8 × this | 0.75 |
+| `data-time-scale` | speed, 0.5 … 2.5; steps per frame = 8 × this | 0.75 |
+| `data-dscale` | diffusion scale: both diffusion rates multiplied; sets the spacing between fronts (a preset may carry its own) | 1 |
+| `data-hover` | `on`: the pointer paints on hover alone; otherwise only while a button is held | off |
 | `data-steps` | base steps per frame | 8 |
 | `data-quality` | the resolution ceiling: `auto` (up to the display) or a ladder index 0–8 (320 … 1600 cells wide); the engine adapts beneath it | `auto` |
 | `data-gpu` | `off` to force the processor path | on |
@@ -82,18 +84,19 @@ All of them are optional.
 
 | `data-rd` | Element | What it does |
 |---|---|---|
-| `preset` | `<button data-rd-id="…">`, optionally holding a `thumb` canvas | Selects a named regime and seeds it; `aria-pressed` tracks the active one; `data-rd-default` marks the initial one |
+| `preset` | `<button data-rd-id="…">`, optionally holding a `thumb` canvas | Selects a named regime and clears the field (nothing is seeded until the visitor paints or presses Seed); `aria-pressed` tracks the active one; `data-rd-default` marks the initial one |
 | `thumb` | `<canvas aria-hidden="true">` inside a preset button | Filled with a live-rendered thumbnail of that regime; repainted when the colors change |
 | `note` | any element with `data-rd-for="<preset id>"` | Shown while that preset is active, hidden otherwise |
 | `feed-range` / `feed-number` | `<input type="range">` / `<input type="number">` | Feed rate; the pair tracks itself |
 | `kill-range` / `kill-number` | as above | Kill rate |
-| `scale-range` / `scale-number` | as above | Time scale |
+| `scale-range` / `scale-number` | as above | Speed (the time scale) |
 | `pause` | `<button>` | Pause / Play; its text and label follow the state |
 | `reset` | `<button>` | Clears the field to the ground color |
-| `seed` | `<button>` | Seeds one point: the first at the centre, later ones at random |
+| `seed` | `<button>` | Seeds one point: the first at the center, later ones at random, until Reset or a new pattern |
 | `colors-toggle` · `colors-menu` | `<button aria-expanded aria-controls>` · `<fieldset>` | A drop-down of `palette-option` radios; a choice, Escape, or focus leaving closes it |
 | `palette-option` | `<input type="radio" value="<palette id>" data-rd-name="…">` | Color ramp by id |
 | `motion` · `motion-check` | `<button aria-pressed>` · `<input type="checkbox">` | The accessibility toggle, reduced motion on or off; either control toggles and both stay in step (see [Accessibility](#accessibility)) |
+| `hover` · `hover-check` | `<button aria-pressed>` · `<input type="checkbox">` | Hover mode: the pointer paints on hover alone; off (the default) it paints only while a button is held |
 | `mode` | any element | Receives the current pattern's name in capitals |
 | `loading` | any element with `hidden` | Shown while a reduced-motion still is computed |
 | `quality` | `<select>` | The resolution ceiling: `auto` or a ladder index; plain numbers in the demo |
@@ -108,6 +111,8 @@ All of them are optional.
 ```js
 const field = ReactionDiffusion.mount(canvas, options);   // or ReactionDiffusion.get(canvas) after auto-mount
 field.setParams(0.029, 0.057).setTimeScale(1).setPalette("aurora");
+field.setDiffusionScale(3.2);                                // both diffusion rates × 3.2 (Vortex uses this)
+field.setHover(true);                                        // paint on hover alone; false (default) = click and drag
 field.seedSpec({ type: "spiral", n: 21, r: 3 });            // "spiral" | "strokes" | "discs" | "grow"
 field.pause(); field.play(); field.clear();
 field.on((type, f) => { /* "params" "palette" "pause" "play" "clear" "seed" "quiet" "quality" "motion" */ });
@@ -132,11 +137,11 @@ are plain descriptors; the demo's notes give the technical term and the simplest
 | ![](docs/media/preset-meandric.png) **Meandric** | 0.029 / 0.057 | labyrinthine stripes (a Turing pattern) |
 | ![](docs/media/preset-swarm.png) **Swarm** | 0.014 / 0.054 | a crowd of travelling, dividing spots |
 | ![](docs/media/preset-honeycomb.png) **Honeycomb** | 0.039 / 0.058 | a sheet opening into a pore lattice |
-| ![](docs/media/preset-frost.png) **Frost** | 0.046 / 0.063 | tip-splitting arms (dendritic growth) |
+| ![](docs/media/preset-frost.png) **Frost** | 0.037 / 0.060, six-fold anisotropy | a hexagonal crystal grown from one point: the activator diffuses faster along six directions, three fields turned ±15° shown together |
 | ![](docs/media/preset-turbulence.png) **Turbulence** | 0.026 / 0.051 | spatiotemporal chaos that never settles |
 | ![](docs/media/preset-mitosis.png) **Mitosis** | 0.037 / 0.065 | self-replicating spots |
 | ![](docs/media/preset-phyllotaxis.png) **Phyllotaxis** | 0.030 / 0.062 | a sunflower head built on the golden angle, one spot at a time |
-| ![](docs/media/preset-vortex.png) **Vortex** | 0.014 / 0.045 | spiral waves from broken strokes |
+| ![](docs/media/preset-vortex.png) **Vortex** | 0.014 / 0.047, diffusion × 3.2 | spiral waves from broken strokes |
 
 Seeding specs: `spiral` places *n* discs on Vogel's phyllotaxis spiral (angle 137.5°, radius ∝ √n);
 `grow` does the same one disc every few frames; `strokes` lays short line segments whose free ends
@@ -170,8 +175,12 @@ Your own ramp: `field.setPalette(["#000000", "#102040", "#2080c0", "#ffffff"])`.
 - **Grid shape.** The simulation grid always takes the frame's own aspect ratio, measured on
   screen, so a square frame gets a square grid and nothing is stretched. Give the frame its shape
   in CSS (`aspect-ratio`); the engine follows, and re-follows on resize.
-- **Thumbnails** render at 128×72 for 420 steps on load, one per idle slot, so the page never
-  blocks; change `thumb` in the mount options to trade detail for time.
+- **Thumbnails** render at 96×54 for 300 steps after the page has loaded, one per idle slot, so
+  the page never blocks; change `thumb` in the mount options to trade detail for time.
+- **Diffusion scale.** A preset may multiply both diffusion rates (`dscale`). The regime (the
+  feed/kill pair) is unchanged; the wavelength grows with the square root of the scale, so fronts
+  sit further apart. Vortex uses 3.2, which reproduces the effective rate of a 5-point Laplacian at
+  a 0.8 time step, the numerics pmneila/jsexp's "Waves" preset runs on.
 
 ### Back end (what the engine decides, and how to re-tune it)
 
@@ -193,14 +202,24 @@ Your own ramp: `field.setPalette(["#000000", "#102040", "#2080c0", "#ffffff"])`.
   autocatalytic gain winds down smoothly between those times after the pointer leaves, and every
   regime starves at about the same moment. `npm test` runs `tests/verify-fade.js`, which proves
   this per preset in Node with an injected clock.
-- **Adding a preset.** Add `{ id, name, feed, kill, seed }` to `PRESETS`, a button and a note to
+- **Anisotropy.** A preset may carry `aniso: { eps, fold, phases }`: the activator's diffusion
+  becomes direction-dependent, D(θ) = D (1 + ε cos(fold·(θ − phase))), applied as a flux through
+  each cell face with θ the gradient direction at that face; one copy of the field runs per phase
+  and the maximum is shown. Frost uses ε 0.6, six-fold, phases −15°/0°/+15°. On the graphics
+  processor that is three step passes per frame; the processor path's adaptive resolution absorbs it.
+- **Adding a preset.** Add `{ id, name, feed, kill, seed }` (optionally `dscale`, `aniso`, `thumbSteps`) to `PRESETS`, a button and a note to
   `index.html`, run `npm test`, and render its still with `node tools/render-media.js`.
 
 ## Accessibility
 
 - The canvas is `role="img"` with a text alternative; the pointer interaction is decorative, so
   everything is operable without a pointer: presets, Seed, Pause and Reset are real buttons; feed,
-  kill and time scale are native range and number inputs with labels.
+  kill and speed are native range and number inputs with labels.
+- Painting needs a held button by default, so an unintended pass of the pointer changes nothing;
+  Hover mode is an opt-in toggle. Nothing moves until the visitor acts.
+- **Photosensitivity.** Some regimes flicker and pulse. The demo carries a notice, and Reduced
+  motion replaces the animation with a still; a host page should carry the same notice in reading
+  order before the field (the demo's `instructions` paragraph is one place for it).
 - Every change is announced through a polite live region; state is never conveyed by color alone
   (the active preset and color are marked by border and mark).
 - **Reduced motion** is an accessibility mode, for people for whom moving content causes
@@ -217,7 +236,7 @@ Your own ramp: `field.setPalette(["#000000", "#102040", "#2080c0", "#ffffff"])`.
 - The frame, corner brackets, thumbnails and swatches keep their borders under Windows high
   contrast (`forced-colors: active`).
 - Vertical touch swipes over the field scroll the page (`touch-action: pan-y`); only sideways
-  motion seeds.
+  motion while touching paints.
 
 ## Browser support
 
