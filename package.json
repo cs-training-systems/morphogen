@@ -1,0 +1,32 @@
+{
+  "name": "morphogen",
+  "version": "1.0.0",
+  "description": "Morphogen: a Gray–Scott reaction–diffusion field for the web. One classic script, no dependencies, no build step.",
+  "main": "reaction-diffusion.js",
+  "style": "reaction-diffusion.css",
+  "files": [
+    "reaction-diffusion.js",
+    "reaction-diffusion.css",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node tests/verify-fade.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cs-training-systems/morphogen.git"
+  },
+  "homepage": "https://cs-training-systems.github.io/morphogen/",
+  "keywords": [
+    "reaction-diffusion",
+    "gray-scott",
+    "turing-pattern",
+    "morphogenesis",
+    "canvas",
+    "simulation",
+    "complex-systems"
+  ],
+  "author": "Christopher A. Stamplis",
+  "license": "MIT"
+}

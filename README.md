@@ -1,0 +1,225 @@
+# Morphogen
+
+**A Gray–Scott reaction–diffusion field for the web.** One classic script, no dependencies, no
+build step. Pass the pointer over the field and a pattern grows; nine named regimes, seven colour
+ramps, adaptive resolution, and full keyboard and screen-reader operation.
+
+[**Live demo**](https://cs-training-systems.github.io/morphogen/) ·
+[Quick start](#quick-start) · [Controls](#controls) · [API](#api) · [Presets](#presets) ·
+[Palettes](#palettes) · [Calibration](#calibration) · [Accessibility](#accessibility) ·
+[Forking and contributing](#forking-and-contributing) · [Citing](#citing-and-attribution) ·
+[License](#license)
+
+![Spiral waves spun from broken strokes, in the Canopy palette](docs/media/hero-vortex.png)
+
+| Hover seeds the field | A head grows on the golden angle | Spiral waves | Spatiotemporal chaos |
+|---|---|---|---|
+| ![hover seeding](docs/media/hover-seeding.gif) | ![phyllotaxis](docs/media/phyllotaxis.gif) | ![vortex](docs/media/vortex.gif) | ![turbulence](docs/media/turbulence.gif) |
+
+## What it is
+
+Morphogen simulates the Gray–Scott model, a two-chemical reaction–diffusion system in which a
+substance *V* makes more of itself from a substance *U* while both diffuse. Alan Turing proposed
+in 1952 that chemistry of this kind could lay down the patterns of living form; he called the
+chemicals *morphogens*. Depending on two numbers, the feed rate *f* and the kill rate *k*, the same
+equations produce spots, stripes, labyrinths, spiral waves, dividing cells and chaos. Morphogen
+runs the equations on a canvas, in the page, at the finest grid the visitor's machine can animate
+without dropping frames.
+
+The model, per step, with the 3×3 Laplacian (centre −1, edges 0.2, corners 0.05) and dt = 1:
+
+```
+U' = U + (Du·∇²U − U·V² + f·(1 − U))·dt      Du = 0.2097
+V' = V + (Dv·∇²V + U·V² − (f + k)·V)·dt      Dv = 0.105
+```
+
+## Quick start
+
+Copy `reaction-diffusion.js` and `reaction-diffusion.css` into your site and write:
+
+```html
+<link rel="stylesheet" href="reaction-diffusion.css">
+<div data-rd-scope>
+  <canvas data-reaction-diffusion data-feed="0.010" data-kill="0.035" data-palette="canopy"
+          role="img" aria-label="A reaction–diffusion simulation. Move the pointer over it to seed a pattern."></canvas>
+</div>
+<script src="reaction-diffusion.js" defer></script>
+```
+
+That is the whole integration: one stylesheet, one canvas, one script tag. The script defines a
+single global, `ReactionDiffusion`, mounts every `canvas[data-reaction-diffusion]` when the
+document is ready, and binds any controls you place inside the same `[data-rd-scope]` container by
+their `data-rd` role (next section). `index.html` in this repository is the full control set; copy
+what you need.
+
+As a dependency, pinned to a release:
+
+```
+npm install github:cs-training-systems/morphogen#v1.0.0
+```
+
+The package ships the script and the stylesheet only. Serve them from your own origin; nothing is
+fetched at run time, and the script makes no network request of any kind.
+
+### Canvas attributes
+
+| Attribute | Meaning | Default |
+|---|---|---|
+| `data-feed` · `data-kill` | the Gray–Scott rates | 0.010 · 0.035 |
+| `data-palette` | a palette id (see [Palettes](#palettes)) | `canopy` |
+| `data-time-scale` | 0.5 … 2.5; steps per frame = 8 × this | 0.75 |
+| `data-steps` | base steps per frame | 8 |
+| `data-quality` | `auto`, or a ladder index 0–5 (320 … 800 cells wide) | `auto` |
+| `data-fade-start` · `data-fade-end` | seconds after the pointer leaves at which the chemistry winds down and dies; unset = never | unset |
+
+## Controls
+
+Any element inside the `[data-rd-scope]` container with one of these roles is wired automatically.
+All of them are optional.
+
+| `data-rd` | Element | What it does |
+|---|---|---|
+| `preset` | `<button data-rd-id="…">`, optionally holding a `thumb` canvas | Selects a named regime and seeds it; `aria-pressed` tracks the active one; `data-rd-default` marks the initial one |
+| `thumb` | `<canvas aria-hidden="true">` inside a preset button | Filled with a live-rendered thumbnail of that regime; repainted when the colours change |
+| `note` | any element with `data-rd-for="<preset id>"` | Shown while that preset is active, hidden otherwise |
+| `feed-range` / `feed-number` | `<input type="range">` / `<input type="number">` | Feed rate; the pair tracks itself |
+| `kill-range` / `kill-number` | as above | Kill rate |
+| `scale-range` / `scale-number` | as above | Time scale |
+| `pause` | `<button>` | Pause / Play; its text and label follow the state |
+| `reset` | `<button>` | Clears the field to the ground colour |
+| `seed` | `<button>` | Seeds one point: the first at the centre, later ones at random |
+| `colors-toggle` · `colors-menu` | `<button aria-expanded aria-controls>` · `<fieldset>` | A drop-down of `palette-option` radios; a choice, Escape, or focus leaving closes it |
+| `palette-option` | `<input type="radio" value="<palette id>" data-rd-name="…">` | Colour ramp by id |
+| `status` | any element with `aria-live="polite"` | Receives a short plain-text status on every change |
+| `quality` · `steps` | `<select>` | Resolution rung or `auto` · base steps per frame |
+
+## API
+
+```js
+const field = ReactionDiffusion.mount(canvas, options);   // or ReactionDiffusion.get(canvas) after auto-mount
+field.setParams(0.029, 0.057).setTimeScale(1).setPalette("aurora");
+field.seedSpec({ type: "spiral", n: 21, r: 3 });            // "spiral" | "strokes" | "discs" | "grow"
+field.pause(); field.play(); field.clear();
+field.on((type, f) => { /* "params" "palette" "pause" "play" "clear" "seed" "quiet" "quality" "motion" */ });
+field.quality();                                             // { auto, level, width, height, ms, steps }
+field.tick();                                                // one frame of work, no scheduling (tests)
+field.destroy();
+```
+
+`ReactionDiffusion.presets` and `ReactionDiffusion.palettes` expose the built-in sets;
+`ReactionDiffusion.renderThumb(preset, { width, height, steps })` renders a regime offline.
+
+## Presets
+
+Each preset is a `(feed, kill)` pair with a seeding that shows the regime at its best. The names
+are plain descriptors; the demo's notes give the technical term and the simplest law behind each.
+
+| Preset | feed / kill | Looks like |
+|---|---|---|
+| ![](docs/media/preset-malachite.png) **Malachite** | 0.010 / 0.035 | concentric banded fronts (target patterns) |
+| ![](docs/media/preset-meandric.png) **Meandric** | 0.029 / 0.057 | labyrinthine stripes (a Turing pattern) |
+| ![](docs/media/preset-swarm.png) **Swarm** | 0.014 / 0.054 | a crowd of travelling, dividing spots |
+| ![](docs/media/preset-honeycomb.png) **Honeycomb** | 0.039 / 0.058 | a sheet opening into a pore lattice |
+| ![](docs/media/preset-frost.png) **Frost** | 0.046 / 0.063 | tip-splitting arms (dendritic growth) |
+| ![](docs/media/preset-turbulence.png) **Turbulence** | 0.026 / 0.051 | spatiotemporal chaos that never settles |
+| ![](docs/media/preset-mitosis.png) **Mitosis** | 0.037 / 0.065 | self-replicating spots |
+| ![](docs/media/preset-phyllotaxis.png) **Phyllotaxis** | 0.030 / 0.062 | a sunflower head built on the golden angle, one spot at a time |
+| ![](docs/media/preset-vortex.png) **Vortex** | 0.014 / 0.045 | spiral waves from broken strokes |
+
+Seeding specs: `spiral` places *n* discs on Vogel's phyllotaxis spiral (angle 137.5°, radius ∝ √n);
+`grow` does the same one disc every few frames; `strokes` lays short line segments whose free ends
+spin up spiral waves; `discs` scatters *n* discs.
+
+## Palettes
+
+Each ramp is four colours: the ground (black, so a decaying edge fades into it), a trail, a body
+and a front, mapped over the concentration of *V*.
+
+| Id | Colours |
+|---|---|
+| `canopy` (default) | black · deep blue `#003E99` · green `#009149` · buff `#FEEEA3` |
+| `aurora` | black · green `#009149` · violet `#7728A8` · white |
+| `spectrum` | black · deep blue `#003E99` · red `#D30011` · white |
+| `neon` | black · red `#D30011` · green `#009149` · white |
+| `accretion` | black · deep blue `#003E99` · orange `#FD5F00` · white |
+| `physarum` | black · deep blue `#003E99` · yellow `#FDD100` · white |
+| `cherenkov` | black · violet `#7728A8` · cyan `#0095DA` · white |
+
+Your own ramp: `field.setPalette(["#000000", "#102040", "#2080c0", "#ffffff"])`.
+
+## Calibration
+
+### Front end (what a page author sets)
+
+- **Rates and ranges.** The sliders in `index.html` span feed 0.008–0.070 and kill 0.030–0.066, the
+  band where Pearson's named regimes live; outside it the field is mostly blank or uniformly filled.
+- **Time scale.** 1 is 8 steps per frame; the default 0.75 is 6. Cost is linear in time scale, and
+  the automatic resolution absorbs it by changing rung.
+- **Grid shape.** The simulation grid always takes the frame's own aspect ratio, measured on
+  screen, so a square frame gets a square grid and nothing is stretched. Give the frame its shape
+  in CSS (`aspect-ratio`); the engine follows, and re-follows on resize.
+- **Thumbnails** render at 128×72 for 420 steps on load, one per idle slot, so the page never
+  blocks; change `thumb` in the mount options to trade detail for time.
+
+### Back end (what the engine decides, and how to re-tune it)
+
+- **Adaptive resolution.** Starting at 400 cells wide, the engine keeps a running mean of its own
+  compute time per frame and climbs the ladder (320, 400, 480, 560, 640, 800) while the mean stays
+  under `budgetMs` (8 ms, half of a 60 fps frame); it steps down above `ceilingMs` (12 ms) or when
+  two of the last thirty frames exceed 16 ms; it never simulates more cells across than the canvas
+  has device pixels; it holds one second after each change; and it resamples the running state
+  bilinearly, so a change is invisible. Re-tune by passing `budgetMs` / `ceilingMs` to `mount`.
+- **Fade window.** Off by default: patterns run until Reset. With `fadeStart`/`fadeEnd` set, the
+  autocatalytic gain winds down smoothly between those times after the pointer leaves, and every
+  regime starves at about the same moment. `npm test` runs `tests/verify-fade.js`, which proves
+  this per preset in Node with an injected clock.
+- **Adding a preset.** Add `{ id, name, feed, kill, seed }` to `PRESETS`, a button and a note to
+  `index.html`, run `npm test`, and render its still with `node tools/render-media.js`.
+
+## Accessibility
+
+- The canvas is `role="img"` with a text alternative; the pointer interaction is decorative, so
+  everything is operable without a pointer: presets, Seed, Pause and Reset are real buttons; feed,
+  kill and time scale are native range and number inputs with labels.
+- Every change is announced through a polite live region; state is never conveyed by colour alone
+  (the active preset and colour are marked by border and mark).
+- `prefers-reduced-motion: reduce` stops the animation and shows a computed still; the controls
+  recompute that still. The colour menu's animation is removed under the same preference.
+- The frame, corner brackets, thumbnails and swatches keep their borders under Windows high
+  contrast (`forced-colors: active`).
+- Vertical touch swipes over the field scroll the page (`touch-action: pan-y`); only sideways
+  motion seeds.
+
+## Browser support
+
+Any current browser: the script uses Canvas 2D, `requestAnimationFrame`, pointer events,
+`matchMedia` and typed arrays, all baseline for years. The demo's notes use inline MathML, which
+every current browser renders natively.
+
+## Forking and contributing
+
+Fork on GitHub, clone your fork, and open `index.html` from any local web server; there is nothing
+to install. `npm test` runs the fade verifier. See [CONTRIBUTING.md](CONTRIBUTING.md) for the
+conventions that keep the project small, and [CHANGELOG.md](CHANGELOG.md) for what changed when.
+
+## Citing and attribution
+
+Morphogen is MIT-licensed, so you may use, copy, modify and redistribute it, including
+commercially, provided the copyright and licence notice stay with it. If you show it or build on
+it, a credit line is appreciated:
+
+> Morphogen, © 2026 Christopher A. Stamplis, MIT License — https://github.com/cs-training-systems/morphogen
+
+For publications, use GitHub's **Cite this repository** button (the metadata is in
+[CITATION.cff](CITATION.cff)), and cite the model's sources:
+
+- P. Gray and S. K. Scott, "Autocatalytic reactions in the isothermal, continuous stirred tank
+  reactor", *Chemical Engineering Science* 39 (1984).
+- J. E. Pearson, "Complex patterns in a simple system", *Science* 261 (1993).
+
+Morphogen is written from the published equations with no borrowed code. Visual inspiration:
+[pmneila/jsexp](https://github.com/pmneila/jsexp) (BSD-3-Clause).
+
+## License
+
+MIT © 2026 Christopher A. Stamplis. The full terms are in [LICENSE](LICENSE).

@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Morphogen — a Gray–Scott reaction–diffusion field</title>
+<meta name="description" content="Morphogen: a Gray–Scott reaction–diffusion field for the web. One classic script, no dependencies. Hover to seed a pattern; nine named regimes; seven colour ramps; adaptive resolution.">
+<link rel="stylesheet" href="demo.css">
+<link rel="stylesheet" href="reaction-diffusion.css">
+</head>
+<body>
+<main class="page">
+  <header>
+    <h1>Morphogen</h1>
+    <p class="tagline">A Gray–Scott reaction–diffusion field for the web. One classic script, no dependencies, no build step.</p>
+    <p class="links"><a href="https://github.com/cs-training-systems/morphogen">Source and README on GitHub ↗</a></p>
+  </header>
+
+  <section class="rd" data-rd-scope aria-labelledby="rd-heading">
+    <p class="kicker" id="rd-heading">Interactive · Reaction–diffusion</p>
+
+    <ul class="rd__presets" aria-label="Patterns">
+      <li><button type="button" class="rd__preset" data-rd="preset" data-rd-id="malachite" data-rd-default aria-pressed="true"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Malachite</button></li>
+      <li><button type="button" class="rd__preset" data-rd="preset" data-rd-id="meandric" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Meandric</button></li>
+      <li><button type="button" class="rd__preset" data-rd="preset" data-rd-id="swarm" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Swarm</button></li>
+      <li><button type="button" class="rd__preset" data-rd="preset" data-rd-id="honeycomb" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Honeycomb</button></li>
+      <li><button type="button" class="rd__preset" data-rd="preset" data-rd-id="frost" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Frost</button></li>
+      <li><button type="button" class="rd__preset" data-rd="preset" data-rd-id="turbulence" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Turbulence</button></li>
+      <li><button type="button" class="rd__preset" data-rd="preset" data-rd-id="mitosis" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Mitosis</button></li>
+      <li><button type="button" class="rd__preset" data-rd="preset" data-rd-id="phyllotaxis" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Phyllotaxis</button></li>
+      <li><button type="button" class="rd__preset" data-rd="preset" data-rd-id="vortex" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Vortex</button></li>
+    </ul>
+
+    <div class="rd__stage">
+      <figure class="rd__frame">
+        <canvas id="rd-field" class="rd__canvas" data-reaction-diffusion data-feed="0.010" data-kill="0.035" data-palette="canopy" data-steps="8"
+          role="img" aria-label="A reaction–diffusion simulation. A black field; moving the pointer over it seeds a chemical pattern that grows and spreads. The pattern buttons, the feed, kill and time-scale controls, and the colour options change its behaviour and look."></canvas>
+        <span class="corner corner--tl" aria-hidden="true"></span><span class="corner corner--tr" aria-hidden="true"></span>
+        <span class="corner corner--bl" aria-hidden="true"></span><span class="corner corner--br" aria-hidden="true"></span>
+        <div class="rd__hud">
+          <button type="button" class="rd__ctl" data-rd="pause">⏸ PAUSE</button>
+          <button type="button" class="rd__ctl" data-rd="reset">Reset</button>
+          <button type="button" class="rd__ctl" data-rd="seed">Seed</button>
+          <div class="rd__colors">
+            <button type="button" class="rd__ctl" data-rd="colors-toggle" aria-expanded="false" aria-controls="rd-colors">Colors</button>
+            <fieldset class="rd__colors-menu" id="rd-colors" data-rd="colors-menu">
+              <legend>Colors</legend>
+              <label class="rd__palette"><input type="radio" name="rd-palette" value="canopy" data-rd="palette-option" data-rd-name="Canopy" checked><span class="rd__swatches" aria-hidden="true"><span class="rd__sw rd__sw--black"></span><span class="rd__sw rd__sw--blue"></span><span class="rd__sw rd__sw--green"></span><span class="rd__sw rd__sw--buff"></span></span>Canopy</label>
+              <label class="rd__palette"><input type="radio" name="rd-palette" value="aurora" data-rd="palette-option" data-rd-name="Aurora"><span class="rd__swatches" aria-hidden="true"><span class="rd__sw rd__sw--black"></span><span class="rd__sw rd__sw--green"></span><span class="rd__sw rd__sw--violet"></span><span class="rd__sw rd__sw--white"></span></span>Aurora</label>
+              <label class="rd__palette"><input type="radio" name="rd-palette" value="spectrum" data-rd="palette-option" data-rd-name="Spectrum"><span class="rd__swatches" aria-hidden="true"><span class="rd__sw rd__sw--black"></span><span class="rd__sw rd__sw--blue"></span><span class="rd__sw rd__sw--red"></span><span class="rd__sw rd__sw--white"></span></span>Spectrum</label>
+              <label class="rd__palette"><input type="radio" name="rd-palette" value="neon" data-rd="palette-option" data-rd-name="Neon"><span class="rd__swatches" aria-hidden="true"><span class="rd__sw rd__sw--black"></span><span class="rd__sw rd__sw--red"></span><span class="rd__sw rd__sw--green"></span><span class="rd__sw rd__sw--white"></span></span>Neon</label>
+              <label class="rd__palette"><input type="radio" name="rd-palette" value="accretion" data-rd="palette-option" data-rd-name="Accretion"><span class="rd__swatches" aria-hidden="true"><span class="rd__sw rd__sw--black"></span><span class="rd__sw rd__sw--blue"></span><span class="rd__sw rd__sw--orange"></span><span class="rd__sw rd__sw--white"></span></span>Accretion</label>
+              <label class="rd__palette"><input type="radio" name="rd-palette" value="physarum" data-rd="palette-option" data-rd-name="Physarum"><span class="rd__swatches" aria-hidden="true"><span class="rd__sw rd__sw--black"></span><span class="rd__sw rd__sw--blue"></span><span class="rd__sw rd__sw--yellow"></span><span class="rd__sw rd__sw--white"></span></span>Physarum</label>
+              <label class="rd__palette"><input type="radio" name="rd-palette" value="cherenkov" data-rd="palette-option" data-rd-name="Cherenkov"><span class="rd__swatches" aria-hidden="true"><span class="rd__sw rd__sw--black"></span><span class="rd__sw rd__sw--violet"></span><span class="rd__sw rd__sw--cyan"></span><span class="rd__sw rd__sw--white"></span></span>Cherenkov</label>
+            </fieldset>
+          </div>
+        </div>
+      </figure>
+
+      <section class="rd__rate" aria-labelledby="rd-rate-h">
+        <h3 class="rd__rate-h" id="rd-rate-h">Rate</h3>
+        <div class="rd__param">
+          <label for="rd-feed-range">Feed</label>
+          <input id="rd-feed-range" type="range" min="0.008" max="0.070" step="0.001" value="0.010" data-rd="feed-range">
+          <label class="rd__number-label" for="rd-feed-number">Feed, exact value</label>
+          <input id="rd-feed-number" type="number" min="0.008" max="0.070" step="0.001" value="0.010" inputmode="decimal" data-rd="feed-number">
+        </div>
+        <div class="rd__param">
+          <label for="rd-kill-range">Kill</label>
+          <input id="rd-kill-range" type="range" min="0.030" max="0.066" step="0.001" value="0.035" data-rd="kill-range">
+          <label class="rd__number-label" for="rd-kill-number">Kill, exact value</label>
+          <input id="rd-kill-number" type="number" min="0.030" max="0.066" step="0.001" value="0.035" inputmode="decimal" data-rd="kill-number">
+        </div>
+        <div class="rd__param">
+          <label for="rd-scale-range">Time scale</label>
+          <input id="rd-scale-range" type="range" min="0.5" max="2.5" step="0.05" value="0.75" data-rd="scale-range">
+          <label class="rd__number-label" for="rd-scale-number">Time scale, exact value</label>
+          <input id="rd-scale-number" type="number" min="0.5" max="2.5" step="0.05" value="0.75" inputmode="decimal" data-rd="scale-number">
+        </div>
+      </section>
+    </div>
+    <p class="visually-hidden" data-rd="status" aria-live="polite"></p>
+
+    <div class="rd__notes">
+      <p class="rd__note" data-rd="note" data-rd-for="malachite"><b>Malachite pattern:</b> target patterns — concentric waves radiating from a point in an excitable medium, the form first seen in the Belousov–Zhabotinsky reaction, whose chemistry oscillates in time and space. The whole system rests on one autocatalytic step, <math><mrow><mi>U</mi><mo>+</mo><mn>2</mn><mi>V</mi><mo>→</mo><mn>3</mn><mi>V</mi></mrow></math>: a substance that makes more of itself wherever it already is, until the local supply is spent and the wave moves on, leaving the banded wake a cut malachite shows.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="meandric"><b>Meandric pattern:</b> a labyrinthine Turing pattern. Stripes form when a slow, self-amplifying activator is held in check by a fast-spreading inhibitor; the condition is that the inhibitor diffuses faster, <math><mrow><msub><mi>D</mi><mi>U</mi></msub><mo>&gt;</mo><msub><mi>D</mi><mi>V</mi></msub></mrow></math>. The same mechanism lays down fingerprints, zebra stripes and the magnetic domains of a thin film: order with no blueprint, only two rates in competition.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="swarm"><b>Swarm pattern:</b> spatiotemporal chaos of localised spots — travelling structures that collide, split and die without ever settling. Each spot is a packet of the activator sustained by the equation <math><mrow><mfrac><mrow><mo>∂</mo><mi>V</mi></mrow><mrow><mo>∂</mo><mi>t</mi></mrow></mfrac><mo>=</mo><msub><mi>D</mi><mi>V</mi></msub><msup><mi>∇</mi><mn>2</mn></msup><mi>V</mi><mo>+</mo><mi>U</mi><msup><mi>V</mi><mn>2</mn></msup><mo>−</mo><mo>(</mo><mi>f</mi><mo>+</mo><mi>k</mi><mo>)</mo><mi>V</mi></mrow></math>; the crowd behaves like a swarming culture, or an agent-based model whose agents are nothing but chemistry.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="honeycomb"><b>Honeycomb pattern:</b> a hexagonal Turing pattern of holes — a filled sheet that opens into pores at one preferred spacing. That spacing is the pattern's wavelength, set by the critical wavenumber of the instability, <math><mrow><mi>λ</mi><mo>=</mo><mfrac><mrow><mn>2</mn><mi>π</mi></mrow><msub><mi>q</mi><mi>c</mi></msub></mfrac></mrow></math>, which is why foams, convection cells and porous membranes all arrive at the same tiling.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="frost"><b>Frost pattern:</b> dendritic growth, the tip-splitting form driven by the Mullins–Sekerka instability: a growing front is fed fastest at its most exposed point, so bumps grow into arms and arms split again. In its most distilled form the field around the arm obeys Laplace's equation, <math><mrow><msup><mi>∇</mi><mn>2</mn></msup><mi>c</mi><mo>=</mo><mn>0</mn></mrow></math>, and the arm advances where its gradient is steepest — the geometry of frost on glass, a solidifying alloy, and a lightning leader.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="turbulence"><b>Turbulence pattern:</b> spatiotemporal chaos — soft spots that spread, collide, split and die without ever settling into a steady form. The signature of chaos is a positive Lyapunov exponent, <math><mrow><mi>λ</mi><mo>&gt;</mo><mn>0</mn></mrow></math>: two fields that differ by the smallest amount drift apart exponentially, <math><mrow><mo>|</mo><mi>δ</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>|</mo><mo>≈</mo><mo>|</mo><mi>δ</mi><mo>(</mo><mn>0</mn><mo>)</mo><mo>|</mo><msup><mi>e</mi><mrow><mi>λ</mi><mi>t</mi></mrow></msup></mrow></math>, so the future of this field is unpredictable in detail even though every rule in it is known — the same reason weather forecasts have a horizon.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="mitosis"><b>Mitosis pattern:</b> self-replicating spots, first reported in the Gray–Scott system by Pearson in 1993 and in a real gel reactor by Lee, McCormick, Pearson and Swinney in 1994. A spot grows until it is too large to feed its own centre, pinches in two, and each half grows again; chemically it is only autocatalysis and decay, <math><mrow><mi>U</mi><mo>+</mo><mn>2</mn><mi>V</mi><mo>→</mo><mn>3</mn><mi>V</mi><mo>,</mo><mspace width="0.5em"/><mi>V</mi><mo>→</mo><mi>P</mi></mrow></math>, yet it divides like a cell.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="phyllotaxis"><b>Phyllotaxis pattern:</b> a sunflower head building itself: every few frames one more stable spot is placed on the spiral, from the centre outward, until the head is complete. Vogel's model places seed <math><mi>n</mi></math> at an angle of <math><mrow><mi>n</mi><mo>·</mo><mn>137.5</mn><mo>°</mo></mrow></math> from the last and a radius of <math><mrow><mi>c</mi><msqrt><mi>n</mi></msqrt></mrow></math>; that angle is the golden angle, <math><mrow><mn>360</mn><mo>°</mo><mo>/</mo><msup><mi>φ</mi><mn>2</mn></msup></mrow></math>, and it is why the spiral counts come out as Fibonacci numbers. Here the arrangement is placed; the chemistry then decides what to keep.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="vortex"><b>Vortex pattern:</b> spiral waves, or rotors, in an excitable medium — the pattern a broken wave front makes when its free end curls around and becomes its own pacemaker, as in the Belousov–Zhabotinsky reaction and in heart tissue. Its simplest law is the eikonal relation, <math><mrow><mi>c</mi><mo>=</mo><msub><mi>c</mi><mn>0</mn></msub><mo>−</mo><mi>D</mi><mi>κ</mi></mrow></math>: a front moves slower the more sharply it is curved, which is exactly what lets a tip rotate instead of racing away.</p>
+    </div>
+
+    <div class="demo-only" aria-label="Demo controls">
+      <h3>Demo controls</h3>
+      <div class="row">
+        <label>Resolution
+          <select data-rd="quality">
+            <option value="auto" selected>Automatic (climbs while the frame stays under 8 ms)</option>
+            <option value="0">320 cells wide</option>
+            <option value="1">400 cells wide</option>
+            <option value="2">480 cells wide</option>
+            <option value="3">560 cells wide</option>
+            <option value="4">640 cells wide</option>
+            <option value="5">800 cells wide</option>
+          </select>
+        </label>
+        <label>Measured <output id="fps">—</output></label>
+        <button id="motion" type="button" aria-pressed="false">Reduced motion: off</button>
+      </div>
+      <p>Patterns run until Reset. Time scale multiplies the base of 8 simulation steps per frame. Resolution starts at 400 cells wide and moves by measurement; the grid's height follows the frame's shape, so nothing is ever stretched.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>Morphogen is written from the published equations — Gray &amp; Scott (1984), Pearson (1993) — with no borrowed code. Visual inspiration: pmneila/jsexp (BSD-3-Clause). MIT License, © 2026 Christopher A. Stamplis.</p>
+  </footer>
+</main>
+<script src="reaction-diffusion.js" defer></script>
+<script src="demo.js" defer></script>
+</body>
+</html>
