@@ -80,7 +80,7 @@
     chronoSteps: 2400,           // simulation steps the reduced-motion chronogram spans, seed → emergence
     chronoStrips: 12,            // vertical strips, left early → right late
     budgetMs: 8, ceilingMs: 12,  // processor path: compute time per frame
-    thumb: { width: 128, height: 72, steps: 420 },
+    thumb: { width: 96, height: 54, steps: 300 },   // rendered after the page has loaded, in idle slots
     gpu: true,                   // try WebGL2 first
     reducedMotion: false,
     clock: null
@@ -628,14 +628,16 @@
     })(presets[i]);
 
     function paintThumbs() { var lut = field.lut(); for (var t = 0; t < thumbs.length; t++) { var th = thumbs[t]; if (th.data) paintArray(th.data.V, th.data.W, th.data.H, th.canvas.getContext("2d", { alpha: false }), lut, 0.4); } }
-    (function renderThumbsLazily() {
+    (function renderThumbsLazily() {               // never during page load: after `load`, one thumbnail per idle slot
       var i = 0, size = field.thumbSize();
+      var idle = global.requestIdleCallback ? function (fn) { global.requestIdleCallback(fn, { timeout: 1500 }); } : function (fn) { setTimeout(fn, 50); };
       function next() {
         if (i >= thumbs.length) return;
         var th = thumbs[i++]; th.canvas.width = size.width; th.canvas.height = size.height; th.data = renderThumb(th.preset, size); paintThumbs();
-        (global.requestIdleCallback || function (fn) { setTimeout(fn, 16); })(next);
+        idle(next);
       }
-      if (thumbs.length) next();
+      function start() { if (thumbs.length) idle(next); }
+      if (global.document && global.document.readyState !== "complete" && global.addEventListener) global.addEventListener("load", start, { once: true }); else start();
     })();
 
     function onParam(which, el) {
