@@ -3,6 +3,54 @@
 All notable changes to Morphogen are recorded here. The format follows Keep a Changelog; the
 project follows Semantic Versioning.
 
+## [2.0.0-beta.1] — 2026-10-09
+
+The engine overhaul, as a pre-release: the architecture and the eighteen patterns are in place and
+calibration continues; 2.0.0 follows when the patterns are judged finished. Morphogen becomes an
+engine of emergent pattern formation: a model registry with two families, eighteen presets and nine
+palettes, one visual language for all of them.
+
+- **The engine is rebuilt around a model registry.** A model declares its family, its lattice (square
+  or hexagonal), its state channels (up to three float textures), its two user parameters, its fixed
+  extras, its step as fragment shaders for the graphics processor and as a function for the processor,
+  its seeding, its display mapping, its liveness, its glow and its resolution policy. Two generic
+  backends run any model; the core knows none. The source lives in `src/` (one file per model or
+  group) and `tools/build.js` assembles the shipped script.
+- **Renamed:** the script is `morphogen.js`, the stylesheet `morphogen.css`, the global `Morphogen`;
+  `ReactionDiffusion` remains as an alias, and `canvas[data-reaction-diffusion]` still mounts. The
+  `data-rd` roles and the `rd` class namespace are unchanged. Breaking: the 1.x mount options `feed`,
+  `kill`, `rule`, `snow` and `aniso` become `model` and `params`; the Reiter snow rule is now the model
+  `reiter` (no tile); the anisotropic Gray–Scott machinery of 1.0.1 is removed.
+- **Two families, a family row (`data-rd="family"`), and the mode line "FAMILY: PATTERN".**
+  Reaction–diffusion: Gray–Scott in eight regimes and the phase-field dendrite (Kobayashi 1993, in
+  the form documented by NIST's FiPy), which takes Frost's place in this family as a true
+  reaction–diffusion system. Cellular automata: the Gravner–Griffeath snow crystal (2008, Frost),
+  Lenia (Chan 2019), the cyclic automaton (Rotor), dielectric breakdown (Lichtenberg), falling sand
+  on the Margolus neighbourhood (Sandpile), Rule 30 (Conus), the forest fire (Wildfire), Potts grain
+  growth (Grain) and a D2Q9 lattice-Boltzmann fluid (Wake). Every rule is cited at the head of its
+  source and stated in the demo's note with its law in MathML; the Frost notes say which family each
+  crystal belongs to and why.
+- **The glow stage:** every model's display scalar passes through a Gaussian blur and a persistence
+  field before the palette, so edges are never seen and every moving front leaves a trail that fades
+  down the ramp, the automata speaking the same language as the reaction–diffusion field.
+- **Resolution:** the ladder gains a 240 rung and takes widths (`setQuality(640)`); a chosen rung is
+  the grid and the engine adapts only on Automatic; pixel-lattice models run at the canvas's device
+  pixels; the snow crystal's lattice follows the rung with its blur scaled to the cell.
+- **Presets carry their whole recipe** — palette, parameters, speed, brush, resolution, seeding — and
+  the two sliders are centred on the preset's values (speed on a logarithmic slider). The owner's
+  defaults for every pattern; Honeycomb is renamed **Xylem**; Vortex opens with a stir of five points
+  and four curved slashes on every Seed press and click; Phyllotaxis grows its head from the first
+  Seed press to the frame's edge; Malachite's pacemaker fires from the first press.
+- **Palettes Orodruin** (red, orange, yellow) and **Coastal** (deep blue, cyan, buff), one palette per
+  pattern in each family.
+- **Thumbnails** are computed on the graphics processor through an offscreen canvas after load, in
+  milliseconds, with no main-thread cost; **touch** always paints while the finger is on the field;
+  the accessibility toggles are labelled check boxes; the number boxes show their whole value; the
+  panel's spacing is on the host's scale.
+- `npm test` builds and then runs the fade verifier for the Gray–Scott presets; `tools/render-media.js`
+  renders the reaction–diffusion media in Node and `tools/capture.html` the automata stills on the
+  graphics processor.
+
 ## [1.0.2] — 2026-10-08
 
 Frost becomes a real snow crystal.

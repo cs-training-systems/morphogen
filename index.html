@@ -3,41 +3,56 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Morphogen — a Gray–Scott reaction–diffusion field</title>
-<meta name="description" content="Morphogen: a Gray–Scott reaction–diffusion field for the web, with a real snow crystal. One classic script, no dependencies. Click and drag to seed a pattern; nine named regimes; seven color ramps; adaptive resolution on the graphics processor.">
+<title>Morphogen — an engine of emergent pattern formation</title>
+<meta name="description" content="Morphogen: an engine of emergent pattern formation for the web. Reaction–diffusion (Gray–Scott, the phase-field dendrite) and cellular automata (snow crystals, Lenia, rotors, lightning, the sandpile, Rule 30, wildfire, grains, a lattice-Boltzmann wake) in one classic script, no dependencies, on the graphics processor.">
 <link rel="stylesheet" href="demo.css">
-<link rel="stylesheet" href="reaction-diffusion.css">
+<link rel="stylesheet" href="morphogen.css">
 </head>
 <body>
 <main class="page">
   <header>
     <h1>Morphogen</h1>
-    <p class="tagline">A Gray–Scott reaction–diffusion field for the web. One classic script, no dependencies, no build step.</p>
+    <p class="tagline">An engine of emergent pattern formation for the web. Two families, eighteen patterns, one classic script, no dependencies, no build step.</p>
     <p class="links"><a href="https://github.com/cs-training-systems/morphogen">Source and README on GitHub ↗</a></p>
   </header>
 
-  <p class="instructions">Click and drag on the field to paint it, or switch on Hover mode and just move the pointer. Pick a pattern tile; Seed drops one point (the first at the center, later ones at random); Reset clears. Feed, Kill and Speed set the chemistry and its pace; Resolution caps the grid, which adapts to your machine; Brush width sets the pointer's mark. Reduced motion shows one still: seed at the left, full pattern at the right. <b>Photosensitivity notice:</b> the field animates and can flicker or pulse; use Reduced motion if flashing affects you.</p>
+  <p class="instructions">Choose a family, then a pattern tile. Click and drag on the field to paint it, or switch on Hover mode and just move the pointer; on a touch screen, touch and drag. Seed starts the pattern at the center (later presses add one point at random); Reset clears. The two sliders are the pattern's own parameters; Speed sets its pace; Resolution sets the grid, or a crystal's size; Brush width sets the pointer's mark. Reduced motion shows one still: seed at the left, full pattern at the right.</p>
+  <p class="instructions notice" id="rd-notice"><b>Photosensitivity notice.</b> The field animates and can flicker or pulse. Its Reduced motion control shows a still image instead.</p>
 
   <section class="rd" data-rd-scope aria-labelledby="rd-heading">
-    <p class="kicker" id="rd-heading">Interactive · Reaction–diffusion</p>
-    <p class="rd__mode" data-rd="mode">MALACHITE</p>
+    <p class="kicker" id="rd-heading">Interactive · Emergent patterns</p>
+
+    <div class="rd__families" role="group" aria-label="Families">
+      <button type="button" class="rd__family" data-rd="family" data-rd-id="rd" data-rd-default aria-pressed="true">Reaction–diffusion</button>
+      <button type="button" class="rd__family" data-rd="family" data-rd-id="ca" aria-pressed="false">Cellular automata</button>
+    </div>
+    <p class="rd__mode" data-rd="mode">REACTION-DIFFUSION: MALACHITE</p>
 
     <ul class="rd__presets" aria-label="Patterns">
       <li><button type="button" class="rd__preset" data-rd="preset" data-rd-id="malachite" data-rd-default aria-pressed="true"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Malachite</button></li>
       <li><button type="button" class="rd__preset" data-rd="preset" data-rd-id="meandric" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Meandric</button></li>
       <li><button type="button" class="rd__preset" data-rd="preset" data-rd-id="swarm" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Swarm</button></li>
-      <li><button type="button" class="rd__preset" data-rd="preset" data-rd-id="honeycomb" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Honeycomb</button></li>
+      <li><button type="button" class="rd__preset" data-rd="preset" data-rd-id="xylem" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Xylem</button></li>
       <li><button type="button" class="rd__preset" data-rd="preset" data-rd-id="frost" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Frost</button></li>
       <li><button type="button" class="rd__preset" data-rd="preset" data-rd-id="turbulence" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Turbulence</button></li>
       <li><button type="button" class="rd__preset" data-rd="preset" data-rd-id="mitosis" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Mitosis</button></li>
       <li><button type="button" class="rd__preset" data-rd="preset" data-rd-id="phyllotaxis" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Phyllotaxis</button></li>
       <li><button type="button" class="rd__preset" data-rd="preset" data-rd-id="vortex" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Vortex</button></li>
+      <li hidden><button type="button" class="rd__preset" data-rd="preset" data-rd-id="ca-frost" data-rd-default aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Frost</button></li>
+      <li hidden><button type="button" class="rd__preset" data-rd="preset" data-rd-id="lenia" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Lenia</button></li>
+      <li hidden><button type="button" class="rd__preset" data-rd="preset" data-rd-id="rotor" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Rotor</button></li>
+      <li hidden><button type="button" class="rd__preset" data-rd="preset" data-rd-id="lichtenberg" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Lichtenberg</button></li>
+      <li hidden><button type="button" class="rd__preset" data-rd="preset" data-rd-id="sandpile" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Sandpile</button></li>
+      <li hidden><button type="button" class="rd__preset" data-rd="preset" data-rd-id="conus" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Conus</button></li>
+      <li hidden><button type="button" class="rd__preset" data-rd="preset" data-rd-id="wildfire" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Wildfire</button></li>
+      <li hidden><button type="button" class="rd__preset" data-rd="preset" data-rd-id="grain" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Grain</button></li>
+      <li hidden><button type="button" class="rd__preset" data-rd="preset" data-rd-id="wake" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Wake</button></li>
     </ul>
 
     <div class="rd__stage">
       <figure class="rd__frame">
-        <canvas id="rd-field" class="rd__canvas" data-reaction-diffusion data-feed="0.010" data-kill="0.035" data-palette="canopy" data-steps="8"
-          role="img" aria-label="A reaction–diffusion simulation. A black field; click and drag on it, or move the pointer over it in hover mode, to seed a chemical pattern that grows and spreads. The pattern tiles, the feed, kill and speed controls, and the color options change its behavior and look."></canvas>
+        <canvas id="rd-field" class="rd__canvas" data-morphogen data-preset="malachite" data-palette="canopy" data-steps="8"
+          role="img" aria-describedby="rd-notice" aria-label="An emergent-pattern simulation. A black field; click and drag on it, touch and drag, or move the pointer over it in hover mode, to seed a pattern that grows and spreads. The family buttons, the pattern tiles, the two parameter sliders, speed, resolution and the color options change its behavior and look."></canvas>
         <span class="corner corner--tl" aria-hidden="true"></span><span class="corner corner--tr" aria-hidden="true"></span>
         <span class="corner corner--bl" aria-hidden="true"></span><span class="corner corner--br" aria-hidden="true"></span>
         <div class="rd__loading" data-rd="loading" role="status" hidden><span>Loading…</span></div>
@@ -56,6 +71,8 @@
               <label class="rd__palette"><input type="radio" name="rd-palette" value="accretion" data-rd="palette-option" data-rd-name="Accretion"><span class="rd__swatches" aria-hidden="true"><span class="rd__sw rd__sw--black"></span><span class="rd__sw rd__sw--blue"></span><span class="rd__sw rd__sw--orange"></span><span class="rd__sw rd__sw--white"></span></span>Accretion</label>
               <label class="rd__palette"><input type="radio" name="rd-palette" value="physarum" data-rd="palette-option" data-rd-name="Physarum"><span class="rd__swatches" aria-hidden="true"><span class="rd__sw rd__sw--black"></span><span class="rd__sw rd__sw--blue"></span><span class="rd__sw rd__sw--yellow"></span><span class="rd__sw rd__sw--white"></span></span>Physarum</label>
               <label class="rd__palette"><input type="radio" name="rd-palette" value="cherenkov" data-rd="palette-option" data-rd-name="Cherenkov"><span class="rd__swatches" aria-hidden="true"><span class="rd__sw rd__sw--black"></span><span class="rd__sw rd__sw--violet"></span><span class="rd__sw rd__sw--cyan"></span><span class="rd__sw rd__sw--white"></span></span>Cherenkov</label>
+              <label class="rd__palette"><input type="radio" name="rd-palette" value="orodruin" data-rd="palette-option" data-rd-name="Orodruin"><span class="rd__swatches" aria-hidden="true"><span class="rd__sw rd__sw--black"></span><span class="rd__sw rd__sw--red"></span><span class="rd__sw rd__sw--orange"></span><span class="rd__sw rd__sw--yellow"></span></span>Orodruin</label>
+              <label class="rd__palette"><input type="radio" name="rd-palette" value="coastal" data-rd="palette-option" data-rd-name="Coastal"><span class="rd__swatches" aria-hidden="true"><span class="rd__sw rd__sw--black"></span><span class="rd__sw rd__sw--blue"></span><span class="rd__sw rd__sw--cyan"></span><span class="rd__sw rd__sw--buff"></span></span>Coastal</label>
             </fieldset>
           </div>
         </div>
@@ -66,21 +83,13 @@
         <div class="rd__group" role="group" aria-labelledby="rd-acc-h">
           <h4 class="rd__group-h" id="rd-acc-h">Accessibility</h4>
           <div class="rd__pair rd__pair--acc">
-            <div class="rd__acc">
-              <input type="checkbox" id="rd-motion-check" data-rd="motion-check" aria-describedby="rd-acc-hint">
-              <label for="rd-motion-check" class="visually-hidden">Reduced motion</label>
-              <button type="button" class="rd__toggle" data-rd="motion" aria-pressed="false" aria-describedby="rd-acc-hint">Reduced motion</button>
-            </div>
-            <div class="rd__acc">
-              <input type="checkbox" id="rd-hover-check" data-rd="hover-check" aria-describedby="rd-hover-hint">
-              <label for="rd-hover-check" class="visually-hidden">Hover mode</label>
-              <button type="button" class="rd__toggle" data-rd="hover" aria-pressed="false" aria-describedby="rd-hover-hint">Hover mode</button>
-            </div>
+            <label class="rd__toggle"><input type="checkbox" data-rd="motion-check" aria-describedby="rd-acc-hint">Reduced motion</label>
+            <label class="rd__toggle"><input type="checkbox" data-rd="hover-check" aria-describedby="rd-hover-hint">Hover mode</label>
           </div>
           <p class="rd__hint" id="rd-acc-hint">Reduced motion: show a still image view instead of a dynamic view.</p>
           <p class="rd__hint" id="rd-hover-hint">Hover mode: paint by moving the pointer, no button held. Off, the field answers click and drag only.</p>
         </div>
-        <div class="rd__group" role="group" aria-label="Rate">
+        <div class="rd__group" role="group" aria-label="Parameters">
           <div class="rd__param">
             <label for="rd-feed-range">Feed:</label>
             <input id="rd-feed-range" type="range" min="0.008" max="0.070" step="0.001" value="0.010" data-rd="feed-range">
@@ -95,24 +104,24 @@
           </div>
           <div class="rd__param">
             <label for="rd-scale-range">Speed:</label>
-            <input id="rd-scale-range" type="range" min="0.5" max="2.5" step="0.05" value="0.75" data-rd="scale-range">
+            <input id="rd-scale-range" type="range" min="0" max="1" step="0.005" value="0.5" data-rd="scale-range" aria-valuetext="0.75">
             <label class="rd__number-label" for="rd-scale-number">Speed, exact value</label>
-            <input id="rd-scale-number" type="number" min="0.5" max="2.5" step="0.05" value="0.75" inputmode="decimal" data-rd="scale-number">
+            <input id="rd-scale-number" type="number" min="0.15" max="3.75" step="0.005" value="0.75" inputmode="decimal" data-rd="scale-number">
           </div>
         </div>
         <div class="rd__group" role="group" aria-label="Resolution">
           <div class="rd__pair">
             <label>Resolution
-              <select id="rd-quality" class="rd__select" data-rd="quality" aria-label="Resolution, the most cells allowed across the field">
-                <option value="auto" selected>Automatic</option>
-                <option value="0">320</option><option value="1">400</option><option value="2">480</option><option value="3">560</option>
-                <option value="4">640</option><option value="5">800</option><option value="6">1000</option><option value="7">1200</option><option value="8">1600</option>
+              <select id="rd-quality" class="rd__select" data-rd="quality" aria-label="Resolution: the cells across the field, or a crystal's size">
+                <option value="240">240</option><option value="320" selected>320</option><option value="400">400</option><option value="480">480</option><option value="560">560</option>
+                <option value="640">640</option><option value="800">800</option><option value="1000">1000</option><option value="1200">1200</option><option value="1600">1600</option>
+                <option value="auto">Automatic</option>
               </select>
             </label>
             <label>Brush width
               <select id="rd-brush" class="rd__select" data-rd="brush" aria-label="Brush width, the pointer's mark as a share of the field's height">
-                <option value="0.02">2%</option><option value="0.03" selected>3%</option><option value="0.04">4%</option><option value="0.05">5%</option><option value="0.06">6%</option>
-                <option value="0.08">8%</option><option value="0.10">10%</option><option value="0.14">14%</option><option value="0.20">20%</option>
+                <option value="0.004">0.4%</option><option value="0.01">1%</option><option value="0.02">2%</option><option value="0.03" selected>3%</option><option value="0.04">4%</option><option value="0.05">5%</option><option value="0.06">6%</option>
+                <option value="0.08">8%</option><option value="0.10">10%</option><option value="0.12">12%</option><option value="0.14">14%</option><option value="0.20">20%</option>
               </select>
             </label>
           </div>
@@ -127,19 +136,29 @@
       <p class="rd__note" data-rd="note" data-rd-for="malachite"><b>Malachite pattern:</b> target patterns — concentric waves radiating from a point in an excitable medium, the form first seen in the Belousov–Zhabotinsky reaction, whose chemistry oscillates in time and space. The whole system rests on one autocatalytic step, <math><mrow><mi>U</mi><mo>+</mo><mn>2</mn><mi>V</mi><mo>→</mo><mn>3</mn><mi>V</mi></mrow></math>: a substance that makes more of itself wherever it already is, until the local supply is spent and the wave moves on, leaving the banded wake a cut malachite shows.</p>
       <p class="rd__note" data-rd="note" data-rd-for="meandric"><b>Meandric pattern:</b> a labyrinthine Turing pattern. Stripes form when a slow, self-amplifying activator is held in check by a fast-spreading inhibitor; the condition is that the inhibitor diffuses faster, <math><mrow><msub><mi>D</mi><mi>U</mi></msub><mo>&gt;</mo><msub><mi>D</mi><mi>V</mi></msub></mrow></math>. The same mechanism lays down fingerprints, zebra stripes and the magnetic domains of a thin film: order with no blueprint, only two rates in competition.</p>
       <p class="rd__note" data-rd="note" data-rd-for="swarm"><b>Swarm pattern:</b> spatiotemporal chaos of localized spots — traveling structures that collide, split and die without ever settling. Each spot is a packet of the activator sustained by the equation <math><mrow><mfrac><mrow><mo>∂</mo><mi>V</mi></mrow><mrow><mo>∂</mo><mi>t</mi></mrow></mfrac><mo>=</mo><msub><mi>D</mi><mi>V</mi></msub><msup><mi>∇</mi><mn>2</mn></msup><mi>V</mi><mo>+</mo><mi>U</mi><msup><mi>V</mi><mn>2</mn></msup><mo>−</mo><mo>(</mo><mi>f</mi><mo>+</mo><mi>k</mi><mo>)</mo><mi>V</mi></mrow></math>; the crowd behaves like a swarming culture, or an agent-based model whose agents are nothing but chemistry.</p>
-      <p class="rd__note" data-rd="note" data-rd-for="honeycomb"><b>Honeycomb pattern:</b> a hexagonal Turing pattern of holes — a filled sheet that opens into pores at one preferred spacing. That spacing is the pattern's wavelength, set by the critical wavenumber of the instability, <math><mrow><mi>λ</mi><mo>=</mo><mfrac><mrow><mn>2</mn><mi>π</mi></mrow><msub><mi>q</mi><mi>c</mi></msub></mfrac></mrow></math>, which is why foams, convection cells and porous membranes all arrive at the same tiling.</p>
-      <p class="rd__note" data-rd="note" data-rd-for="frost"><b>Frost pattern:</b> a snow crystal, grown by a different rule from the other eight. Here the field is water vapor on a hexagonal lattice, Reiter's model of 2005: a cell that is ice, or touches ice, holds its water and gains a little each step; everywhere else the water diffuses toward its neighbors' average, <math><mrow><msup><mi>u</mi><mo>′</mo></msup><mo>=</mo><mi>u</mi><mo>+</mo><mfrac><mi>α</mi><mn>2</mn></mfrac><mo>(</mo><mover><mi>u</mi><mo>¯</mo></mover><mo>−</mo><mi>u</mi><mo>)</mo></mrow></math>; a cell freezes when its water reaches 1. The six arms are the lattice's own symmetry, the one real snowflakes inherit from the ice crystal; the branching is the Mullins–Sekerka instability, a growing tip fed fastest where it is most exposed. Vapor sets how much water there is; Growth, how fast ice takes it up.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="xylem"><b>Xylem pattern:</b> a hexagonal Turing pattern of holes — a filled sheet that opens into pores at one preferred spacing, the cross-section of a plant's conducting tissue. That spacing is the pattern's wavelength, set by the critical wavenumber of the instability, <math><mrow><mi>λ</mi><mo>=</mo><mfrac><mrow><mn>2</mn><mi>π</mi></mrow><msub><mi>q</mi><mi>c</mi></msub></mfrac></mrow></math>, which is why foams, convection cells and porous membranes all arrive at the same tiling.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="frost"><b>Frost pattern:</b> a dendrite grown by a phase-field model (Kobayashi, 1993): a field <math><mi>φ</mi></math> that is 0 in the melt and 1 in the solid, coupled to the undercooling <math><mrow><mi>Δ</mi><mi>T</mi></mrow></math>, <math><mrow><mi>τ</mi><mfrac><mrow><mo>∂</mo><mi>φ</mi></mrow><mrow><mo>∂</mo><mi>t</mi></mrow></mfrac><mo>=</mo><mo>∇</mo><mo>·</mo><mo>(</mo><mi>D</mi><mo>∇</mo><mi>φ</mi><mo>)</mo><mo>+</mo><mi>φ</mi><mo>(</mo><mn>1</mn><mo>−</mo><mi>φ</mi><mo>)</mo><mo>(</mo><mi>φ</mi><mo>−</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>−</mo><mfrac><msub><mi>κ</mi><mn>1</mn></msub><mi>π</mi></mfrac><mi>arctan</mi><mo>⁡</mo><msub><mi>κ</mi><mn>2</mn></msub><mi>Δ</mi><mi>T</mi><mo>)</mo></mrow></math>, with the heat the freezing releases diffusing away, <math><mrow><mfrac><mrow><mo>∂</mo><mi>Δ</mi><mi>T</mi></mrow><mrow><mo>∂</mo><mi>t</mi></mrow></mfrac><mo>=</mo><msup><mi>∇</mi><mn>2</mn></msup><mi>Δ</mi><mi>T</mi><mo>+</mo><mfrac><mrow><mo>∂</mo><mi>φ</mi></mrow><mrow><mo>∂</mo><mi>t</mi></mrow></mfrac></mrow></math>. The six arms come from a six-fold anisotropy in the interface's stiffness, as ice's basal and prism faces give real snow; the side branches from the Mullins–Sekerka instability, a tip reaching into colder melt and growing faster. This is a reaction–diffusion system in form: diffusion of two fields plus a local bistable reaction, the smooth-interface cousin of the Stefan problem.</p>
       <p class="rd__note" data-rd="note" data-rd-for="turbulence"><b>Turbulence pattern:</b> spatiotemporal chaos — soft spots that spread, collide, split and die without ever settling into a steady form. The signature of chaos is a positive Lyapunov exponent, <math><mrow><mi>λ</mi><mo>&gt;</mo><mn>0</mn></mrow></math>: two fields that differ by the smallest amount drift apart exponentially, <math><mrow><mo>|</mo><mi>δ</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>|</mo><mo>≈</mo><mo>|</mo><mi>δ</mi><mo>(</mo><mn>0</mn><mo>)</mo><mo>|</mo><msup><mi>e</mi><mrow><mi>λ</mi><mi>t</mi></mrow></msup></mrow></math>, so the future of this field is unpredictable in detail even though every rule in it is known — the same reason weather forecasts have a horizon.</p>
       <p class="rd__note" data-rd="note" data-rd-for="mitosis"><b>Mitosis pattern:</b> self-replicating spots, first reported in the Gray–Scott system by Pearson in 1993 and in a real gel reactor by Lee, McCormick, Pearson and Swinney in 1994. A spot grows until it is too large to feed its own center, pinches in two, and each half grows again; chemically it is only autocatalysis and decay, <math><mrow><mi>U</mi><mo>+</mo><mn>2</mn><mi>V</mi><mo>→</mo><mn>3</mn><mi>V</mi><mo>,</mo><mspace width="0.5em"/><mi>V</mi><mo>→</mo><mi>P</mi></mrow></math>, yet it divides like a cell.</p>
-      <p class="rd__note" data-rd="note" data-rd-for="phyllotaxis"><b>Phyllotaxis pattern:</b> a sunflower head building itself: every few frames one more stable spot is placed on the spiral, from the center outward, until the head is complete. Vogel's model places seed <math><mi>n</mi></math> at an angle of <math><mrow><mi>n</mi><mo>·</mo><mn>137.5</mn><mo>°</mo></mrow></math> from the last and a radius of <math><mrow><mi>c</mi><msqrt><mi>n</mi></msqrt></mrow></math>; that angle is the golden angle, <math><mrow><mn>360</mn><mo>°</mo><mo>/</mo><msup><mi>φ</mi><mn>2</mn></msup></mrow></math>, and it is why the spiral counts come out as Fibonacci numbers. Here the arrangement is placed; the chemistry then decides what to keep.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="phyllotaxis"><b>Phyllotaxis pattern:</b> a sunflower head building itself: every few frames one more stable spot is placed on the spiral, from the center outward, until the spiral leaves the frame. Vogel's model places seed <math><mi>n</mi></math> at an angle of <math><mrow><mi>n</mi><mo>·</mo><mn>137.5</mn><mo>°</mo></mrow></math> from the last and a radius of <math><mrow><mi>c</mi><msqrt><mi>n</mi></msqrt></mrow></math>; that angle is the golden angle, <math><mrow><mn>360</mn><mo>°</mo><mo>/</mo><msup><mi>φ</mi><mn>2</mn></msup></mrow></math>, and it is why the spiral counts come out as Fibonacci numbers. Here the arrangement is placed; the chemistry then decides what to keep.</p>
       <p class="rd__note" data-rd="note" data-rd-for="vortex"><b>Vortex pattern:</b> spiral waves, or rotors, in an excitable medium — the pattern a broken wave front makes when its free end curls around and becomes its own pacemaker, as in the Belousov–Zhabotinsky reaction and in heart tissue. Its simplest law is the eikonal relation, <math><mrow><mi>c</mi><mo>=</mo><msub><mi>c</mi><mn>0</mn></msub><mo>−</mo><mi>D</mi><mi>κ</mi></mrow></math>: a front moves slower the more sharply it is curved, which is exactly what lets a tip rotate instead of racing away.</p>
+
+      <p class="rd__note" data-rd="note" data-rd-for="ca-frost"><b>Frost pattern:</b> a snow crystal grown by Gravner and Griffeath's lattice model (2008). Water vapor diffuses on a hexagonal lattice, each cell taking the mean of itself and its six neighbors, <math><mrow><msup><mi>d</mi><mo>′</mo></msup><mo>=</mo><mfrac><mn>1</mn><mn>7</mn></mfrac><munder><mo>∑</mo><mrow><mi>y</mi><mo>∈</mo><msub><mi>N</mi><mi>x</mi></msub></mrow></munder><mi>d</mi><mo>(</mo><mi>y</mi><mo>)</mo></mrow></math>; at the crystal's edge a share <math><mi>κ</mi></math> freezes outright and the rest pools as a quasi-liquid layer, and a cell joins the crystal when that layer reaches a threshold that falls with the number of frozen neighbors: <math><mi>β</mi></math> at a tip or a flat, 1 in a notch. The six-fold symmetry is the lattice's own, as real snow inherits it from the ice crystal; the arms and side branches are diffusion-limited growth, a tip reaching into richer vapor and growing faster (the Mullins–Sekerka instability). Vapor sets how much water there is; Anisotropy, how much harder a tip is to freeze onto than a notch. <b>Not reaction–diffusion:</b> no local chemistry acts everywhere; there is only transport and a sharp interface that advances where mass arrives — a discrete Stefan problem, kin to diffusion-limited aggregation. Its reaction–diffusion counterpart, the phase-field dendrite, is the Frost of the other family.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="lenia"><b>Lenia pattern:</b> a continuous cellular automaton (Chan, 2019). Each cell's potential is a ring-weighted average of its neighborhood, and the cell grows or decays by how close that potential sits to a preferred value: <math><mrow><mi>A</mi><mo>←</mo><mi>A</mi><mo>+</mo><mfrac><mn>1</mn><mi>T</mi></mfrac><mi>G</mi><mo>(</mo><mi>K</mi><mo>∗</mo><mi>A</mi><mo>)</mo><mo>,</mo><mspace width="0.5em"/><mi>G</mi><mo>(</mo><mi>u</mi><mo>)</mo><mo>=</mo><mn>2</mn><msup><mi>e</mi><mrow><mo>−</mo><mo>(</mo><mi>u</mi><mo>−</mo><mi>μ</mi><msup><mo>)</mo><mn>2</mn></msup><mo>/</mo><mn>2</mn><msup><mi>σ</mi><mn>2</mn></msup></mrow></msup><mo>−</mo><mn>1</mn></mrow></math>. From a patch of random soup, smooth self-propelling, self-repairing creatures emerge — Orbium lives near <math><mrow><mi>μ</mi><mo>=</mo><mn>0.15</mn></mrow></math>, <math><mrow><mi>σ</mi><mo>=</mo><mn>0.016</mn></mrow></math> — the automaton made continuous in state, space and time.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="rotor"><b>Rotor pattern:</b> Griffeath's cyclic automaton. Every cell holds one of <math><mi>n</mi></math> states arranged in a ring, and a cell advances when a neighbor already holds the next one, <math><mrow><mi>s</mi><mo>←</mo><mo>(</mo><mi>s</mi><mo>+</mo><mn>1</mn><mo>)</mo><mspace width="0.3em"/><mi>mod</mi><mspace width="0.3em"/><mi>n</mi></mrow></math>. Noise organizes itself: blocks consume blocks, then "demons" — cycles of adjacent cells holding every state — emit spiral waves that take over the field. It is the discrete excitable medium: the Belousov–Zhabotinsky reaction, and re-entrant rhythm in heart tissue, with the chemistry replaced by counting.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="lichtenberg"><b>Lichtenberg pattern:</b> the dielectric-breakdown model (Niemeyer, Pietronero and Wiesmann, 1984). The electric potential obeys Laplace's equation, <math><mrow><msup><mi>∇</mi><mn>2</mn></msup><mi>φ</mi><mo>=</mo><mn>0</mn></mrow></math>, zero on the discharge and one far away, and a site next to the discharge breaks down with probability proportional to the field there raised to a power, <math><mrow><msub><mi>p</mi><mi>i</mi></msub><mo>∝</mo><msup><msub><mi>φ</mi><mi>i</mi></msub><mi>η</mi></msup></mrow></math>. At <math><mrow><mi>η</mi><mo>=</mo><mn>1</mn></mrow></math> it is diffusion-limited aggregation, a dense coral of dimension about 1.75; higher exponents starve the side channels into the sparse forks of lightning and of the Lichtenberg figures burned into acrylic by a captured charge.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="sandpile"><b>Sandpile pattern:</b> falling sand, the "sand" rule of Toffoli and Margolus (1987). The lattice is cut into two-by-two blocks whose origin alternates each step; inside a block a grain falls into the cell beneath if it is free, else slides into the free diagonal, <math><mrow><mo>(</mo><mi>top</mi><mo>,</mo><mi>bottom</mi><mo>)</mo><mo>→</mo><mo>(</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo>)</mo></mrow></math>. Grains heap at the bottom at their angle of repose and let go in avalanches when the slope grows too steep: the pile that Bak, Tang and Wiesenfeld abstracted into self-organized criticality, where one more grain can bring down a slope, a grid, a market. Grains sets the size of each drop; Slip, how readily a grain takes the diagonal, which sets how steep a heap can stand.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="conus"><b>Conus pattern:</b> Wolfram's Rule 30, an elementary one-dimensional automaton: a cell's next state is a fixed function of itself and its two neighbors, here <math><mrow><mi>left</mi><mo>⊕</mo><mo>(</mo><mi>self</mi><mo>∨</mo><mi>right</mi><mo>)</mo></mrow></math>, and each row is the next moment of the one above. From a single cell it generates a pattern no shorter rule can predict — computational irreducibility — and the pigmentation of the shell of <i>Conus textile</i>, laid down row by row at the growing lip, follows a rule of this kind.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="wildfire"><b>Wildfire pattern:</b> the forest-fire model of Drossel and Schwabl (1992). A cell is bare, a tree, or burning; each step a burning cell burns out, a tree next to fire catches, lightning ignites a tree with probability <math><mi>f</mi></math>, and a tree grows on bare ground with probability <math><mi>p</mi></math>. With <math><mrow><mi>f</mi><mo>≪</mo><mi>p</mi><mo>≪</mo><mn>1</mn></mrow></math> the forest tunes itself to the critical density where fires come in every size, and the fronts are fractal. Read the trees as the susceptible and the fire as the infected, and it is the SIR epidemic with regrowth.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="grain"><b>Grain pattern:</b> grain growth in the Potts model (Anderson, Srolovitz, Grest and Sahni, 1984). Each cell holds one of <math><mi>Q</mi></math> crystal orientations; its energy is the number of unlike neighbors, <math><mrow><mi>E</mi><mo>=</mo><munder><mo>∑</mo><mrow><mo>⟨</mo><mi>i</mi><mi>j</mi><mo>⟩</mo></mrow></munder><mo>(</mo><mn>1</mn><mo>−</mo><msub><mi>δ</mi><mrow><msub><mi>s</mi><mi>i</mi></msub><msub><mi>s</mi><mi>j</mi></msub></mrow></msub><mo>)</mo></mrow></math>, and it takes a neighbor's orientation when that lowers the energy, or by chance, <math><mrow><msup><mi>e</mi><mrow><mo>−</mo><mi>Δ</mi><mi>E</mi><mo>/</mo><mi>T</mi></mrow></msup></mrow></math>, when it does not. Boundaries move to shorten themselves, small grains vanish into large ones, and the mean grain radius grows as <math><mrow><msup><mi>t</mi><mrow><mn>1</mn><mo>/</mo><mn>2</mn></mrow></msup></mrow></math>: the annealing of a metal, a ceramic, a silicon wafer, seen from above. With two orientations it is the Ising magnet.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="wake"><b>Wake pattern:</b> a fluid by the lattice-Boltzmann method, the descendant of the lattice-gas automata. Nine populations of particles stream along the lattice directions and relax toward the local equilibrium, <math><mrow><msubsup><mi>f</mi><mi>i</mi><mi>eq</mi></msubsup><mo>=</mo><msub><mi>w</mi><mi>i</mi></msub><mi>ρ</mi><mo>(</mo><mn>1</mn><mo>+</mo><mn>3</mn><msub><mi>e</mi><mi>i</mi></msub><mo>·</mo><mi>u</mi><mo>+</mo><mfrac><mn>9</mn><mn>2</mn></mfrac><mo>(</mo><msub><mi>e</mi><mi>i</mi></msub><mo>·</mo><mi>u</mi><msup><mo>)</mo><mn>2</mn></msup><mo>−</mo><mfrac><mn>3</mn><mn>2</mn></mfrac><msup><mi>u</mi><mn>2</mn></msup><mo>)</mo></mrow></math>, which recovers the Navier–Stokes equations with viscosity <math><mrow><mi>ν</mi><mo>=</mo><mo>(</mo><mi>τ</mi><mo>−</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>)</mo><mo>/</mo><mn>3</mn></mrow></math>. Flow enters from the left; paint an obstacle and the wake behind it rolls up into the alternating eddies of a von Kármán vortex street once the Reynolds number <math><mrow><mi>U</mi><mi>L</mi><mo>/</mo><mi>ν</mi></mrow></math> passes about fifty.</p>
     </div>
   </section>
 
   <footer>
-    <p>Morphogen is written from the published equations — Gray &amp; Scott (1984), Pearson (1993) — with no borrowed code. Visual inspiration: pmneila/jsexp (BSD-3-Clause). MIT License, © 2026 Christopher A. Stamplis.</p>
+    <p>Morphogen is written from the published equations and rules — cited beside each model in the source — with no borrowed code. Visual inspiration: pmneila/jsexp (BSD-3-Clause). MIT License, © 2026 Christopher A. Stamplis.</p>
   </footer>
 </main>
-<script src="reaction-diffusion.js" defer></script>
+<script src="morphogen.js" defer></script>
 </body>
 </html>

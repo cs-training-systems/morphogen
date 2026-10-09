@@ -1,17 +1,18 @@
 {
   "name": "morphogen",
-  "version": "1.0.2",
-  "description": "Morphogen: a Gray–Scott reaction–diffusion field for the web. One classic script, no dependencies, no build step.",
-  "main": "reaction-diffusion.js",
-  "style": "reaction-diffusion.css",
+  "version": "2.0.0-beta.1",
+  "description": "Morphogen: an engine of emergent pattern formation for the web — reaction–diffusion and cellular automata in one classic script, no dependencies, on the graphics processor.",
+  "main": "morphogen.js",
+  "style": "morphogen.css",
   "files": [
-    "reaction-diffusion.js",
-    "reaction-diffusion.css",
+    "morphogen.js",
+    "morphogen.css",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
-    "test": "node tests/verify-fade.js"
+    "build": "node tools/build.js",
+    "test": "node tools/build.js && node tests/verify-fade.js"
   },
   "repository": {
     "type": "git",
@@ -21,9 +22,16 @@
   "keywords": [
     "reaction-diffusion",
     "gray-scott",
+    "cellular-automata",
+    "lenia",
+    "lattice-boltzmann",
+    "snow-crystal",
+    "phase-field",
     "turing-pattern",
     "morphogenesis",
+    "emergence",
     "canvas",
+    "webgl2",
     "simulation",
     "complex-systems"
   ],

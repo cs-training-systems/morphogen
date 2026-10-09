@@ -1,10 +1,23 @@
-/* reaction-diffusion.css — the component's own styles. Every color/size falls back to a sensible
-   value so the component works on any page; on the portfolio the site's tokens win. Spacing follows
-   the site's gutter (17px) and module (38px); a toggled control carries aria-pressed="true", a green
-   border, the green-10 fill and an inset green ring. */
+/* morphogen.css — the component's own styles. Every color/size falls back to a sensible value so the
+   component works on any page; on the portfolio the site's tokens win. Spacing follows the site's gutter
+   (17px) and its Fibonacci spacing scale (8 / 13 / 21); a toggled control carries aria-pressed="true" or a
+   checked box, a green border, the green-10 fill and an inset green ring. The `rd` class namespace is the
+   component's own (it began as the reaction–diffusion field) and is kept stable across versions. */
 
 .rd { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gutter, 17px); }
 .rd > * { min-width: 0; }
+.rd [hidden] { display: none; }
+
+/* ---- the family row: the mathematical families, spread evenly across the full width ---- */
+.rd__families { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gutter, 17px); }
+.rd__family {
+  min-height: 38px; padding: 9px 13px; width: 100%;
+  background: var(--surface, #EDF1F4); border: 1px solid var(--struct-med, rgba(26,26,26,.5)); cursor: pointer;
+  font-family: var(--font-mono, ui-monospace, monospace); font-size: 13px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--text-2, #4A4A4A);
+}
+.rd__family:hover { border-color: var(--green, #008432); background: var(--green-10, rgba(0,132,50,.1)); color: var(--ink, #1B1B1B); }
+.rd__family[aria-pressed="true"] { border-color: var(--green, #008432); box-shadow: inset 0 0 0 1px var(--green, #008432); background: var(--green-10, rgba(0,132,50,.1)); color: var(--ink, #1B1B1B); }
 
 /* ---- pattern selectors: live thumbnails with the name beneath, spread evenly across the full width ---- */
 .rd__presets { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: var(--gutter, 17px); margin: 0; padding: 0; list-style: none; }
@@ -24,7 +37,6 @@
    panel is pinned to exactly that height, so the two always make one rectangle ---- */
 .rd { container-type: inline-size; }
 .rd__stage { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gutter, 17px); }
-/* wide enough for both: the panel pinned beside the field at the field's exact height */
 @container (min-width: 1000px) {
   .rd__stage { padding-right: calc((100% - var(--gutter, 17px)) * 7 / 23 + var(--gutter, 17px)); }
   .rd__panel { position: absolute; top: 0; bottom: 0; right: 0; width: calc((100% - var(--gutter, 17px)) * 7 / 23); overflow: auto; box-sizing: border-box; }
@@ -37,7 +49,8 @@
   background-image: linear-gradient(var(--hair, rgba(26,26,26,.1)) 1px, transparent 1px), linear-gradient(90deg, var(--hair, rgba(26,26,26,.1)) 1px, transparent 1px);
   background-size: 38px 38px;
 }
-.rd__canvas { display: block; width: 100%; height: 100%; image-rendering: auto; background: #000; cursor: crosshair; touch-action: pan-y; }
+/* touch-action none: a finger on the field paints; the rails beside the field keep a thumb's scroll room (the host page's law) */
+.rd__canvas { display: block; width: 100%; height: 100%; image-rendering: auto; background: #000; cursor: crosshair; touch-action: none; }
 .rd__frame > .corner { position: absolute; width: var(--corner-size, 38px); height: var(--corner-size, 38px); border: 0 solid var(--ink, #1B1B1B); pointer-events: none; z-index: 1; }
 .rd__frame > .corner--tl { top: 0; left: 0;  border-top-width: var(--corner-w, 2px); border-left-width: var(--corner-w, 2px); }
 .rd__frame > .corner--tr { top: 0; right: 0; border-top-width: var(--corner-w, 2px); border-right-width: var(--corner-w, 2px); }
@@ -46,7 +59,7 @@
 .rd__frame:hover > .corner, .rd__frame:focus-within > .corner { border-color: var(--green, #008432); }
 @media (max-width: 480px) { .rd__frame > .corner { width: calc(var(--corner-size, 38px) / 2); height: calc(var(--corner-size, 38px) / 2); } }
 
-/* ---- in-field controls, top right: the Home reel control's treatment, stacked, equal widths ---- */
+/* ---- in-field controls, top right: stacked, equal widths ---- */
 .rd__hud { position: absolute; top: 17px; right: 17px; z-index: 2; display: grid; gap: 8px; justify-items: stretch; }
 .rd__ctl {
   min-width: 24px; min-height: 24px; width: 100%; text-align: left;
@@ -54,14 +67,12 @@
   color: var(--text-1, #1A1A1A); background: var(--surface, #EDF1F4); border: 1px solid var(--struct-med, rgba(26,26,26,.5));
   padding: 7px 13px; cursor: pointer;
 }
-/* hover, focus, press and open keep an OPAQUE fill: these sit over the pattern, which may be white or green */
 .rd__ctl:hover, .rd__ctl:focus-visible, .rd__ctl:active, .rd__ctl[aria-expanded="true"], .rd__ctl[aria-pressed="true"] {
   border-color: var(--green, #008432); color: var(--ink, #1B1B1B);
   background: var(--surface, #EDF1F4);
   background: color-mix(in srgb, var(--green, #008432) 12%, var(--surface, #EDF1F4));
 }
 .rd__ctl[aria-expanded="true"], .rd__ctl[aria-pressed="true"] { box-shadow: inset 0 0 0 1px var(--green, #008432); }
-/* the loading notice while a chronogram is computed */
 .rd__loading { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; background: rgba(0,0,0,.55); color: #fff; font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; pointer-events: none; }
 .rd__loading::before { content: ""; width: 18px; height: 18px; margin-right: 10px; border: 2px solid rgba(255,255,255,.35); border-top-color: #fff; border-radius: 50%; animation: rd-spin .8s linear infinite; }
 .rd__loading > span { display: inline-flex; align-items: center; }
@@ -95,45 +106,46 @@
 .rd__sw--cyan { background: #0095DA; }   .rd__sw--blue { background: #003E99; }
 .rd__sw--violet { background: #7728A8; } .rd__sw--buff { background: #FEEEA3; }
 
-/* ---- the controls panel: Controls → Accessibility, then the rate and resolution groups (unheaded; named for assistive tech) ---- */
-.rd__panel { border: 1px solid var(--struct-card, rgba(26,26,26,.2)); background: var(--surface, #EDF1F4); padding: 13px; display: grid; align-content: start; gap: 8px; min-width: 0; }
+/* ---- the controls panel: Controls → Accessibility, then the parameter and resolution groups (unheaded; named for assistive tech).
+   Spacing on the host's scale: 17px padding, 13px between groups and rows, 17px between paired boxes ---- */
+.rd__panel { border: 1px solid var(--struct-card, rgba(26,26,26,.2)); background: var(--surface, #EDF1F4); padding: 17px; display: grid; align-content: start; gap: 13px; min-width: 0; }
 .rd__panel-h { margin: 0; font-family: var(--font-mono, ui-monospace, monospace); font-size: 14px; font-weight: 500; letter-spacing: .03em; text-transform: uppercase; color: var(--text-1, #1A1A1A); }
-.rd__group { display: grid; gap: 6px; padding-top: 8px; border-top: 1px solid var(--hair, rgba(26,26,26,.1)); }
+.rd__group { display: grid; gap: 13px; padding-top: 13px; border-top: 1px solid var(--hair, rgba(26,26,26,.1)); }
 .rd__group-h { margin: 0; font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; color: var(--text-3, #6B6B6B); }
-.rd__param { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.rd__param { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 13px; }
 .rd__param > * { min-width: 0; }
 .rd__param label { font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-2, #4A4A4A); white-space: nowrap; }
 /* sliders: the track in the site's structural line color on the panel surface; the green only on the thumb */
-.rd__param input[type="range"] { width: 100%; min-width: 0; min-height: 32px; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; cursor: pointer; }
+.rd__param input[type="range"] { width: 100%; min-width: 0; min-height: 24px; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; cursor: pointer; }
 .rd__param input[type="range"]::-webkit-slider-runnable-track { height: 2px; background: var(--struct-med, rgba(26,26,26,.5)); border: 0; }
 .rd__param input[type="range"]::-moz-range-track { height: 2px; background: var(--struct-med, rgba(26,26,26,.5)); border: 0; }
 .rd__param input[type="range"]::-moz-range-progress { height: 2px; background: var(--green, #008432); }
 .rd__param input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 14px; height: 14px; margin-top: -6px; background: var(--green, #008432); border: 1px solid var(--surface, #EDF1F4); border-radius: 0; }
 .rd__param input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; background: var(--green, #008432); border: 1px solid var(--surface, #EDF1F4); border-radius: 0; }
 .rd__param input[type="range"]:focus-visible { outline: 2px solid var(--green, #008432); outline-offset: 2px; }
+/* the number boxes show the whole value: wide enough for eight characters and the spinner, no taller than a control */
 .rd__param input[type="number"], .rd__select {
-  min-height: 32px; padding: 0 4px 0 8px; font-family: var(--font-mono, ui-monospace, monospace); font-size: 13px;
+  height: 24px; box-sizing: border-box; padding: 0 2px 0 6px; font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px;
   color: var(--text-1, #1A1A1A); background: var(--paper, #FFFDF3); border: 1px solid var(--struct-med, rgba(26,26,26,.5));
 }
-.rd__param input[type="number"] { width: 7.5ch; }
+.rd__param input[type="number"] { width: 11.5ch; }
 .rd__select { width: 100%; cursor: pointer; }
-/* the resolution group splits in two: Resolution on the left, Brush width on the right; the measure spans both */
-.rd__pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.rd__pair > label { display: grid; gap: 4px; font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-2, #4A4A4A); min-width: 0; }
+/* paired boxes: Resolution beside Brush width; the measure spans both */
+.rd__pair { display: grid; grid-template-columns: 1fr 1fr; gap: 17px; }
+.rd__pair > label { display: grid; gap: 5px; font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-2, #4A4A4A); min-width: 0; }
 .rd__number-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-/* the accessibility rows: a check box and a button at the in-field controls' height; either toggles.
-   Reduced motion and Hover mode share one line (the Resolution / Brush width split), stacking on phones */
-.rd__acc { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.rd__pair--acc { align-items: center; }
+/* the accessibility toggles: a check box with its name inside one labelled control, Reduced motion and Hover mode
+   sharing one line (the Resolution / Brush width split), stacking on phones; a checked toggle takes the site's pressed treatment */
+.rd__pair--acc { align-items: stretch; }
 @media (max-width: 480px) { .rd__pair--acc { grid-template-columns: 1fr; } }
-.rd__acc input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var(--green, #008432); cursor: pointer; }
 .rd__toggle {
-  min-height: 24px; padding: 7px 13px; width: auto;
+  display: flex; align-items: center; gap: 10px; min-height: 24px; padding: 7px 13px; box-sizing: border-box; min-width: 0;
   font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; letter-spacing: .05em; text-transform: uppercase;
   color: var(--text-1, #1A1A1A); background: var(--paper, #FFFDF3); border: 1px solid var(--struct-med, rgba(26,26,26,.5)); cursor: pointer;
 }
-.rd__toggle:hover, .rd__toggle:focus-visible { border-color: var(--green, #008432); background: var(--green-10, rgba(0,132,50,.1)); color: var(--ink, #1B1B1B); }
-.rd__toggle[aria-pressed="true"] { border-color: var(--green, #008432); box-shadow: inset 0 0 0 1px var(--green, #008432); background: var(--green-10, rgba(0,132,50,.1)); color: var(--ink, #1B1B1B); }
+.rd__toggle input[type="checkbox"] { width: 18px; height: 18px; margin: 0; flex: none; accent-color: var(--green, #008432); cursor: pointer; }
+.rd__toggle:hover, .rd__toggle:has(input:focus-visible) { border-color: var(--green, #008432); background: var(--green-10, rgba(0,132,50,.1)); color: var(--ink, #1B1B1B); }
+.rd__toggle:has(input:checked), .rd__toggle[aria-pressed="true"] { border-color: var(--green, #008432); box-shadow: inset 0 0 0 1px var(--green, #008432); background: var(--green-10, rgba(0,132,50,.1)); color: var(--ink, #1B1B1B); }
 .rd__hint { margin: 0; font-size: 12px; line-height: 1.45; color: var(--text-3, #6B6B6B); }
 .rd__measure { margin: 0; font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; letter-spacing: .03em; color: var(--text-3, #6B6B6B); }
 
@@ -156,6 +168,6 @@
 /* Windows high contrast: keep the frame, brackets, thumbnails and swatches visible */
 @media (forced-colors: active) {
   .rd__frame, .rd__frame > .corner, .rd__sw, .rd__thumb { border-color: CanvasText; }
-  .rd__preset[aria-pressed="true"], .rd__toggle[aria-pressed="true"] { border-width: 3px; }
+  .rd__preset[aria-pressed="true"], .rd__family[aria-pressed="true"], .rd__toggle:has(input:checked) { border-width: 3px; }
   .rd__sw { forced-color-adjust: none; }
 }

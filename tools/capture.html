@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Morphogen — media capture</title>
+<link rel="stylesheet" href="../morphogen.css">
+<style>
+  body { margin: 0; padding: 24px; font: 14px/1.5 system-ui, sans-serif; background: #111; color: #ddd; }
+  h1 { font-size: 18px; margin: 0 0 8px; }
+  p { max-width: 70ch; }
+  .row { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; margin: 16px 0; border-top: 1px solid #333; padding-top: 12px; }
+  canvas { width: 480px; height: auto; background: #000; border: 1px solid #444; display: block; }
+  a.dl { color: #8fd; }
+  button { font: inherit; padding: 6px 12px; }
+</style>
+</head>
+<body>
+<h1>Morphogen — media capture</h1>
+<p>Renders every preset's still on the graphics processor through the engine itself (the automata need thousands of lattice steps at full resolution, which the processor path cannot do in reasonable time), then offers each as a PNG. Open this page from a local server at the repository root (for example <code>python -m http.server 8090</code>, then <code>/tools/capture.html</code>), press Render, save each file into <code>docs/media/</code> under the name shown. Nothing here is fetched from the network.</p>
+<p><button id="go" type="button">Render all</button> <span id="log"></span></p>
+<div id="out"></div>
+<script src="../morphogen.js"></script>
+<script>
+(function () {
+  "use strict";
+  var out = document.getElementById("out"), log = document.getElementById("log");
+  // what each still shows: the preset's own tile recipe at 640 × 360 (the README's still size), longer
+  var SCENES = Morphogen.presets.map(function (p) { return { name: "preset-" + p.id, preset: p, width: 640, height: 360, ticks: p.model === "gray-scott" ? 700 : 1200 }; });
+  SCENES.unshift({ name: "hero-vortex", preset: Morphogen.presets.filter(function (p) { return p.id === "vortex"; })[0], width: 1280, height: 720, ticks: 900, stir: true });
+  function renderScene(s) {
+    var canvas = document.createElement("canvas"), row = document.createElement("div"), link = document.createElement("a");
+    row.className = "row"; row.appendChild(canvas); row.appendChild(link); out.appendChild(row);
+    canvas.width = s.width; canvas.height = s.height;
+    var p = s.preset, clock = 0;
+    var field = Morphogen.mount(canvas, { quality: [s.width, s.height], model: p.model, params: p.params, dscale: p.dscale || 1, stepScale: p.stepScale || 1, palette: p.palette || "canopy", timeScale: p.timeScale || 0.75, clock: function () { return clock; } });
+    var seed = p.thumbSeed || p.seed; if (seed.type === "stir") seed = { type: "strokes", n: 3, r: 2 };
+    field.seedSpec(seed, 11, { x: s.width / 2, y: s.height / 2 });
+    var stir = p.thumbStir, salt = 21;
+    for (var i = 0; i < s.ticks; i++) {
+      clock += 1000 / 60;
+      if (stir && i % Math.max(1, Math.round(stir.every / 6)) === 0 && i > 0) field.seedSpec(stir.spec || { type: "strokes", n: stir.n || 1, r: stir.r || 2 }, salt++);
+      field.tick();
+    }
+    link.className = "dl"; link.textContent = s.name + ".png"; link.download = s.name + ".png"; link.href = canvas.toDataURL("image/png");
+    field.destroy();
+  }
+  document.getElementById("go").addEventListener("click", function () {
+    out.innerHTML = ""; var i = 0;
+    (function next() { if (i >= SCENES.length) { log.textContent = "done: " + SCENES.length + " stills"; return; } log.textContent = "rendering " + SCENES[i].name + " …"; setTimeout(function () { renderScene(SCENES[i++]); next(); }, 30); })();
+  });
+})();
+</script>
+</body>
+</html>
