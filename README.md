@@ -139,7 +139,7 @@ are plain descriptors; the demo's notes give the technical term and the simplest
 | ![](docs/media/preset-meandric.png) **Meandric** | 0.029 / 0.057 | labyrinthine stripes (a Turing pattern) |
 | ![](docs/media/preset-swarm.png) **Swarm** | 0.014 / 0.054 | a crowd of travelling, dividing spots |
 | ![](docs/media/preset-honeycomb.png) **Honeycomb** | 0.039 / 0.058 | a sheet opening into a pore lattice |
-| ![](docs/media/preset-frost.png) **Frost** | the snow rule: α 1, β 0.4, γ 0.001 | real six-fold dendritic snow crystals (Reiter's model, not Gray–Scott; see [The snow rule](#the-snow-rule)) |
+| ![](docs/media/preset-frost.png) **Frost** | the snow rule: α 1, β 0.5, γ 0.001 | real six-fold dendritic snow crystals (Reiter's model, not Gray–Scott; see [The snow rule](#the-snow-rule)) |
 | ![](docs/media/preset-turbulence.png) **Turbulence** | 0.026 / 0.051 | spatiotemporal chaos that never settles |
 | ![](docs/media/preset-mitosis.png) **Mitosis** | 0.037 / 0.065 | self-replicating spots |
 | ![](docs/media/preset-phyllotaxis.png) **Phyllotaxis** | 0.030 / 0.062 | a sunflower head built on the golden angle, one spot at a time |
@@ -162,11 +162,12 @@ six-armed dendrite is a diffusion-limited crystal, which Gray–Scott cannot gro
 3. the boundary is held at the background vapour level β, which is also the starting field;
 4. a little noise in the vapour (the `noise` option) makes every crystal branch differently.
 
-α = 1, β = 0.4, γ = 0.001 is the paper's fern dendrite. On the graphics processor the rule is two
+α = 1, β = 0.4, γ = 0.001 is the paper's fern dendrite; Frost starts at β = 0.5 (fuller arms). On the graphics processor the rule is two
 passes per step; both engines render the lattice with true hexagonal geometry (each canvas pixel
 samples its nearest hex cell), and the crystal takes the palette as a Gray–Scott pattern does: the
-newest ice at the tips in the front colour, older ice toward the core in the body colour, the vapour
-the crystal has drawn down as a halo in the trail colour, and the undisturbed field as the ground.
+newest ice at the tips in the front colour, older ice running through the body colour to the trail
+colour at the core, the vapour the crystal has drawn down as a halo in the trail colour around it, and
+the undisturbed field as the ground.
 Frost runs at about one lattice step per frame (`stepScale: 0.15`). While a snow preset is selected
 the demo's Feed and Kill sliders become **Vapor** (β, 0.30–0.90) and **Growth** (γ, 0.0001–0.003).
 A preset declares it with `rule: "snow", snow: { alpha, beta, gamma, noise }`; a canvas with

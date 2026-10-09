@@ -13,10 +13,10 @@ Frost becomes a real snow crystal.
   (ice, or touching ice) hold their water and gain γ each step; the rest diffuses toward the six-neighbour
   mean at α/2; the boundary holds the vapour level β; ice at s ≥ 1; a little vapour noise so every
   crystal branches differently.
-- **Frost** runs it (α 1, β 0.4, γ 0.001, noise 0.02) at about one lattice step per frame (`stepScale`):
+- **Frost** runs it (α 1, β 0.5, γ 0.001, noise 0.02) at about one lattice step per frame (`stepScale`):
   six-fold, dendritic, from one seed; the field is black until seeded; the crystal wears the palette as a
-  Gray–Scott pattern does (tips in the front colour, older ice in the body colour, the depletion halo in
-  the trail colour); a finished crystal stays on screen. The 1.0.1 anisotropic Gray–Scott Frost is gone
+  Gray–Scott pattern does (tips in the front color, older ice through the body color to the trail color at
+  the core, the depletion halo in the trail color around it); a finished crystal stays on screen. The 1.0.1 anisotropic Gray–Scott Frost is gone
   (the anisotropy machinery remains available to presets).
 - While Frost is selected the two chemistry sliders become **Vapor (β, 0.30–0.90)** and **Growth
   (γ, 0.0001–0.003)**; labels and ranges return with the next Gray–Scott pattern.
@@ -24,6 +24,8 @@ Frost becomes a real snow crystal.
   `snow()`, `setStepScale()`; canvas attributes `data-rule="snow"`, `data-alpha`, `data-beta`, `data-gamma`,
   `data-noise`, `data-step-scale`; the `center` seed type; `thumbSeed` and `thumbSteps` per preset.
 - The fade test skips the snow rule; the media renderer carries a preset's whole recipe.
+- Thumbnails are resumable jobs advanced in idle slices (no long task); a preset may ask for its tile at a
+  finer lattice (`thumbScale`): Frost's tile is computed at 240 × 135 and scaled down by the browser.
 
 ## [1.0.1] — 2026-10-08
 

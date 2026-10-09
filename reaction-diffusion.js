@@ -54,11 +54,11 @@
     { id: "honeycomb",   name: "Honeycomb",   feed: 0.039, kill: 0.058, seed: { type: "spiral",  n: 13, r: 4 }, chrono: 2400 },
     // Frost is not Gray–Scott: it runs Reiter's local cellular model for snow crystal growth (Chaos, Solitons &
     // Fractals 23(4), 2005) on a hexagonal lattice — the owner's ruling of 2026-10-08 after Gray–Scott proved
-    // unable to grow thin six-fold arms. α 1, β 0.4, γ 0.001 (the paper's dendrite) with a little vapor noise so
-    // every crystal branches differently. `feed`/`kill` carry β/γ for the slider binding (see bind()).
+    // unable to grow thin six-fold arms. α 1, β 0.5, γ 0.001 (the owner's defaults; the paper's dendrite is β 0.4)
+    // with a little vapor noise so every crystal branches differently. `feed`/`kill` carry β/γ for the binding.
     // stepScale: a crystal grows at about one lattice step per frame (the owner: "MUCH slower"); Speed still scales it.
     // thumbSeed: the tile (and the README still) shows a few medium-large crystals, not one massive one (owner).
-    { id: "frost",       name: "Frost",       rule: "snow", snow: { alpha: 1, beta: 0.4, gamma: 0.001, noise: 0.02 }, feed: 0.4, kill: 0.001, stepScale: 0.15, seed: { type: "center", r: 1 }, thumbSeed: { type: "spiral", n: 4, r: 1, spread: 0.8 }, chrono: 2400, thumbSteps: 320 },
+    { id: "frost",       name: "Frost",       rule: "snow", snow: { alpha: 1, beta: 0.5, gamma: 0.001, noise: 0.02 }, feed: 0.5, kill: 0.001, stepScale: 0.15, seed: { type: "center", r: 1 }, thumbSeed: { type: "spiral", n: 4, r: 1, spread: 0.8 }, chrono: 2400, thumbSteps: 560, thumbScale: 2.5 },
     { id: "turbulence",  name: "Turbulence",  feed: 0.026, kill: 0.051, seed: { type: "discs",   n: 7,  r: 4 }, chrono: 1800 },
     { id: "mitosis",     name: "Mitosis",     feed: 0.037, kill: 0.065, seed: { type: "spiral",  n: 8,  r: 3 }, chrono: 2400 },
     { id: "phyllotaxis", name: "Phyllotaxis", feed: 0.030, kill: 0.062, seed: { type: "grow",    n: 144, r: 1.6, every: 4 }, chrono: 1200 },
@@ -184,13 +184,13 @@
   // y = (r + 0.5)·√3/2 in cell units, so a canvas of w × h pixels needs w columns and h / (√3/2) rows.
   var HEX_ROW = 0.8660254;
   function hexRows(h) { return Math.max(4, Math.round(h / HEX_ROW)); }
-  // display value for the colour ramp (over vmax 0.4), so a crystal wears the chosen palette exactly as a
-  // Gray–Scott pattern does: the newest ice (the tips, s just past 1) takes the FRONT colour, older ice toward
-  // the core (held water accumulates, s rising) shades down to the BODY colour, the depletion halo where the
-  // crystal has drunk the vapour (s below β) is the TRAIL colour fading out, and undisturbed vapour (s = β) is
-  // the GROUND, so the field is black until seeded
+  // display value for the colour ramp (over vmax 0.4), so a crystal wears the chosen palette as a Gray–Scott
+  // pattern does: the newest ice (the tips, s just past 1) takes the FRONT colour, older ice toward the core
+  // (held water accumulates, s rising) runs down through the BODY colour to the TRAIL colour at the core; the
+  // depletion halo where the crystal has drunk the vapour (s below β) is the TRAIL colour fading out around
+  // it; undisturbed vapour (s = β) is the GROUND, so the field is black until seeded
   function snowDisplay(s, beta) {
-    if (s >= 1) return 0.4 - 0.152 * Math.min(1, (s - 1) / 2);
+    if (s >= 1) return 0.4 - 0.28 * Math.min(1, (s - 1) / 2.5);   // the whole ramp inside: tips front, mid-arms body, the core the trail colour (owner)
     var t = (beta - s) / beta - 0.06;                 // the noise band (±3 %) stays black; only real depletion glows
     return t <= 0 ? 0 : 0.12 * Math.min(1, t / 0.94);
   }
@@ -408,7 +408,7 @@
     "void main(){ivec2 g=textureSize(uS,0);vec2 pix=vec2(gl_FragCoord.x,uOut.y-gl_FragCoord.y);float yc=pix.y/0.8660254;int r0=int(floor(yc));float best=1e9;float sv=uBeta;" +
     "for(int dr=-1;dr<=1;dr++){int r=r0+dr;if(r<0||r>=g.y)continue;float off=((r&1)==1)?0.5:0.0;int c=int(floor(pix.x-off));if(c<0||c>=g.x)continue;" +
     "vec2 d=vec2(float(c)+0.5+off-pix.x,(float(r)+0.5)*0.8660254-pix.y);float dd=dot(d,d);if(dd<best){best=dd;sv=texelFetch(uS,ivec2(c,r),0).r;}}" +
-    "float t=(uBeta-sv)/uBeta-0.06;float v=sv>=1.0?0.4-0.152*min(1.0,(sv-1.0)/2.0):(t<=0.0?0.0:0.12*min(1.0,t/0.94));o=vec4(texture(uL,vec2(clamp(v/uVmax,0.0,1.0),0.5)).rgb,1.0);}";
+    "float t=(uBeta-sv)/uBeta-0.06;float v=sv>=1.0?0.4-0.28*min(1.0,(sv-1.0)/2.5):(t<=0.0?0.0:0.12*min(1.0,t/0.94));o=vec4(texture(uL,vec2(clamp(v/uVmax,0.0,1.0),0.5)).rgb,1.0);}";
   // ice count per 16×16 block (the snow rule's "still growing?" measure)
   var FS_COUNT = "#version 300 es\nprecision highp float;uniform sampler2D uS;out vec4 o;\n" +
     "void main(){ivec2 s=textureSize(uS,0);ivec2 b=ivec2(gl_FragCoord.xy)*16;float n=0.0;for(int y=0;y<16;y++)for(int x=0;x<16;x++){ivec2 p=b+ivec2(x,y);if(p.x<s.x&&p.y<s.y&&texelFetch(uS,p,0).r>=1.0)n+=1.0;}o=vec4(n,0.0,0.0,1.0);}";
@@ -581,14 +581,24 @@
   }
 
   // ---- thumbnails (processor, small) ----------------------------------------------
-  function renderThumb(preset, size) {
+  // A preset may ask for its thumbnail at a finer grid (`thumbScale`): a snow crystal at 96 cells is a blob, at
+  // 240 it is a crystal, and the browser scales the canvas down to the tile, so the tile is a miniature of
+  // the real picture rather than a coarse simulation.
+  // A thumbnail as a resumable job, so the page can advance it in idle slots and never runs a long task:
+  // job.advance(n) runs n steps and returns true when done; job.result() is { V, W, H }.
+  function thumbJob(preset, size) {
+    var sc = preset.thumbScale || 1, w = Math.round(size.width * sc), h = Math.round(size.height * sc);
     var be = cpuBackend(null); be.setLayers(preset.aniso && preset.aniso.phases ? preset.aniso.phases.length : 1);
     if (preset.rule === "snow") be.setRule("snow", { alpha: preset.snow.alpha, beta: preset.snow.beta, gamma: preset.snow.gamma, noise: preset.snow.noise });
-    be.resize(size.width, size.height, false);
-    be.seed(seedDiscList(size.width, size.height, preset.thumbSeed || preset.seed, 11, 55), 0.5);
-    be.step(preset.feed, preset.kill, 1, preset.thumbSteps || size.steps, preset.dscale || 1, preset.aniso || null);   // a preset may set its own thumbnail seeding and run length
-    return { V: be.getV(), W: size.width, H: size.height };
+    be.resize(w, h, false);
+    be.seed(seedDiscList(w, h, preset.thumbSeed || preset.seed, 11, 55), 0.5);
+    var left = preset.thumbSteps || size.steps;   // a preset may set its own thumbnail seeding and run length
+    return {
+      advance: function (n) { var k = Math.min(n, left); if (k > 0) be.step(preset.feed, preset.kill, 1, k, preset.dscale || 1, preset.aniso || null); left -= k; return left <= 0; },
+      result: function () { return { V: be.getV(), W: w, H: h }; }
+    };
   }
+  function renderThumb(preset, size) { var job = thumbJob(preset, size); job.advance(1e9); return job.result(); }
   function paintArray(V, W, H, ctx, lut, vmax) {
     var img = ctx.createImageData(W, H), px = img.data, scale = 255 / vmax;
     for (var i = 0, p = 0; i < W * H; i++, p += 4) { var idx = (V[i] * scale) | 0; if (idx > 255) idx = 255; idx *= 3; px[p] = lut[idx]; px[p + 1] = lut[idx + 1]; px[p + 2] = lut[idx + 2]; px[p + 3] = 255; }
@@ -940,12 +950,14 @@
     })(presets[i]);
 
     function paintThumbs() { var lut = field.lut(); for (var t = 0; t < thumbs.length; t++) { var th = thumbs[t]; if (th.data) paintArray(th.data.V, th.data.W, th.data.H, th.canvas.getContext("2d", { alpha: false }), lut, 0.4); } }
-    (function renderThumbsLazily() {               // never during page load: after `load`, one thumbnail per idle slot
-      var i = 0, size = field.thumbSize();
+    (function renderThumbsLazily() {               // never during page load: after `load`, a slice of work per idle slot
+      var i = 0, size = field.thumbSize(), job = null, SLICE = 40;   // ~50 ms of lattice work per idle slot for the snow tile
       var idle = global.requestIdleCallback ? function (fn) { global.requestIdleCallback(fn, { timeout: 1500 }); } : function (fn) { setTimeout(fn, 50); };
       function next() {
         if (i >= thumbs.length) return;
-        var th = thumbs[i++]; th.canvas.width = size.width; th.canvas.height = size.height; th.data = renderThumb(th.preset, size); paintThumbs();
+        var th = thumbs[i];
+        if (!job) job = thumbJob(th.preset, size);
+        if (job.advance(SLICE)) { th.data = job.result(); th.canvas.width = th.data.W; th.canvas.height = th.data.H; paintThumbs(); job = null; i++; }
         idle(next);
       }
       function start() { if (thumbs.length) idle(next); }
@@ -1052,7 +1064,7 @@
         timeScale: d.timeScale !== undefined ? parseFloat(d.timeScale) : undefined,
         fadeStart: d.fadeStart !== undefined ? parseFloat(d.fadeStart) : undefined, fadeEnd: d.fadeEnd !== undefined ? parseFloat(d.fadeEnd) : undefined,
         palette: d.palette, baseSteps: d.steps !== undefined ? parseInt(d.steps, 10) : undefined,
-        rule: d.rule, snow: d.rule === "snow" ? { alpha: parseFloat(d.alpha || "1"), beta: parseFloat(d.beta || "0.4"), gamma: parseFloat(d.gamma || "0.001"), noise: parseFloat(d.noise || "0.02") } : undefined,
+        rule: d.rule, snow: d.rule === "snow" ? { alpha: parseFloat(d.alpha || "1"), beta: parseFloat(d.beta || "0.5"), gamma: parseFloat(d.gamma || "0.001"), noise: parseFloat(d.noise || "0.02") } : undefined,
         stepScale: d.stepScale !== undefined ? parseFloat(d.stepScale) : undefined,
         brush: d.brush !== undefined ? parseFloat(d.brush) : undefined,
         dscale: d.dscale !== undefined ? parseFloat(d.dscale) : undefined,
@@ -1067,6 +1079,6 @@
   }
   function get(canvas) { for (var i = 0; i < registry.length; i++) if (registry[i].canvas === canvas) return registry[i].field; return null; }
 
-  global.ReactionDiffusion = { mount: mount, bind: bind, auto: auto, get: get, presets: PRESETS, palettes: PALETTES, ladder: LADDER, buildLut: buildLut, renderThumb: renderThumb, seedDiscList: seedDiscList, version: "1.0.2" };
+  global.ReactionDiffusion = { mount: mount, bind: bind, auto: auto, get: get, presets: PRESETS, palettes: PALETTES, ladder: LADDER, buildLut: buildLut, renderThumb: renderThumb, thumbJob: thumbJob, seedDiscList: seedDiscList, version: "1.0.2" };
   if (global.document && global.document.querySelectorAll) { if (global.document.readyState === "loading") global.document.addEventListener("DOMContentLoaded", function () { auto(); }); else auto(); }
 })(typeof window !== "undefined" ? window : this);
