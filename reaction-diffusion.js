@@ -1,7 +1,7 @@
 /*!
  * Morphogen — reaction-diffusion.js — a Gray–Scott reaction–diffusion field on a canvas.
  * Copyright (c) 2026 Christopher A. Stamplis. Released under the MIT License.
- * Source: https://github.com/cs-training-systems/morphogen   Version 1.0.1
+ * Source: https://github.com/cs-training-systems/morphogen   Version 1.0.2
  *
  * Written from the published equations — Gray & Scott (1984), Pearson (1993) —
  * with no borrowed code. Visual inspiration: pmneila/jsexp (BSD-3-Clause).
@@ -52,10 +52,13 @@
     { id: "meandric",    name: "Meandric",    feed: 0.029, kill: 0.057, seed: { type: "spiral",  n: 21, r: 3 }, chrono: 2400 },
     { id: "swarm",       name: "Swarm",       feed: 0.014, kill: 0.054, seed: { type: "spiral",  n: 21, r: 3 }, chrono: 1800 },
     { id: "honeycomb",   name: "Honeycomb",   feed: 0.039, kill: 0.058, seed: { type: "spiral",  n: 13, r: 4 }, chrono: 2400 },
-    // Frost: six-fold anisotropic diffusion of the activator (owner ruling 2026-10-08): D_v(θ) = D_v (1 + ε cos 6θ)
-    // as a flux through each cell face, three copies of the field turned −15°/0°/+15° grown from the same
-    // point and shown together (the maximum of the three), on Pearson's 0.037/0.060 pair
-    { id: "frost",       name: "Frost",       feed: 0.037, kill: 0.060, aniso: { eps: 0.6, fold: 6, phases: [-15, 0, 15] }, seed: { type: "center", r: 3 }, chrono: 3000, thumbSteps: 1800 },
+    // Frost is not Gray–Scott: it runs Reiter's local cellular model for snow crystal growth (Chaos, Solitons &
+    // Fractals 23(4), 2005) on a hexagonal lattice — the owner's ruling of 2026-10-08 after Gray–Scott proved
+    // unable to grow thin six-fold arms. α 1, β 0.4, γ 0.001 (the paper's dendrite) with a little vapor noise so
+    // every crystal branches differently. `feed`/`kill` carry β/γ for the slider binding (see bind()).
+    // stepScale: a crystal grows at about one lattice step per frame (the owner: "MUCH slower"); Speed still scales it.
+    // thumbSeed: the tile (and the README still) shows a few medium-large crystals, not one massive one (owner).
+    { id: "frost",       name: "Frost",       rule: "snow", snow: { alpha: 1, beta: 0.4, gamma: 0.001, noise: 0.02 }, feed: 0.4, kill: 0.001, stepScale: 0.15, seed: { type: "center", r: 1 }, thumbSeed: { type: "spiral", n: 4, r: 1, spread: 0.8 }, chrono: 2400, thumbSteps: 320 },
     { id: "turbulence",  name: "Turbulence",  feed: 0.026, kill: 0.051, seed: { type: "discs",   n: 7,  r: 4 }, chrono: 1800 },
     { id: "mitosis",     name: "Mitosis",     feed: 0.037, kill: 0.065, seed: { type: "spiral",  n: 8,  r: 3 }, chrono: 2400 },
     { id: "phyllotaxis", name: "Phyllotaxis", feed: 0.030, kill: 0.062, seed: { type: "grow",    n: 144, r: 1.6, every: 4 }, chrono: 1200 },
@@ -83,6 +86,9 @@
     feed: 0.010, kill: 0.035,
     dscale: 1,                   // both diffusion rates × this (a preset may set it; see PRESETS)
     aniso: null,                 // { eps, fold, phases[] }: anisotropic activator diffusion, one field per phase, composited
+    rule: "rd",                  // "rd" (Gray–Scott) or "snow" (Reiter's hexagonal snow-crystal model)
+    stepScale: 1,                // steps per frame = baseSteps × timeScale × this (a preset may slow itself)
+    snow: null,                  // { alpha, beta, gamma, noise } for the snow rule
     hover: false,                // false: the pointer paints only while a button is held; true: on hover alone
     baseSteps: 8,
     timeScale: 0.75,
@@ -173,12 +179,85 @@
     return list;
   }
 
+  // ---- the snow rule (Reiter 2005), shared geometry -----------------------------------
+  // A hexagonal lattice stored as offset rows ("odd-r"): cell (r, c) has its centre at x = c + 0.5 + 0.5·(r mod 2),
+  // y = (r + 0.5)·√3/2 in cell units, so a canvas of w × h pixels needs w columns and h / (√3/2) rows.
+  var HEX_ROW = 0.8660254;
+  function hexRows(h) { return Math.max(4, Math.round(h / HEX_ROW)); }
+  // display value for the colour ramp (over vmax 0.4), so a crystal wears the chosen palette exactly as a
+  // Gray–Scott pattern does: the newest ice (the tips, s just past 1) takes the FRONT colour, older ice toward
+  // the core (held water accumulates, s rising) shades down to the BODY colour, the depletion halo where the
+  // crystal has drunk the vapour (s below β) is the TRAIL colour fading out, and undisturbed vapour (s = β) is
+  // the GROUND, so the field is black until seeded
+  function snowDisplay(s, beta) {
+    if (s >= 1) return 0.4 - 0.152 * Math.min(1, (s - 1) / 2);
+    var t = (beta - s) / beta - 0.06;                 // the noise band (±3 %) stays black; only real depletion glows
+    return t <= 0 ? 0 : 0.12 * Math.min(1, t / 0.94);
+  }
+  // nearest-cell sampling of a lattice (cols × rows) for a pixel grid (w × h) → a Float32Array of display values
+  function hexSample(S, cols, rows, w, h, beta, out) {
+    for (var py = 0; py < h; py++) {
+      var yc = (py + 0.5) / HEX_ROW, r0 = Math.round(yc - 0.5);
+      for (var pxl = 0; pxl < w; pxl++) {
+        var xc = pxl + 0.5, best = -1, bd = 1e9;
+        for (var r = r0 - 1; r <= r0 + 1; r++) {
+          if (r < 0 || r >= rows) continue;
+          var off = (r & 1) ? 0.5 : 0, c = Math.round(xc - off - 0.5); if (c < 0 || c >= cols) continue;
+          var dx = c + 0.5 + off - xc, dy = (r + 0.5) * HEX_ROW - (py + 0.5), d = dx * dx + dy * dy;
+          if (d < bd) { bd = d; best = r * cols + c; }
+        }
+        out[py * w + pxl] = snowDisplay(best < 0 ? beta : S[best], beta);
+      }
+    }
+    return out;
+  }
+  // the lattice cell under a pixel-grid point
+  function hexCell(x, y, cols, rows) { var r = Math.max(0, Math.min(rows - 1, Math.round(y / HEX_ROW - 0.5))), off = (r & 1) ? 0.5 : 0; return { r: r, c: Math.max(0, Math.min(cols - 1, Math.round(x - off - 0.5))) }; }
+
   // ---- processor backend --------------------------------------------------------
   // The state is a list of LAYERS (one normally; one per anisotropy phase for Frost), stepped alike,
   // seeded alike, and shown as the maximum of V across layers.
   function cpuBackend(canvas) {
     var ctx = (canvas && canvas.getContext) ? canvas.getContext("2d", { alpha: false }) : null;
     var W = 0, H = 0, N = 0, Ls = [], nLayers = 1, image, px, shown = null;
+    // the snow rule's own state (one lattice): s = water; u/v the diffusing and held parts; rec = receptive flags
+    var rule = "rd", snow = null, SC = 0, SR = 0, SN = 0, S = null, SU = null, SV = null, SU2 = null, REC = null, SCOMP = null, disp = null;
+    var snowRnd = mulberry32(7), iceCount = 0, iceLast = -1, iceSame = 0;
+    function snowAlloc(w, h) {
+      SC = w; SR = hexRows(h); SN = SC * SR;
+      S = new Float32Array(SN).fill(snow.beta); SU = new Float32Array(SN); SV = new Float32Array(SN); SU2 = new Float32Array(SN); REC = new Uint8Array(SN); SCOMP = null;
+      disp = new Float32Array(w * h); iceCount = 0; iceLast = -1; iceSame = 0;
+    }
+    function snowStep(n) {
+      var a = snow.alpha, beta = snow.beta, g = snow.gamma, noise = snow.noise || 0, cols = SC, rows = SR, i, r, c, s;
+      for (s = 0; s < n; s++) {
+        // the two outermost rings are never receptive: the boundary is held at full vapour, and an arm that
+        // reached it would be fed without end and creep along the edge
+        for (r = 2; r < rows - 2; r++) { var off = (r & 1) ? 0 : -1, up = (r - 1) * cols, dn = (r + 1) * cols, row = r * cols;
+          for (c = 2; c < cols - 2; c++) { i = row + c;
+            REC[i] = (S[i] >= 1 || S[i - 1] >= 1 || S[i + 1] >= 1 || S[up + c + off] >= 1 || S[up + c + off + 1] >= 1 || S[dn + c + off] >= 1 || S[dn + c + off + 1] >= 1) ? 1 : 0;
+          }
+        }
+        for (i = 0; i < SN; i++) { if (REC[i]) { SV[i] = S[i] + g; SU[i] = 0; } else { SV[i] = 0; SU[i] = S[i]; } }
+        // diffusion with a no-flux boundary (neighbours clamped at the edge): the paper's edge held at β is an
+        // endless reservoir, which on a bounded screen feeds any arm that reaches it along the edge
+        for (r = 0; r < rows; r++) { var off2 = (r & 1) ? 0 : -1, up2 = (r > 0 ? r - 1 : r) * cols, dn2 = (r < rows - 1 ? r + 1 : r) * cols, row2 = r * cols;
+          for (c = 0; c < cols; c++) { i = row2 + c;
+            var cl = c > 0 ? c - 1 : c, cr = c < cols - 1 ? c + 1 : c, ca = Math.max(0, Math.min(cols - 1, c + off2)), cb = Math.max(0, Math.min(cols - 1, c + off2 + 1));
+            var m = SU[row2 + cl] + SU[row2 + cr] + SU[up2 + ca] + SU[up2 + cb] + SU[dn2 + ca] + SU[dn2 + cb];
+            SU2[i] = SU[i] + a * 0.5 * (m / 6 - SU[i]);
+          }
+        }
+        for (i = 0; i < SN; i++) { var w2 = SU2[i] + SV[i]; if (noise && !REC[i]) w2 += (snowRnd() - 0.5) * noise; S[i] = w2; }
+      }
+    }
+    function snowSeed(discs) {
+      for (var d = 0; d < discs.length; d++) {
+        var cell = hexCell(discs[d].x, discs[d].y, SC, SR), rr = Math.max(0, Math.round(discs[d].r) - 1);
+        for (var r = cell.r - rr; r <= cell.r + rr; r++) for (var c = cell.c - rr; c <= cell.c + rr; c++) if (r > 0 && c > 0 && r < SR - 1 && c < SC - 1) S[r * SC + c] = 1;
+      }
+    }
+    function snowVisible() { return hexSample(SCOMP || S, SC, SR, W, H, snow.beta, disp); }
 
     function layer() { var l = { U: new Float32Array(N), V: new Float32Array(N), U2: new Float32Array(N), V2: new Float32Array(N), comp: null }; l.U.fill(1); return l; }
     function alloc(w, h) {
@@ -239,13 +318,19 @@
       width: function () { return W; }, height: function () { return H; },
       layers: function () { return nLayers; },
       setLayers: function (n) { n = Math.max(1, n | 0); if (n === nLayers) return; nLayers = n; if (W) alloc(W, H); },
-      resize: function (w, h, keep) { var old = Ls, oW = W, oH = H; alloc(w, h); if (keep && old.length) for (var l = 0; l < nLayers; l++) { var o = old[Math.min(l, old.length - 1)]; resample(Ls[l], o.U, o.V, oW, oH); } },
-      reset: function () { for (var l = 0; l < nLayers; l++) { Ls[l].U.fill(1); Ls[l].V.fill(0); Ls[l].comp = null; } },
+      rule: function () { return rule; },
+      setRule: function (r, params) { rule = r === "snow" ? "snow" : "rd"; snow = rule === "snow" ? params : null; if (W && rule === "snow") snowAlloc(W, H); },
+      setSnow: function (params) { if (snow) { for (var kk in params) snow[kk] = params[kk]; } },
+      quietKeeps: function () { return rule === "snow"; },   // a finished crystal stays on screen; a faded pattern is cleared
+      resize: function (w, h, keep) { var old = Ls, oW = W, oH = H; alloc(w, h); if (keep && old.length) for (var l = 0; l < nLayers; l++) { var o = old[Math.min(l, old.length - 1)]; resample(Ls[l], o.U, o.V, oW, oH); } if (rule === "snow") snowAlloc(w, h); },
+      reset: function () { for (var l = 0; l < nLayers; l++) { Ls[l].U.fill(1); Ls[l].V.fill(0); Ls[l].comp = null; } if (rule === "snow") snowAlloc(W, H); },
       step: function (f, k, g, n, ds, an) {
+        if (rule === "snow") { snowStep(n); return; }
         var du = DU * (ds || 1), dv = DV * (ds || 1), eps = an ? an.eps : 0, fold = an ? (an.fold || 6) : 6;
         for (var l = 0; l < nLayers; l++) stepLayer(Ls[l], f, k, g, n, du, dv, eps, fold, an && an.phases ? (an.phases[l] || 0) * Math.PI / 180 : 0);
       },
       seed: function (discs, value) {
+        if (rule === "snow") { snowSeed(discs); return; }
         for (var l = 0; l < nLayers; l++) { var V = Ls[l].V;
           for (var d = 0; d < discs.length; d++) {
             var cx = discs[d].x, cy = discs[d].y, r = discs[d].r, r2 = r * r;
@@ -254,19 +339,29 @@
           }
         }
       },
-      maxV: function () { var m = 0, src = visible(); for (var i = 0; i < N; i++) if (src[i] > m) m = src[i]; return m; },
+      maxV: function () {
+        if (rule === "snow") {     // "alive" while the crystal is still growing: the ice count is compared between calls
+          var n = 0; for (var j = 0; j < SN; j++) if (S[j] >= 1) n++;
+          iceSame = n === iceLast ? iceSame + 1 : 0; iceLast = n; iceCount = n;
+          return n > 0 && iceSame < 3 ? 1 : 0;
+        }
+        var m = 0, src = visible(); for (var i = 0; i < N; i++) if (src[i] > m) m = src[i]; return m;
+      },
       render: function (lut, vmax) {
         if (!ctx) return;
-        var src = visible(), scale = 255 / vmax;
+        var src = rule === "snow" ? snowVisible() : visible(), scale = 255 / vmax;
         for (var i = 0, p = 0; i < N; i++, p += 4) { var idx = (src[i] * scale) | 0; if (idx > 255) idx = 255; idx *= 3; px[p] = lut[idx]; px[p + 1] = lut[idx + 1]; px[p + 2] = lut[idx + 2]; px[p + 3] = 255; }
         ctx.putImageData(image, 0, 0);
       },
       // chronogram: copy columns [x0, x1) of the current state into the composite shown instead of the state
-      stripBegin: function () { for (var l = 0; l < nLayers; l++) Ls[l].comp = new Float32Array(N); },
-      copyColumns: function (x0, x1) { for (var l = 0; l < nLayers; l++) { var V = Ls[l].V, C = Ls[l].comp; for (var y = 0; y < H; y++) for (var x = x0; x < x1; x++) C[y * W + x] = V[y * W + x]; } },
+      stripBegin: function () { if (rule === "snow") { SCOMP = new Float32Array(SN).fill(snow.beta); return; } for (var l = 0; l < nLayers; l++) Ls[l].comp = new Float32Array(N); },
+      copyColumns: function (x0, x1) {
+        if (rule === "snow") { for (var r = 0; r < SR; r++) for (var c = x0; c < x1 && c < SC; c++) SCOMP[r * SC + c] = S[r * SC + c]; return; }
+        for (var l = 0; l < nLayers; l++) { var V = Ls[l].V, C = Ls[l].comp; for (var y = 0; y < H; y++) for (var x = x0; x < x1; x++) C[y * W + x] = V[y * W + x]; }
+      },
       stripEnd: function () {},
-      showState: function () { for (var l = 0; l < nLayers; l++) Ls[l].comp = null; },
-      getV: function () { return visible(); },
+      showState: function () { SCOMP = null; for (var l = 0; l < nLayers; l++) Ls[l].comp = null; },
+      getV: function () { return rule === "snow" ? snowVisible() : visible(); },
       destroy: function () {}
     };
     return be;
@@ -288,8 +383,35 @@
     faceGLSL("0.25*((e.g-w.g)+(se.g-sw.g))", "c.g-so.g", "so.g-c.g") +
     "l.g+=uEps*0.25*av;}" +
     "float a=uG*c.r*c.g*c.g;float u=c.r+(uDs*0.2097*l.r-a+uF*(1.0-c.r));float v=c.g+(uDs*0.105*l.g+a-(uF+uK)*c.g);o=vec4(clamp(u,0.0,1.0),clamp(v,0.0,1.0),0.0,1.0);}";
-  var FS_SEED = "#version 300 es\nprecision highp float;uniform sampler2D uS;uniform vec3 uD[32];uniform int uN;uniform float uVal;out vec4 o;\n" +
-    "void main(){ivec2 p=ivec2(gl_FragCoord.xy);vec2 c=texelFetch(uS,p,0).rg;vec2 q=vec2(p)+0.5;for(int i=0;i<32;i++){if(i>=uN)break;vec2 d=q-uD[i].xy;if(dot(d,d)<=uD[i].z*uD[i].z)c.g=max(c.g,uVal);}o=vec4(c,0.0,1.0);}";
+  // seeding: Gray–Scott raises V inside each disc; the snow rule sets ice (s = 1) at the lattice cells under each disc
+  var FS_SEED = "#version 300 es\nprecision highp float;uniform sampler2D uS;uniform vec3 uD[32];uniform int uN;uniform float uVal,uSnow;out vec4 o;\n" +
+    "void main(){ivec2 p=ivec2(gl_FragCoord.xy);vec2 c=texelFetch(uS,p,0).rg;vec2 q=vec2(p)+0.5;" +
+    "if(uSnow>0.5){float off=((p.y&1)==1)?0.5:0.0;q=vec2(float(p.x)+0.5+off,(float(p.y)+0.5)*0.8660254);}" +
+    "for(int i=0;i<32;i++){if(i>=uN)break;vec2 d=q-uD[i].xy;if(dot(d,d)<=uD[i].z*uD[i].z){if(uSnow>0.5)c.r=1.0;else c.g=max(c.g,uVal);}}o=vec4(c,0.0,1.0);}";
+  // the snow rule on the graphics processor: pass A classifies and splits (u = diffusing water, v = held water + γ),
+  // pass B diffuses u toward the six-neighbour mean, recombines, holds the boundary at β and adds vapour noise
+  var SNOW_NB = "ivec2 sz=textureSize(uS,0);int a=((p.y&1)==1)?0:-1;";
+  var FS_SNOW_A = "#version 300 es\nprecision highp float;uniform sampler2D uS;uniform float uGamma;out vec4 o;\n" +
+    "float S(ivec2 q,ivec2 sz){return texelFetch(uS,clamp(q,ivec2(0),sz-1),0).r;}\n" +
+    "void main(){ivec2 p=ivec2(gl_FragCoord.xy);" + SNOW_NB + "float s=S(p,sz);bool ice=s>=1.0;" +
+    "if(!ice)ice=S(p+ivec2(-1,0),sz)>=1.0||S(p+ivec2(1,0),sz)>=1.0||S(p+ivec2(a,-1),sz)>=1.0||S(p+ivec2(a+1,-1),sz)>=1.0||S(p+ivec2(a,1),sz)>=1.0||S(p+ivec2(a+1,1),sz)>=1.0;" +
+    "if(p.x<2||p.y<2||p.x>=sz.x-2||p.y>=sz.y-2)ice=false;" +   // the outer rings never freeze (see the processor path)
+    "o=ice?vec4(0.0,s+uGamma,0.0,1.0):vec4(s,0.0,0.0,1.0);}";
+  var FS_SNOW_B = "#version 300 es\nprecision highp float;uniform sampler2D uS;uniform float uAlpha,uBeta,uNoise,uSeed;out vec4 o;\n" +
+    "float U(ivec2 q,ivec2 sz){return texelFetch(uS,clamp(q,ivec2(0),sz-1),0).r;}\n" +
+    "float hash(vec2 v){uvec2 q=uvec2(ivec2(v)+ivec2(4096));uint h=q.x*1664525u+q.y*1013904223u+uint(uSeed*1000.0);h^=h>>16;h*=2246822519u;h^=h>>13;h*=3266489917u;h^=h>>16;return float(h&16777215u)/16777216.0;}\n" +
+    "void main(){ivec2 p=ivec2(gl_FragCoord.xy);" + SNOW_NB + "vec2 c=texelFetch(uS,p,0).rg;" +
+    "float m=U(p+ivec2(-1,0),sz)+U(p+ivec2(1,0),sz)+U(p+ivec2(a,-1),sz)+U(p+ivec2(a+1,-1),sz)+U(p+ivec2(a,1),sz)+U(p+ivec2(a+1,1),sz);" +
+    "float u=c.r+uAlpha*0.5*(m/6.0-c.r);float s=u+c.g;if(uNoise>0.0&&c.g==0.0)s+=(hash(vec2(p)+uSeed)-0.5)*uNoise;o=vec4(s,0.0,0.0,1.0);}";
+  // show for the snow rule: each canvas pixel samples the nearest lattice cell (true hexagonal geometry), then the ramp
+  var FS_SHOW_SNOW = "#version 300 es\nprecision highp float;uniform sampler2D uS,uL;uniform float uBeta,uVmax;uniform vec2 uOut;out vec4 o;\n" +
+    "void main(){ivec2 g=textureSize(uS,0);vec2 pix=vec2(gl_FragCoord.x,uOut.y-gl_FragCoord.y);float yc=pix.y/0.8660254;int r0=int(floor(yc));float best=1e9;float sv=uBeta;" +
+    "for(int dr=-1;dr<=1;dr++){int r=r0+dr;if(r<0||r>=g.y)continue;float off=((r&1)==1)?0.5:0.0;int c=int(floor(pix.x-off));if(c<0||c>=g.x)continue;" +
+    "vec2 d=vec2(float(c)+0.5+off-pix.x,(float(r)+0.5)*0.8660254-pix.y);float dd=dot(d,d);if(dd<best){best=dd;sv=texelFetch(uS,ivec2(c,r),0).r;}}" +
+    "float t=(uBeta-sv)/uBeta-0.06;float v=sv>=1.0?0.4-0.152*min(1.0,(sv-1.0)/2.0):(t<=0.0?0.0:0.12*min(1.0,t/0.94));o=vec4(texture(uL,vec2(clamp(v/uVmax,0.0,1.0),0.5)).rgb,1.0);}";
+  // ice count per 16×16 block (the snow rule's "still growing?" measure)
+  var FS_COUNT = "#version 300 es\nprecision highp float;uniform sampler2D uS;out vec4 o;\n" +
+    "void main(){ivec2 s=textureSize(uS,0);ivec2 b=ivec2(gl_FragCoord.xy)*16;float n=0.0;for(int y=0;y<16;y++)for(int x=0;x<16;x++){ivec2 p=b+ivec2(x,y);if(p.x<s.x&&p.y<s.y&&texelFetch(uS,p,0).r>=1.0)n+=1.0;}o=vec4(n,0.0,0.0,1.0);}";
   // show and max: the maximum of V across up to three layers
   var FS_SHOW = "#version 300 es\nprecision highp float;uniform sampler2D uS,uS1,uS2;uniform int uN;uniform sampler2D uL;uniform float uVmax;out vec4 o;\n" +
     "void main(){ivec2 s=textureSize(uS,0);ivec2 p=ivec2(int(gl_FragCoord.x),s.y-1-int(gl_FragCoord.y));float v=texelFetch(uS,p,0).g;" +
@@ -308,14 +430,16 @@
     function compile(type, src) { var sh = gl.createShader(type); gl.shaderSource(sh, src); gl.compileShader(sh); if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh)); return sh; }
     function program(fs) { var p = gl.createProgram(); gl.attachShader(p, compile(gl.VERTEX_SHADER, VS)); gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); return p; }
     var P;
-    try { P = { step: program(FS_STEP), seed: program(FS_SEED), show: program(FS_SHOW), resample: program(FS_RESAMPLE), copy: program(FS_COPY), max: program(FS_MAX) }; }
+    try { P = { step: program(FS_STEP), seed: program(FS_SEED), show: program(FS_SHOW), resample: program(FS_RESAMPLE), copy: program(FS_COPY), max: program(FS_MAX), snowA: program(FS_SNOW_A), snowB: program(FS_SNOW_B), showSnow: program(FS_SHOW_SNOW), count: program(FS_COUNT) }; }
     catch (e) { return null; }
     var vao = gl.createVertexArray(); gl.bindVertexArray(vao);
     // uniform locations, looked up once
     var L = {};
-    for (var pn in P) { L[pn] = {}; ["uS", "uS1", "uS2", "uL", "uF", "uK", "uG", "uDs", "uEps", "uFold", "uPhase", "uD", "uN", "uVal", "uVmax", "uNew"].forEach(function (u) { L[pn][u] = gl.getUniformLocation(P[pn], u); }); }
+    for (var pn in P) { L[pn] = {}; ["uS", "uS1", "uS2", "uL", "uF", "uK", "uG", "uDs", "uEps", "uFold", "uPhase", "uD", "uN", "uVal", "uVmax", "uNew", "uSnow", "uGamma", "uAlpha", "uBeta", "uNoise", "uSeed", "uOut"].forEach(function (u) { L[pn][u] = gl.getUniformLocation(P[pn], u); }); }
     // per layer: a ping-pong pair `tex[l]`, its current index `cur[l]`, and its chronogram composite `comp[l]`
     var W = 0, H = 0, nLayers = 1, tex = [], cur = [], comp = [], showComp = false, maxTex = null, maxW = 0, maxH = 0, maxBuf = null;
+    // the snow rule: lattice dims (cols = canvas width, rows = hexRows(canvas height)), the u/v intermediate texture
+    var rule = "rd", snow = null, CW = 0, CH = 0, uvTex = null, iceLast = -1, iceSame = 0, snowSeedN = 0;
     var lutTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, lutTex);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -339,7 +463,8 @@
     function freeAll() { tex.forEach(function (pr) { pr.forEach(freeTex); }); comp.forEach(freeTex); tex = []; comp = []; cur = []; }
     function alloc(w, h) {
       var old = tex.length ? tex.map(function (pr, l) { return { t: pr[cur[l]].t, w: W, h: H }; }) : null;
-      W = w; H = h; canvas.width = w; canvas.height = h;
+      CW = w; CH = h; canvas.width = w; canvas.height = h;
+      if (rule === "snow") { W = w; H = hexRows(h); old = null; } else { W = w; H = h; }
       var fresh = [], l;
       for (l = 0; l < nLayers; l++) {
         var a = makeTex(w, h), b = makeTex(w, h);
@@ -348,9 +473,11 @@
         fresh.push([a, b]);
       }
       freeAll(); tex = fresh; cur = []; comp = []; for (l = 0; l < nLayers; l++) { cur.push(0); comp.push(null); }
-      maxW = Math.ceil(w / 16); maxH = Math.ceil(h / 16);
+      maxW = Math.ceil(W / 16); maxH = Math.ceil(H / 16);
       freeTex(maxTex);
       maxTex = makeTex(maxW, maxH, gl.RGBA32F); maxBuf = new Float32Array(maxW * maxH * 4);
+      freeTex(uvTex); uvTex = null;
+      if (rule === "snow") { uvTex = makeTex(W, H); clearTex(tex[0][0], W, H, snow.beta, 0); clearTex(tex[0][1], W, H, snow.beta, 0); iceLast = -1; iceSame = 0; }
       showComp = false;
     }
     // bind the visible texture of each layer (state, or its chronogram composite) to units 0, 2, 3 for a show/max pass
@@ -363,12 +490,30 @@
     }
     var be = {
       kind: "gpu",
-      width: function () { return W; }, height: function () { return H; },
+      width: function () { return CW; }, height: function () { return CH; },
       layers: function () { return nLayers; },
-      setLayers: function (n) { n = Math.max(1, Math.min(3, n | 0)); if (n === nLayers) return; nLayers = n; if (W) { freeAll(); alloc(W, H); } },
-      resize: function (w, h, keep) { if (!keep) freeAll(); alloc(w, h); },
-      reset: function () { for (var l = 0; l < nLayers; l++) { clearTex(tex[l][0], W, H, 1, 0); clearTex(tex[l][1], W, H, 1, 0); cur[l] = 0; } showComp = false; },
+      setLayers: function (n) { n = Math.max(1, Math.min(3, n | 0)); if (n === nLayers) return; nLayers = n; if (CW) { freeAll(); alloc(CW, CH); } },
+      rule: function () { return rule; },
+      setRule: function (r, params) { var nr = r === "snow" ? "snow" : "rd"; snow = nr === "snow" ? params : null; if (nr === rule && !(nr === "snow")) return; rule = nr; if (CW) { freeAll(); alloc(CW, CH); } },
+      setSnow: function (params) { if (snow) { for (var kk in params) snow[kk] = params[kk]; } },
+      quietKeeps: function () { return rule === "snow"; },
+      resize: function (w, h, keep) { if (!keep || rule === "snow") freeAll(); alloc(w, h); },
+      reset: function () {
+        if (rule === "snow") { clearTex(tex[0][0], W, H, snow.beta, 0); clearTex(tex[0][1], W, H, snow.beta, 0); cur[0] = 0; iceLast = -1; iceSame = 0; showComp = false; return; }
+        for (var l = 0; l < nLayers; l++) { clearTex(tex[l][0], W, H, 1, 0); clearTex(tex[l][1], W, H, 1, 0); cur[l] = 0; } showComp = false;
+      },
       step: function (f, k, g, n, ds, an) {
+        if (rule === "snow") {
+          gl.viewport(0, 0, W, H); gl.activeTexture(gl.TEXTURE0);
+          for (var si = 0; si < n; si++) {
+            gl.useProgram(P.snowA); gl.uniform1i(L.snowA.uS, 0); gl.uniform1f(L.snowA.uGamma, snow.gamma);
+            gl.bindFramebuffer(gl.FRAMEBUFFER, uvTex.f); gl.bindTexture(gl.TEXTURE_2D, tex[0][cur[0]].t); gl.drawArrays(gl.TRIANGLES, 0, 3);
+            var nx = 1 - cur[0];
+            gl.useProgram(P.snowB); gl.uniform1i(L.snowB.uS, 0); gl.uniform1f(L.snowB.uAlpha, snow.alpha); gl.uniform1f(L.snowB.uBeta, snow.beta); gl.uniform1f(L.snowB.uNoise, snow.noise || 0); gl.uniform1f(L.snowB.uSeed, (snowSeedN = (snowSeedN + 1) % 9973) * 0.37);
+            gl.bindFramebuffer(gl.FRAMEBUFFER, tex[0][nx].f); gl.bindTexture(gl.TEXTURE_2D, uvTex.t); gl.drawArrays(gl.TRIANGLES, 0, 3); cur[0] = nx;
+          }
+          return;
+        }
         gl.useProgram(P.step); gl.viewport(0, 0, W, H); gl.activeTexture(gl.TEXTURE0); gl.uniform1i(L.step.uS, 0);
         gl.uniform1f(L.step.uF, f); gl.uniform1f(L.step.uK, k); gl.uniform1f(L.step.uG, g); gl.uniform1f(L.step.uDs, ds || 1);
         gl.uniform1f(L.step.uEps, an ? an.eps : 0); gl.uniform1f(L.step.uFold, an ? (an.fold || 6) : 6);
@@ -388,11 +533,18 @@
         for (var i = 0; i < discs.length; i += 32) {
           var n = Math.min(32, discs.length - i);
           for (var j = 0; j < n; j++) { arr[j * 3] = discs[i + j].x; arr[j * 3 + 1] = discs[i + j].y; arr[j * 3 + 2] = discs[i + j].r; }
-          gl.useProgram(P.seed); gl.uniform3fv(L.seed.uD, arr); gl.uniform1i(L.seed.uN, n); gl.uniform1f(L.seed.uVal, value);
+          gl.useProgram(P.seed); gl.uniform3fv(L.seed.uD, arr); gl.uniform1i(L.seed.uN, n); gl.uniform1f(L.seed.uVal, value); gl.uniform1f(L.seed.uSnow, rule === "snow" ? 1 : 0);
           for (var l = 0; l < nLayers; l++) { var nxt = 1 - cur[l]; draw("seed", tex[l][nxt].f, W, H, tex[l][cur[l]].t); cur[l] = nxt; }
         }
       },
       maxV: function () {
+        if (rule === "snow") {     // alive while the ice count still grows
+          draw("count", maxTex.f, maxW, maxH, tex[0][cur[0]].t);
+          gl.readPixels(0, 0, maxW, maxH, gl.RGBA, gl.FLOAT, maxBuf);
+          var n = 0; for (var j = 0; j < maxBuf.length; j += 4) n += maxBuf[j];
+          iceSame = n === iceLast ? iceSame + 1 : 0; iceLast = n;
+          return n > 0 && iceSame < 3 ? 1 : 0;
+        }
         gl.useProgram(P.max); gl.bindFramebuffer(gl.FRAMEBUFFER, maxTex.f); gl.viewport(0, 0, maxW, maxH);
         bindVisible("max"); gl.drawArrays(gl.TRIANGLES, 0, 3);
         gl.readPixels(0, 0, maxW, maxH, gl.RGBA, gl.FLOAT, maxBuf);
@@ -401,13 +553,20 @@
       },
       render: function (lut, vmax) {
         if (lutLoaded !== lut) { gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, lutTex); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 256, 1, 0, gl.RGB, gl.UNSIGNED_BYTE, lut); lutLoaded = lut; }
+        if (rule === "snow") {
+          gl.useProgram(P.showSnow); gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, CW, CH);
+          gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, showComp && comp[0] ? comp[0].t : tex[0][cur[0]].t); gl.uniform1i(L.showSnow.uS, 0);
+          gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, lutTex); gl.uniform1i(L.showSnow.uL, 1);
+          gl.uniform1f(L.showSnow.uBeta, snow.beta); gl.uniform1f(L.showSnow.uVmax, vmax); gl.uniform2f(L.showSnow.uOut, CW, CH);
+          gl.drawArrays(gl.TRIANGLES, 0, 3); return;
+        }
         gl.useProgram(P.show); gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, W, H);
         bindVisible("show");
         gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, lutTex); gl.uniform1i(L.show.uL, 1);
         gl.uniform1f(L.show.uVmax, vmax);
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       },
-      stripBegin: function () { for (var l = 0; l < nLayers; l++) { freeTex(comp[l]); comp[l] = makeTex(W, H); clearTex(comp[l], W, H, 1, 0); } },
+      stripBegin: function () { for (var l = 0; l < nLayers; l++) { freeTex(comp[l]); comp[l] = makeTex(W, H); clearTex(comp[l], W, H, rule === "snow" ? snow.beta : 1, 0); } },
       copyColumns: function (x0, x1) {
         gl.enable(gl.SCISSOR_TEST); gl.scissor(x0, 0, x1 - x0, H);
         for (var l = 0; l < nLayers; l++) draw("copy", comp[l].f, W, H, tex[l][cur[l]].t);
@@ -416,16 +575,18 @@
       stripEnd: function () { showComp = true; },
       showState: function () { showComp = false; },
       getV: null,
-      destroy: function () { var ext = gl.getExtension("WEBGL_lose_context"); if (ext) ext.loseContext(); }
+      destroy: function () { freeAll(); freeTex(uvTex); freeTex(maxTex); var ext = gl.getExtension("WEBGL_lose_context"); if (ext) ext.loseContext(); }
     };
     return be;
   }
 
   // ---- thumbnails (processor, small) ----------------------------------------------
   function renderThumb(preset, size) {
-    var be = cpuBackend(null); be.setLayers(preset.aniso && preset.aniso.phases ? preset.aniso.phases.length : 1); be.resize(size.width, size.height, false);
-    be.seed(seedDiscList(size.width, size.height, preset.seed, 11, 55), 0.5);
-    be.step(preset.feed, preset.kill, 1, preset.thumbSteps || size.steps, preset.dscale || 1, preset.aniso || null);   // a crystal from one point needs longer than a scattered seeding
+    var be = cpuBackend(null); be.setLayers(preset.aniso && preset.aniso.phases ? preset.aniso.phases.length : 1);
+    if (preset.rule === "snow") be.setRule("snow", { alpha: preset.snow.alpha, beta: preset.snow.beta, gamma: preset.snow.gamma, noise: preset.snow.noise });
+    be.resize(size.width, size.height, false);
+    be.seed(seedDiscList(size.width, size.height, preset.thumbSeed || preset.seed, 11, 55), 0.5);
+    be.step(preset.feed, preset.kill, 1, preset.thumbSteps || size.steps, preset.dscale || 1, preset.aniso || null);   // a preset may set its own thumbnail seeding and run length
     return { V: be.getV(), W: size.width, H: size.height };
   }
   function paintArray(V, W, H, ctx, lut, vmax) {
@@ -444,6 +605,7 @@
     var be = (o.gpu && canvas.getContext) ? gpuBackend(canvas) : null;
     if (!be) be = cpuBackend(canvas);
     be.setLayers(o.aniso && o.aniso.phases ? o.aniso.phases.length : 1);
+    if (o.rule === "snow" && o.snow) be.setRule("snow", { alpha: o.snow.alpha, beta: o.snow.beta, gamma: o.snow.gamma, noise: o.snow.noise });
 
     var f = o.feed, k = o.kill, gain = 1, leftAt = null, stepAcc = 0;
     var grow = null, growN = 0, growTick = 0;
@@ -512,19 +674,19 @@
     function tick() {
       var t0 = now();
       updateGain(t0); growStep(); flushSeeds();
-      stepAcc += o.baseSteps * o.timeScale;
+      stepAcc += o.baseSteps * o.timeScale * o.stepScale;
       var n = Math.floor(stepAcc); stepAcc -= n;
       if (n) be.step(f, k, gain, n, o.dscale, o.aniso);
       be.render(lut, o.vmax);
       var wasAlive = alive;
       if (++sinceMax >= (be.kind === "gpu" ? 10 : 1)) { sinceMax = 0; alive = be.maxV() >= o.aliveThreshold || pending.length > 0; }
-      if (!alive && wasAlive) { be.reset(); be.render(lut, o.vmax); leftAt = null; gain = 1; }
+      if (!alive && wasAlive && !be.quietKeeps()) { be.reset(); be.render(lut, o.vmax); leftAt = null; gain = 1; }
       var ms = now() - t0;
       msSamples++; msAvg += (ms - msAvg) / Math.min(msSamples, 30);
       var slot = msSamples % 30, wasSlow = slowRing[slot], isSlow = (ms > 16 || dtAvg > 24) ? 1 : 0;
       slowRing[slot] = isSlow; slowCount += isSlow - wasSlow;
       if (auto && msHold > 0) msHold--;
-      else if (auto && msSamples >= 30) {
+      else if (auto && msSamples >= 30 && be.rule() !== "snow") {   // the snow rule keeps its lattice: resampling ice makes no sense
         var tooSlow = msAvg > o.ceilingMs || slowCount >= 2 || dtAvg > 24, top = Math.min(capLevel, displayCap());
         if ((tooSlow || level > top) && level > 0) setLevel(level - 1, true);
         else if (!tooSlow && msAvg < o.budgetMs && dtAvg < 19 && level < top) setLevel(level + 1, true);
@@ -600,7 +762,7 @@
     var api = {
       canvas: canvas, presets: PRESETS, palettes: PALETTES, ladder: LADDER,
       backend: function () { return be.kind; },
-      getParams: function () { return { feed: f, kill: k, timeScale: o.timeScale, dscale: o.dscale }; },
+      getParams: function () { return { feed: f, kill: k, timeScale: o.timeScale, dscale: o.dscale, rule: o.rule, snow: o.snow }; },
       setDiffusionScale: function (s) { if (typeof s === "number" && !isNaN(s) && s > 0) o.dscale = s; reevaluate(); if (o.reducedMotion) chronogram(); emit("params"); return api; },
       setAniso: function (a) {   // { eps, fold, phases[] } or null; one layer per phase, composited as the maximum
         o.aniso = a && a.eps ? a : null;
@@ -608,6 +770,17 @@
         reset(); reevaluate(); if (o.reducedMotion) chronogram(); else be.render(lut, o.vmax); emit("params"); return api;
       },
       aniso: function () { return o.aniso; },
+      setRule: function (r, params) {   // "rd" | "snow"; the snow rule pins the grid at the 400-wide rung (no resampling of ice)
+        var nr = r === "snow" ? "snow" : "rd", changed = nr !== o.rule;
+        o.rule = nr; o.snow = nr === "snow" ? { alpha: params.alpha, beta: params.beta, gamma: params.gamma, noise: params.noise } : null;
+        if (nr === "snow") { be.setRule("snow", o.snow); if (level > 1 || level < Math.min(1, capLevel)) setLevel(Math.min(1, capLevel), false); }
+        else if (changed) be.setRule("rd", null);
+        reset(); reevaluate(); if (o.reducedMotion) chronogram(); else be.render(lut, o.vmax); emit("params"); return api;
+      },
+      rule: function () { return o.rule; },
+      setStepScale: function (s) { if (typeof s === "number" && !isNaN(s) && s > 0) o.stepScale = s; reevaluate(); return api; },
+      setSnow: function (params) { if (o.snow) { for (var kk in params) if (typeof params[kk] === "number" && !isNaN(params[kk])) o.snow[kk] = params[kk]; be.setSnow(o.snow); if (o.reducedMotion) chronogram(); emit("params"); } return api; },
+      snow: function () { return o.snow; },
       setHover: function (on) { o.hover = !!on; down = false; last = null; emit("hover"); return api; },
       hover: function () { return o.hover; },
       setParams: function (feed, kill) {
@@ -700,7 +873,29 @@
     var current = null, currentPalette = null, thumbs = [], seedClicks = 0;
 
     function say(text) { if (status) status.textContent = text; }
-    function paramsText() { var p = field.getParams(); return "feed " + fmt(p.feed) + ", kill " + fmt(p.kill) + ", speed " + fmt2(p.timeScale); }
+    function paramsText() { var p = field.getParams(); return (p.rule === "snow" ? "vapor " + fmt2(p.snow.beta) + ", growth " + p.snow.gamma.toFixed(4) : "feed " + fmt(p.feed) + ", kill " + fmt(p.kill)) + ", speed " + fmt2(p.timeScale); }
+    // the two chemistry sliders become Vapor (β) and Growth (γ) while the snow rule runs; their original
+    // labels, ranges and steps are restored when a Gray–Scott pattern is chosen again
+    var feedLabel = scope.querySelector("label[for='" + (feedRange && feedRange.id) + "']"), killLabel = scope.querySelector("label[for='" + (killRange && killRange.id) + "']");
+    var feedNumLabel = scope.querySelector("label[for='" + (feedNumber && feedNumber.id) + "']"), killNumLabel = scope.querySelector("label[for='" + (killNumber && killNumber.id) + "']");
+    function remember(el) { return el ? { min: el.min, max: el.max, step: el.step } : null; }
+    var orig = { feedRange: remember(feedRange), feedNumber: remember(feedNumber), killRange: remember(killRange), killNumber: remember(killNumber),
+      feedLabel: feedLabel ? feedLabel.textContent : "", killLabel: killLabel ? killLabel.textContent : "", feedNumLabel: feedNumLabel ? feedNumLabel.textContent : "", killNumLabel: killNumLabel ? killNumLabel.textContent : "" };
+    var slidersMode = "rd";
+    function setSliders(mode) {
+      if (mode === slidersMode) return; slidersMode = mode;
+      function range(el, min, max, step) { if (el) { el.min = min; el.max = max; el.step = step; } }
+      if (mode === "snow") {
+        range(feedRange, "0.30", "0.90", "0.01"); range(feedNumber, "0.30", "0.90", "0.01"); range(killRange, "0.0001", "0.0030", "0.0001"); range(killNumber, "0.0001", "0.0030", "0.0001");
+        if (feedLabel) feedLabel.textContent = "Vapor:"; if (killLabel) killLabel.textContent = "Growth:";
+        if (feedNumLabel) feedNumLabel.textContent = "Vapor, exact value"; if (killNumLabel) killNumLabel.textContent = "Growth, exact value";
+      } else {
+        function restore(el, o2) { if (el && o2) { el.min = o2.min; el.max = o2.max; el.step = o2.step; } }
+        restore(feedRange, orig.feedRange); restore(feedNumber, orig.feedNumber); restore(killRange, orig.killRange); restore(killNumber, orig.killNumber);
+        if (feedLabel) feedLabel.textContent = orig.feedLabel; if (killLabel) killLabel.textContent = orig.killLabel;
+        if (feedNumLabel) feedNumLabel.textContent = orig.feedNumLabel; if (killNumLabel) killNumLabel.textContent = orig.killNumLabel;
+      }
+    }
     function currentName() { return current ? current.name : "custom"; }
     function updateState() {
       if (!stateLine) return;
@@ -709,8 +904,13 @@
     }
     function syncInputs() {
       var p = field.getParams();
-      if (feedRange) feedRange.value = fmt(p.feed); if (feedNumber) feedNumber.value = fmt(p.feed);
-      if (killRange) killRange.value = fmt(p.kill); if (killNumber) killNumber.value = fmt(p.kill);
+      if (p.rule === "snow") {
+        if (feedRange) feedRange.value = fmt2(p.snow.beta); if (feedNumber) feedNumber.value = fmt2(p.snow.beta);
+        if (killRange) killRange.value = p.snow.gamma.toFixed(4); if (killNumber) killNumber.value = p.snow.gamma.toFixed(4);
+      } else {
+        if (feedRange) feedRange.value = fmt(p.feed); if (feedNumber) feedNumber.value = fmt(p.feed);
+        if (killRange) killRange.value = fmt(p.kill); if (killNumber) killNumber.value = fmt(p.kill);
+      }
       if (scaleRange) scaleRange.value = fmt2(p.timeScale); if (scaleNumber) scaleNumber.value = fmt2(p.timeScale);
     }
     function markPreset(preset) {
@@ -724,7 +924,10 @@
     // nothing appears until the visitor paints or presses Seed (owner ruling 2026-10-08). In reduced
     // motion the chronogram is computed for the new regime from the preset's own seeding.
     function applyPreset(preset, announce) {
-      field.setAniso(preset.aniso || null); field.setDiffusionScale(preset.dscale || 1); field.setParams(preset.feed, preset.kill); markPreset(preset); syncInputs();
+      setSliders(preset.rule === "snow" ? "snow" : "rd");
+      field.setAniso(preset.aniso || null); field.setDiffusionScale(preset.dscale || 1); field.setStepScale(preset.stepScale || 1);
+      if (preset.rule === "snow") field.setRule("snow", preset.snow); else { field.setRule("rd"); field.setParams(preset.feed, preset.kill); }
+      markPreset(preset); syncInputs();
       var spec = {}; for (var kk in preset.seed) spec[kk] = preset.seed[kk]; spec.chrono = preset.chrono;
       field.setChronoSpec(spec); field.clear(); seedClicks = 0;
       if (announce) say(preset.name + " pattern selected: " + paramsText() + ". " + (field.reducedMotion() ? "Still image." : "The field is black; press Seed, or click and drag on it, to start."));
@@ -751,7 +954,8 @@
 
     function onParam(which, el) {
       var v = parseFloat(el.value); if (isNaN(v)) return;
-      if (which === "feed") field.setFeed(v); else if (which === "kill") field.setKill(v); else field.setTimeScale(v);
+      if (field.rule() === "snow" && which !== "scale") field.setSnow(which === "feed" ? { beta: v } : { gamma: v });
+      else if (which === "feed") field.setFeed(v); else if (which === "kill") field.setKill(v); else field.setTimeScale(v);
       if (which !== "scale") markPreset(null); else updateState();
       syncInputs();
       say((which === "scale" ? currentName() + " pattern" : "Custom") + ": " + paramsText() + "." + (field.isAlive() ? "" : " The field is quiet; press Seed, paint on it, or choose a pattern."));
@@ -848,6 +1052,8 @@
         timeScale: d.timeScale !== undefined ? parseFloat(d.timeScale) : undefined,
         fadeStart: d.fadeStart !== undefined ? parseFloat(d.fadeStart) : undefined, fadeEnd: d.fadeEnd !== undefined ? parseFloat(d.fadeEnd) : undefined,
         palette: d.palette, baseSteps: d.steps !== undefined ? parseInt(d.steps, 10) : undefined,
+        rule: d.rule, snow: d.rule === "snow" ? { alpha: parseFloat(d.alpha || "1"), beta: parseFloat(d.beta || "0.4"), gamma: parseFloat(d.gamma || "0.001"), noise: parseFloat(d.noise || "0.02") } : undefined,
+        stepScale: d.stepScale !== undefined ? parseFloat(d.stepScale) : undefined,
         brush: d.brush !== undefined ? parseFloat(d.brush) : undefined,
         dscale: d.dscale !== undefined ? parseFloat(d.dscale) : undefined,
         hover: d.hover === "on" || d.hover === "true",
@@ -861,6 +1067,6 @@
   }
   function get(canvas) { for (var i = 0; i < registry.length; i++) if (registry[i].canvas === canvas) return registry[i].field; return null; }
 
-  global.ReactionDiffusion = { mount: mount, bind: bind, auto: auto, get: get, presets: PRESETS, palettes: PALETTES, ladder: LADDER, buildLut: buildLut, renderThumb: renderThumb, seedDiscList: seedDiscList, version: "1.0.1" };
+  global.ReactionDiffusion = { mount: mount, bind: bind, auto: auto, get: get, presets: PRESETS, palettes: PALETTES, ladder: LADDER, buildLut: buildLut, renderThumb: renderThumb, seedDiscList: seedDiscList, version: "1.0.2" };
   if (global.document && global.document.querySelectorAll) { if (global.document.readyState === "loading") global.document.addEventListener("DOMContentLoaded", function () { auto(); }); else auto(); }
 })(typeof window !== "undefined" ? window : this);

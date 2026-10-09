@@ -68,7 +68,7 @@ function scene(opts) {
   let clockMs = 0;
   const canvas = stubCanvas();
   // the whole recipe travels: feed and kill, and a preset's diffusion scale and anisotropy where it has them
-  const field = RD.mount(canvas, { quality: [opts.width, opts.height], gpu: false, feed: opts.feed, kill: opts.kill, dscale: opts.dscale, aniso: opts.aniso, palette: opts.palette || "canopy", timeScale: opts.timeScale || 0.75, clock: () => clockMs });
+  const field = RD.mount(canvas, { quality: [opts.width, opts.height], gpu: false, feed: opts.feed, kill: opts.kill, dscale: opts.dscale, aniso: opts.aniso, rule: opts.rule, snow: opts.snow, stepScale: opts.stepScale, palette: opts.palette || "canopy", timeScale: opts.timeScale || 0.75, clock: () => clockMs });
   if (opts.seed) field.seedSpec(opts.seed, opts.salt || 11);
   const fps = 60, frames = [];
   const total = Math.round(opts.seconds * fps), every = Math.round(fps / (opts.gifFps || 20));
@@ -135,7 +135,7 @@ function pulsePointer(t, w, h) {
 still("hero-vortex", { width: 640, height: 360, feed: presets.vortex.feed, kill: presets.vortex.kill, dscale: presets.vortex.dscale, pointer: stirPointer, seconds: 18, palette: "canopy" });
 for (const p of RD.presets) {
   const malachite = p.id === "malachite", vortex = p.id === "vortex";    // malachite: fronts sweep out of frame, a central pacemaker caught early; vortex: stirred, at twice the size so rotors have room
-  still("preset-" + p.id, { width: vortex ? 640 : 320, height: vortex ? 360 : 180, feed: p.feed, kill: p.kill, dscale: p.dscale, aniso: p.aniso, seed: (malachite || vortex) ? null : p.seed, pointer: malachite ? pulsePointer : (vortex ? stirPointer : null), seconds: malachite ? 5.5 : (p.id === "phyllotaxis" ? 12 : (p.id === "frost" ? 14 : (vortex ? 12 : 10))), palette: "canopy" });
+  still("preset-" + p.id, { width: vortex ? 640 : 320, height: vortex ? 360 : 180, feed: p.feed, kill: p.kill, dscale: p.dscale, aniso: p.aniso, rule: p.rule, snow: p.snow, stepScale: p.stepScale, seed: (malachite || vortex) ? null : (p.thumbSeed || p.seed), pointer: malachite ? pulsePointer : (vortex ? stirPointer : null), seconds: malachite ? 5.5 : (p.id === "phyllotaxis" ? 12 : (p.id === "frost" ? 16 : (vortex ? 12 : 10))), palette: "canopy" });
 }
 gif("hover-seeding", { width: W, height: H, feed: 0.010, kill: 0.035, seconds: 8, pointer: strokePointer, gifFps: 12, palette: "canopy" });
 gif("phyllotaxis", { width: W, height: H, feed: 0.030, kill: 0.062, seed: presets.phyllotaxis.seed, seconds: 12, gifFps: 10, palette: "aurora" });

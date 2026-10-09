@@ -3,6 +3,28 @@
 All notable changes to Morphogen are recorded here. The format follows Keep a Changelog; the
 project follows Semantic Versioning.
 
+## [1.0.2] — 2026-10-08
+
+Frost becomes a real snow crystal.
+
+- **A second rule beside Gray–Scott: the snow rule**, Reiter's local cellular model for snow crystal
+  growth (Chaos, Solitons & Fractals 23(4), 2005) on a hexagonal lattice, in both engines (two passes per
+  step on the graphics processor) with true hexagonal rendering. Water on the lattice; receptive cells
+  (ice, or touching ice) hold their water and gain γ each step; the rest diffuses toward the six-neighbour
+  mean at α/2; the boundary holds the vapour level β; ice at s ≥ 1; a little vapour noise so every
+  crystal branches differently.
+- **Frost** runs it (α 1, β 0.4, γ 0.001, noise 0.02) at about one lattice step per frame (`stepScale`):
+  six-fold, dendritic, from one seed; the field is black until seeded; the crystal wears the palette as a
+  Gray–Scott pattern does (tips in the front colour, older ice in the body colour, the depletion halo in
+  the trail colour); a finished crystal stays on screen. The 1.0.1 anisotropic Gray–Scott Frost is gone
+  (the anisotropy machinery remains available to presets).
+- While Frost is selected the two chemistry sliders become **Vapor (β, 0.30–0.90)** and **Growth
+  (γ, 0.0001–0.003)**; labels and ranges return with the next Gray–Scott pattern.
+- API: `setRule("snow", { alpha, beta, gamma, noise })` / `setRule("rd")`, `rule()`, `setSnow({ beta, gamma })`,
+  `snow()`, `setStepScale()`; canvas attributes `data-rule="snow"`, `data-alpha`, `data-beta`, `data-gamma`,
+  `data-noise`, `data-step-scale`; the `center` seed type; `thumbSeed` and `thumbSteps` per preset.
+- The fade test skips the snow rule; the media renderer carries a preset's whole recipe.
+
 ## [1.0.1] — 2026-10-08
 
 Interaction and regime fixes after the first live review.

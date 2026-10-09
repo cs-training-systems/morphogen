@@ -56,7 +56,7 @@ what you need.
 As a dependency, pinned to a release:
 
 ```
-npm install github:cs-training-systems/morphogen#v1.0.1
+npm install github:cs-training-systems/morphogen#v1.0.2
 ```
 
 The package ships the script and the stylesheet only. Serve them from your own origin; nothing is
@@ -113,6 +113,8 @@ const field = ReactionDiffusion.mount(canvas, options);   // or ReactionDiffusio
 field.setParams(0.029, 0.057).setTimeScale(1).setPalette("aurora");
 field.setDiffusionScale(3.2);                                // both diffusion rates × 3.2 (Vortex uses this)
 field.setHover(true);                                        // paint on hover alone; false (default) = click and drag
+field.setRule("snow", { alpha: 1, beta: 0.4, gamma: 0.001, noise: 0.02 });   // the snow rule (Frost); setRule("rd") returns to Gray–Scott
+field.setSnow({ beta: 0.5 }); field.setStepScale(0.15);      // tune it while it runs; slow a preset down
 field.seedSpec({ type: "spiral", n: 21, r: 3 });            // "spiral" | "strokes" | "discs" | "grow"
 field.pause(); field.play(); field.clear();
 field.on((type, f) => { /* "params" "palette" "pause" "play" "clear" "seed" "quiet" "quality" "motion" */ });
@@ -137,7 +139,7 @@ are plain descriptors; the demo's notes give the technical term and the simplest
 | ![](docs/media/preset-meandric.png) **Meandric** | 0.029 / 0.057 | labyrinthine stripes (a Turing pattern) |
 | ![](docs/media/preset-swarm.png) **Swarm** | 0.014 / 0.054 | a crowd of travelling, dividing spots |
 | ![](docs/media/preset-honeycomb.png) **Honeycomb** | 0.039 / 0.058 | a sheet opening into a pore lattice |
-| ![](docs/media/preset-frost.png) **Frost** | 0.037 / 0.060, six-fold anisotropy | a hexagonal crystal grown from one point: the activator diffuses faster along six directions, three fields turned ±15° shown together |
+| ![](docs/media/preset-frost.png) **Frost** | the snow rule: α 1, β 0.4, γ 0.001 | real six-fold dendritic snow crystals (Reiter's model, not Gray–Scott; see [The snow rule](#the-snow-rule)) |
 | ![](docs/media/preset-turbulence.png) **Turbulence** | 0.026 / 0.051 | spatiotemporal chaos that never settles |
 | ![](docs/media/preset-mitosis.png) **Mitosis** | 0.037 / 0.065 | self-replicating spots |
 | ![](docs/media/preset-phyllotaxis.png) **Phyllotaxis** | 0.030 / 0.062 | a sunflower head built on the golden angle, one spot at a time |
@@ -146,6 +148,31 @@ are plain descriptors; the demo's notes give the technical term and the simplest
 Seeding specs: `spiral` places *n* discs on Vogel's phyllotaxis spiral (angle 137.5°, radius ∝ √n);
 `grow` does the same one disc every few frames; `strokes` lays short line segments whose free ends
 spin up spiral waves; `discs` scatters *n* discs.
+
+### The snow rule
+
+Frost does not run Gray–Scott. It runs Reiter's local cellular model for snow crystal growth
+(*Chaos, Solitons & Fractals* 23(4), 2005, 1111–1119) on a hexagonal lattice, because a true
+six-armed dendrite is a diffusion-limited crystal, which Gray–Scott cannot grow. One number per cell,
+*s*, the water there. Each step:
+
+1. a cell is **receptive** if it is ice (*s* ≥ 1) or touches ice; receptive cells hold their water
+   and gain γ;
+2. everywhere else the water diffuses toward the mean of the six neighbours, *u'* = *u* + (α/2)(*ū* − *u*);
+3. the boundary is held at the background vapour level β, which is also the starting field;
+4. a little noise in the vapour (the `noise` option) makes every crystal branch differently.
+
+α = 1, β = 0.4, γ = 0.001 is the paper's fern dendrite. On the graphics processor the rule is two
+passes per step; both engines render the lattice with true hexagonal geometry (each canvas pixel
+samples its nearest hex cell), and the crystal takes the palette as a Gray–Scott pattern does: the
+newest ice at the tips in the front colour, older ice toward the core in the body colour, the vapour
+the crystal has drawn down as a halo in the trail colour, and the undisturbed field as the ground.
+Frost runs at about one lattice step per frame (`stepScale: 0.15`). While a snow preset is selected
+the demo's Feed and Kill sliders become **Vapor** (β, 0.30–0.90) and **Growth** (γ, 0.0001–0.003).
+A preset declares it with `rule: "snow", snow: { alpha, beta, gamma, noise }`; a canvas with
+`data-rule="snow"` (and optional `data-alpha`, `data-beta`, `data-gamma`, `data-noise`,
+`data-step-scale`) starts in it; `field.setRule("snow", {...})` and `field.setSnow({ beta, gamma })`
+switch and tune it at run time.
 
 ## Palettes
 
@@ -266,6 +293,8 @@ For publications, use GitHub's **Cite this repository** button (the metadata is 
 - P. Gray and S. K. Scott, "Autocatalytic reactions in the isothermal, continuous stirred tank
   reactor", *Chemical Engineering Science* 39 (1984).
 - J. E. Pearson, "Complex patterns in a simple system", *Science* 261 (1993).
+- C. A. Reiter, "A local cellular model for snow crystal growth", *Chaos, Solitons & Fractals*
+  23(4) (2005), 1111–1119, doi:10.1016/s0960-0779(04)00374-1 (the Frost preset).
 
 Morphogen is written from the published equations with no borrowed code. Visual inspiration:
 [pmneila/jsexp](https://github.com/pmneila/jsexp) (BSD-3-Clause).

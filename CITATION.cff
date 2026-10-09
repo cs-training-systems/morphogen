@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use Morphogen in work you publish, please cite it as below."
 title: "Morphogen: a Gray–Scott reaction–diffusion field for the web"
 type: software
-version: 1.0.1
+version: 1.0.2
 date-released: 2026-10-08
 license: MIT
 repository-code: "https://github.com/cs-training-systems/morphogen"
@@ -36,3 +36,15 @@ references:
     journal: "Science"
     volume: 261
     year: 1993
+  - type: article
+    title: "A local cellular model for snow crystal growth"
+    authors:
+      - family-names: Reiter
+        given-names: Clifford A.
+    journal: "Chaos, Solitons & Fractals"
+    volume: 23
+    issue: 4
+    start: 1111
+    end: 1119
+    year: 2005
+    doi: 10.1016/s0960-0779(04)00374-1

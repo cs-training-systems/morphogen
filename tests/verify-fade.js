@@ -36,6 +36,7 @@ function survival(preset) {
 
 let failed = 0;
 for (const p of RD.presets) {
+  if (p.rule === "snow") { console.log(`${p.id.padEnd(12)} snow rule (Reiter): no fade window applies; skipped`); continue; }
   const s = survival(p);
   const ok = s >= FADE_START && s <= FADE_END;
   if (!ok) failed++;
