@@ -122,15 +122,15 @@ step, in conservative staggered form, on the canvas's own pixels.
 
 | Preset | Model | Parameters | Looks like |
 |---|---|---|---|
-| ![](docs/media/preset-ca-frost.png) **Frost** | Gravner–Griffeath snow crystal (2008) | vapor 0.65 · anisotropy 1.75 | a hexagonal plate growing six arms, on a hexagonal lattice that follows the Resolution rung |
-| ![](docs/media/preset-lenia.png) **Lenia** | Chan 2019 | growth center 0.15 · width 0.016 | smooth, self-propelling creatures from a patch of soup |
-| ![](docs/media/preset-rotor.png) **Rotor** | cyclic automaton (Griffeath) | 8 states · threshold 2 | spiral rotors self-organizing from noise |
-| ![](docs/media/preset-lichtenberg.png) **Lichtenberg** | dielectric breakdown (Niemeyer–Pietronero–Wiesmann 1984) | exponent 2.1 · rate 1.3 | lightning and Lichtenberg figures; exponent 1 is diffusion-limited aggregation |
+| **Frost** | Gravner–Griffeath snow crystal (2008) | vapor 0.65 · anisotropy 1.75 | a hexagonal plate growing six arms, on a hexagonal lattice that follows the Resolution rung |
+| ![](docs/media/preset-lenia.png) **Lenia** | Chan 2019 | growth center 0.133 · width 0.011 | smooth, self-propelling creatures from a patch of soup |
+| **Rotor** | cyclic automaton (Griffeath) | 5 states · threshold 3 | spiral rotors self-organizing from noise |
+| **Lichtenberg** | dielectric breakdown (Niemeyer–Pietronero–Wiesmann 1984) | exponent 2.1 · rate 1.3 | lightning and Lichtenberg figures; exponent 1 is diffusion-limited aggregation |
 | ![](docs/media/preset-sandpile.png) **Sandpile** | falling sand (Toffoli–Margolus 1987) | grains 4 · slip 0.7 | a drop point pours sand that heaps at the angle of repose and avalanches |
 | ![](docs/media/preset-conus.png) **Conus** | elementary automaton (Wolfram) | rule 30 · density 0 | the cone-snail shell, rows laid down in time |
-| ![](docs/media/preset-wildfire.png) **Wildfire** | forest fire (Drossel–Schwabl 1992) | growth 0.005 · lightning 0.00002 | fractal fire fronts through a self-organizing forest |
-| ![](docs/media/preset-grain.png) **Grain** | Potts grain growth (Anderson et al. 1984) | 12 orientations · temperature 0.6 | polycrystalline coarsening, a moving micrograph |
-| ![](docs/media/preset-wake.png) **Wake** | lattice-Boltzmann fluid (D2Q9, BGK) | flow 0.115 · viscosity 0.005 | a von Kármán vortex street behind an obstacle you paint |
+| **Wildfire** | forest fire (Drossel–Schwabl 1992) | growth 0.005 · lightning 0.00002 | fractal fire fronts through a self-organizing forest |
+| **Grain** | Potts grain growth (Anderson et al. 1984) | 12 orientations · temperature 0.6 | polycrystalline coarsening, a moving micrograph |
+| **Wake** | lattice-Boltzmann fluid (D2Q9, BGK) | flow 0.115 · viscosity 0.005 | a von Kármán vortex street behind an obstacle you paint |
 
 Each automaton's rule is stated in the demo's note for its tile, with its law in MathML, and in the
 comment at the head of its source file.
@@ -154,7 +154,7 @@ All of them are optional.
 | `note` | any element with `data-rd-for="<preset id>"` | Shown while that preset is active, hidden otherwise |
 | `feed-range` / `feed-number` | `<input type="range">` / `<input type="number">` | The preset's first parameter; the pair tracks itself; its label, range and step follow the preset |
 | `kill-range` / `kill-number` | as above | The second parameter |
-| `scale-range` / `scale-number` | as above | Speed, on a logarithmic slider centered on the preset's speed (a fifth to five times it) |
+| `scale-range` / `scale-number` | as above | Speed, centered on the preset's own speed, a fifth to five times it: the track is logarithmic so the preset sits mid-track, and the real value is read from the number box, the labels under the track (`speed-ticks`) and the slider's value text |
 | `pause` | `<button>` | Pause / Play; its text and label follow the state |
 | `reset` | `<button>` | Clears the field to the ground color |
 | `seed` | `<button>` | Starts the pattern at the center; later presses place one random point (a preset may run its own opening on every press) |

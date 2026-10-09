@@ -6,9 +6,9 @@
 //   node tools/render-media.js            → docs/media/*.png and *.gif for the reaction–diffusion presets
 //   node tools/render-media.js vortex     → only the scenes whose name contains "vortex"
 //
-// The automata run thousands of lattice steps at full resolution, which the processor path cannot do in
-// reasonable time; their stills come from the graphics processor through tools/capture.html, which saves
-// each tile at docs/media/preset-<id>.png from a browser.
+// The automata and the phase-field dendrite render here too, at 320 x 180 on the processor path (a minute or
+// two each; the snow crystal and the fluid the longest); tools/capture.html remains as the graphics-processor
+// route for stills at the demo's own resolution.
 "use strict";
 const fs = require("fs");
 const path = require("path");
@@ -132,6 +132,11 @@ for (const p of gs) {
   const vortex = p.id === "vortex", malachite = p.id === "malachite";
   still("preset-" + p.id, { preset: p, width: vortex ? 640 : 320, height: vortex ? 360 : 180, seed: vortex ? null : p.seed, pointer: vortex ? stirPointer : null,
     seconds: malachite ? 40 : (p.id === "phyllotaxis" ? 12 : (vortex ? 12 : 10)), timeScale: malachite ? 0.3 : 0.75, palette: "canopy" });
+}
+// the automata and the phase-field dendrite: each at its own palette and seeding, long enough to show its regime
+const CA_SECONDS = { "ca-frost": 25, lenia: 12, rotor: 10, lichtenberg: 20, sandpile: 12, conus: 8, wildfire: 20, grain: 12, wake: 15, frost: 12 };
+for (const p of M.presets.filter(q => q.model !== "gray-scott")) {
+  still("preset-" + p.id, { preset: p, width: 320, height: 180, seed: p.seed, seconds: CA_SECONDS[p.id] || 12, palette: p.palette });
 }
 gif("hover-seeding", { preset: presets.malachite, width: W, height: H, seconds: 8, pointer: strokePointer, gifFps: 12, timeScale: 0.75, palette: "canopy" });
 gif("phyllotaxis", { preset: presets.phyllotaxis, width: W, height: H, seed: presets.phyllotaxis.seed, seconds: 12, gifFps: 10, palette: "aurora" });

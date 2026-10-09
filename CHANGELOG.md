@@ -3,6 +3,24 @@
 All notable changes to Morphogen are recorded here. The format follows Keep a Changelog; the
 project follows Semantic Versioning.
 
+## [2.0.0-beta.2] — 2026-10-09
+
+A correction release within the beta.
+
+- **Three paces restored.** Malachite, Meandric and Xylem default to a speed of 0.1. Their 0.04 in
+  beta.1 was dictated against a build whose speed floor was 0.1, so they had run at 0.1 when approved;
+  beta.1 lowered the floor to 0.005 and took 0.04 literally, which made them 2.5 × slower than approved.
+- **The speed slider shows real numbers.** Its range is the preset's own speed divided by five to
+  multiplied by five, with the preset dead centre: the track is logarithmic, and the real speed is what
+  is read — the value box, the min / default / max labels under the track, and the slider's value text.
+- **Lichtenberg on the processor path no longer fills a block.** Its growth sweep updated the lattice
+  in place, so a cell that had just broken down made its right and lower neighbours eligible in the
+  same sweep. The sweep now reads a snapshot, as the graphics path always did.
+- **Every automaton now has its own palette** (Frost Cherenkov, Lenia Aurora, Rotor Spectrum,
+  Lichtenberg Orodruin, Sandpile Accretion, Conus Physarum, Wildfire Neon, Grain Canopy, Wake
+  Coastal), applied when its tile is chosen, as the reaction–diffusion tiles already did.
+- README: Lenia and Rotor rows carry the released defaults (0.133 / 0.011; 5 states, threshold 3).
+
 ## [2.0.0-beta.1] — 2026-10-09
 
 The engine overhaul, as a pre-release: the architecture and the eighteen patterns are in place and

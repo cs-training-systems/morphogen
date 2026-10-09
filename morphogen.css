@@ -133,6 +133,8 @@
 /* paired boxes: Resolution beside Brush width; the measure spans both */
 .rd__pair { display: grid; grid-template-columns: 1fr 1fr; gap: 17px; }
 .rd__pair > label { display: grid; gap: 5px; font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-2, #4A4A4A); min-width: 0; }
+.rd__ticks { grid-column: 2; display: flex; justify-content: space-between; margin-top: -9px; font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; letter-spacing: .03em; color: var(--text-3, #6B6B6B); }
+.rd__ticks span:nth-child(2) { color: var(--text-2, #4A4A4A); }
 .rd__number-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 /* the accessibility toggles: a check box with its name inside one labelled control, Reduced motion and Hover mode
    sharing one line (the Resolution / Brush width split), stacking on phones; a checked toggle takes the site's pressed treatment */

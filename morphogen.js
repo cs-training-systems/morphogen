@@ -580,8 +580,8 @@
     id: "lenia", family: "ca", name: "Lenia", lattice: "square", channels: 2, grid: "ladder", maxRung: 7, keeps: true, glow: { blur: 0.8, decay: 0.85 },
     source: "B. W.-C. Chan, Complex Systems 28(3) (2019), arXiv:1812.05433",
     params: [
-      { key: "mu", label: "Growth center", min: 0.05, max: 0.40, step: 0.001, def: 0.15 },
-      { key: "sigma", label: "Growth width", min: 0.005, max: 0.050, step: 0.001, def: 0.016 }
+      { key: "mu", label: "Growth center", min: 0.05, max: 0.40, step: 0.001, def: 0.133 },     // owner's centres, 2026-10-09
+      { key: "sigma", label: "Growth width", min: 0.005, max: 0.050, step: 0.001, def: 0.011 }
     ],
     extra: { R: 13, T: 10 },
     init: function () { return [[0, 0, 0, 1]]; },
@@ -718,9 +718,13 @@
             }
             F.set(F2);
           }
+          // the growth sweep reads the discharge as it stood before the sweep (as the graphics path does): updating in
+          // place let a cell that had just broken down make its right and lower neighbours eligible in the same sweep,
+          // which filled a solid block from the seed to the far corner (processor-path defect found 2026-10-09)
+          var G0 = st.g0 && st.g0.length === G.length ? st.g0 : (st.g0 = new Float32Array(G.length)); G0.set(G);
           for (var y2 = 1; y2 < H - 1; y2++) for (var x2 = 1; x2 < W - 1; x2++) {
-            var j = y2 * W + x2; if (G[j] > 0) continue;
-            if ((G[j + 1] > 0 || G[j - 1] > 0 || G[j + W] > 0 || G[j - W] > 0) && rnd() < rate * Math.pow(Math.max(F[j], 0), eta)) { G[j] = X.step; F[j] = 0; }
+            var j = y2 * W + x2; if (G0[j] > 0) continue;
+            if ((G0[j + 1] > 0 || G0[j - 1] > 0 || G0[j + W] > 0 || G0[j - W] > 0) && rnd() < rate * Math.pow(Math.max(F[j], 0), eta)) { G[j] = X.step; F[j] = 0; }
           }
         }
       },
@@ -1766,7 +1770,7 @@
     var familyBtns = $$(scope, "family"), presets = $$(scope, "preset"), notes = $$(scope, "note");
     var p1Range = $(scope, "feed-range"), p1Number = $(scope, "feed-number");
     var p2Range = $(scope, "kill-range"), p2Number = $(scope, "kill-number");
-    var scaleRange = $(scope, "scale-range"), scaleNumber = $(scope, "scale-number");
+    var scaleRange = $(scope, "scale-range"), scaleNumber = $(scope, "scale-number"), speedTicks = $(scope, "speed-ticks");
     var pauseBtn = $(scope, "pause"), resetBtn = $(scope, "reset"), seedBtn = $(scope, "seed");
     var colorsToggle = $(scope, "colors-toggle"), colorsMenu = $(scope, "colors-menu"), paletteRadios = $$(scope, "palette-option");
     var motionBtn = $(scope, "motion"), motionCheck = $(scope, "motion-check"), quality = $(scope, "quality"), measure = $(scope, "measure"), stateLine = $(scope, "state");
@@ -1774,10 +1778,12 @@
     var modeWord = $(scope, "mode"), loading = $(scope, "loading"), brushSel = $(scope, "brush");
     var status = $(scope, "status"), steps = $(scope, "steps");
     var current = null, currentFamily = null, currentPalette = null, thumbs = [], seedClicks = 0;
-    // Speed rides a logarithmic slider centred on the preset's own speed: the slider runs 0 … 1 and maps to
-    // speedDef / 5 … speedDef × 5, so every preset starts mid-range (owner ruling 2026-10-09)
+    // Speed: the preset's own speed sits dead centre and the range runs speedDef / 5 … speedDef × 5 (owner rulings of
+    // 2026-10-09). A native range track is linear in its own value, so the track position is logarithmic and the REAL
+    // speed is what is shown: the value box, the min / default / max labels under the track, and aria-valuetext.
     var speedDef = DEFAULTS.timeScale, SPEED_K = 5;
     function speedFromSlider(s) { return speedDef * Math.pow(SPEED_K, (s - 0.5) * 2); }
+    function fmtSpeed(v) { return v >= 10 ? v.toFixed(1) : v >= 1 ? v.toFixed(2) : v.toFixed(3); }
     function sliderFromSpeed(v) { return clamp(0.5 + Math.log(v / speedDef) / Math.log(SPEED_K) / 2, 0, 1); }
 
     function say(text) { if (status) status.textContent = text; }
@@ -1800,14 +1806,17 @@
       });
       if (p1Label) p1Label.textContent = m.params[0].label + ":"; if (p2Label) p2Label.textContent = m.params[1].label + ":";
       if (p1NumLabel) p1NumLabel.textContent = m.params[0].label + ", exact value"; if (p2NumLabel) p2NumLabel.textContent = m.params[1].label + ", exact value";
+      var sLo = +(speedDef / SPEED_K).toFixed(3), sHi = +(speedDef * SPEED_K).toFixed(3);
       if (scaleRange) { scaleRange.min = "0"; scaleRange.max = "1"; scaleRange.step = "0.005"; }
-      if (scaleNumber) { scaleNumber.min = String(+(speedDef / SPEED_K).toFixed(3)); scaleNumber.max = String(+(speedDef * SPEED_K).toFixed(3)); scaleNumber.step = "0.005"; }
+      if (scaleNumber) { scaleNumber.min = String(sLo); scaleNumber.max = String(sHi); scaleNumber.step = "0.005"; }
+      if (speedTicks) speedTicks.innerHTML = "<span>" + fmtSpeed(sLo) + "</span><span>" + fmtSpeed(speedDef) + "</span><span>" + fmtSpeed(sHi) + "</span>";
     }
     function syncInputs() {
       var m = field.model(), P = field.params(), a = m.params[0], b = m.params[1], t = field.getParams().timeScale;
       if (p1Range) p1Range.value = fmtStep(P[a.key], a.step); if (p1Number) p1Number.value = fmtStep(P[a.key], a.step);
       if (p2Range) p2Range.value = fmtStep(P[b.key], b.step); if (p2Number) p2Number.value = fmtStep(P[b.key], b.step);
-      if (scaleRange) scaleRange.value = sliderFromSpeed(t).toFixed(3); if (scaleNumber) scaleNumber.value = t.toFixed(3);
+      if (scaleRange) { scaleRange.value = sliderFromSpeed(t).toFixed(3); scaleRange.setAttribute("aria-valuetext", fmtSpeed(t) + " (speed; " + fmtSpeed(speedDef) + " is this pattern's own)"); }
+      if (scaleNumber) scaleNumber.value = t.toFixed(3);
     }
     function currentName() { return current ? current.name : "custom"; }
     function updateState() {
@@ -1971,11 +1980,16 @@
   var PRESETS = [
     // —— reaction–diffusion: Gray–Scott in eight regimes, and the phase-field dendrite ——
     // the owner's defaults of 2026-10-09: palette, rates, speed (timeScale) and brush per pattern; each slider is
+    // (automata palettes, one per tile, are the operator's placement of 2026-10-09 except Frost's Cherenkov, which is
+    // the owner's; open for ruling)
+    // (Malachite, Meandric and Xylem were dictated as 0.040 against a build whose speed floor was 0.1: they ran at
+    // 0.1 when approved, and 0.1 is what they keep; the floor was lowered the same day, which is what had made them
+    // 2.5x slower than approved - the 2.0.0-beta.2 correction)
     // centred on these (the binding tailors the ranges), so every pattern starts mid-range
-    { id: "malachite",   family: "rd", name: "Malachite",   model: "gray-scott", palette: "canopy",   params: { feed: 0.008, kill: 0.031 }, timeScale: 0.04, brush: 0.02, seed: { type: "pacemaker", n: 1, r: 3, every: 75 }, firstSeed: "spec", chrono: 420 },
-    { id: "meandric",    family: "rd", name: "Meandric",    model: "gray-scott", palette: "physarum", params: { feed: 0.024, kill: 0.054 }, timeScale: 0.04, brush: 0.02, seed: { type: "spiral", n: 21, r: 3 }, chrono: 2400 },
+    { id: "malachite",   family: "rd", name: "Malachite",   model: "gray-scott", palette: "canopy",   params: { feed: 0.008, kill: 0.031 }, timeScale: 0.1, brush: 0.02, seed: { type: "pacemaker", n: 1, r: 3, every: 75 }, firstSeed: "spec", chrono: 420 },
+    { id: "meandric",    family: "rd", name: "Meandric",    model: "gray-scott", palette: "physarum", params: { feed: 0.024, kill: 0.054 }, timeScale: 0.1, brush: 0.02, seed: { type: "spiral", n: 21, r: 3 }, chrono: 2400 },
     { id: "swarm",       family: "rd", name: "Swarm",       model: "gray-scott", palette: "neon",     params: { feed: 0.013, kill: 0.054 }, timeScale: 2.6,  brush: 0.05, seed: { type: "spiral", n: 21, r: 3 }, chrono: 1800 },
-    { id: "xylem",       family: "rd", name: "Xylem",       model: "gray-scott", palette: "coastal",  params: { feed: 0.039, kill: 0.058 }, timeScale: 0.04, brush: 0.04, seed: { type: "spiral", n: 13, r: 4 }, chrono: 2400 },
+    { id: "xylem",       family: "rd", name: "Xylem",       model: "gray-scott", palette: "coastal",  params: { feed: 0.039, kill: 0.058 }, timeScale: 0.1, brush: 0.04, seed: { type: "spiral", n: 13, r: 4 }, chrono: 2400 },
     // Frost in this family is the phase-field dendrite: a reaction–diffusion system (Allen–Cahn plus heat)
     { id: "frost",       family: "rd", name: "Frost",       model: "dendrite",   params: {}, palette: "cherenkov", timeScale: 0.3, seed: { type: "center", r: 2 }, firstSeed: "spec", thumbSeed: { type: "spiral", n: 3, r: 1.5, spread: 0.75 }, thumbSteps: 5000, thumbScale: 4, chrono: 1600, brush: 0.004 },
     { id: "turbulence",  family: "rd", name: "Turbulence",  model: "gray-scott", palette: "accretion", params: { feed: 0.025, kill: 0.050 }, timeScale: 1.0, brush: 0.05, seed: { type: "discs", n: 7, r: 4 }, chrono: 1800 },
@@ -1994,15 +2008,15 @@
 
     // —— cellular automata ——
     { id: "ca-frost",     family: "ca", name: "Frost",       model: "snow",        params: {}, palette: "cherenkov", seed: { type: "center", r: 1 }, brush: 0.004, stepScale: 1, thumbSeed: { type: "spiral", n: 4, r: 1, spread: 0.8 }, thumbSteps: 900, thumbScale: 2, chrono: 3000 },
-    { id: "lenia",        family: "ca", name: "Lenia",       model: "lenia",       params: {}, seed: { type: "fill" }, firstSeed: "spec", brush: 0.08, stepScale: 0.1, thumbSeed: { type: "fill" }, thumbSteps: 300, chrono: 600 },
-    { id: "rotor",        family: "ca", name: "Rotor",       model: "rotor",       params: {}, seed: { type: "fill" }, firstSeed: "spec", brush: 0.08, stepScale: 0.3, thumbSeed: { type: "fill" }, thumbSteps: 260, thumbScale: 2, chrono: 400 },
-    { id: "lichtenberg",  family: "ca", name: "Lichtenberg", model: "lichtenberg", params: {}, timeScale: 0.25, seed: { type: "center", r: 2 }, firstSeed: "spec", brush: 0.004, thumbSteps: 500, thumbScale: 1.5, chrono: 1200 },
+    { id: "lenia",        family: "ca", name: "Lenia",       model: "lenia",       palette: "aurora", params: {}, timeScale: 0.25, seed: { type: "fill" }, firstSeed: "spec", brush: 0.10, stepScale: 0.3, thumbSeed: { type: "fill" }, thumbSteps: 300, chrono: 600 },
+    { id: "rotor",        family: "ca", name: "Rotor",       model: "rotor",       palette: "spectrum", params: {}, seed: { type: "fill" }, firstSeed: "spec", brush: 0.08, stepScale: 0.3, thumbSeed: { type: "fill" }, thumbSteps: 260, thumbScale: 2, chrono: 400 },
+    { id: "lichtenberg",  family: "ca", name: "Lichtenberg", model: "lichtenberg", palette: "orodruin", params: {}, timeScale: 0.25, seed: { type: "center", r: 2 }, firstSeed: "spec", brush: 0.004, thumbSteps: 500, thumbScale: 1.5, chrono: 1200 },
     // Sandpile: falling sand (owner 2026-10-09: "give the sandpile gravity"); the drop point keeps dropping until Reset
-    { id: "sandpile",     family: "ca", name: "Sandpile",    model: "sand",        params: {}, seed: { type: "pacemaker", n: 1, r: 1, every: 2 }, firstSeed: "spec", brush: 0.01, thumbSeed: { type: "center", r: 1 }, thumbStir: { every: 2, spec: { type: "center", r: 1 } }, thumbSteps: 900, thumbScale: 2, chrono: 1200 },
-    { id: "conus",        family: "ca", name: "Conus",       model: "conus",       params: {}, seed: { type: "center", r: 1 }, firstSeed: "spec", brush: 0.004, stepScale: 0.35, thumbSeed: { type: "center", r: 1 }, thumbSteps: 108, thumbScale: 2, chrono: 300 },
-    { id: "wildfire",     family: "ca", name: "Wildfire",    model: "wildfire",    params: {}, seed: { type: "fill" }, firstSeed: "spec", brush: 0.03, stepScale: 0.4, thumbSeed: { type: "fill" }, thumbSteps: 400, thumbScale: 2, chrono: 900 },
-    { id: "grain",        family: "ca", name: "Grain",       model: "grain",       params: {}, seed: { type: "fill" }, firstSeed: "spec", brush: 0.08, stepScale: 0.5, thumbSeed: { type: "fill" }, thumbSteps: 400, thumbScale: 2, chrono: 1200 },
-    { id: "wake",         family: "ca", name: "Wake",        model: "wake",        params: {}, timeScale: 1.5, seed: { type: "center", r: 9 }, firstSeed: "spec", brush: 0.004, thumbSeed: { type: "center", r: 6 }, thumbSteps: 600, thumbScale: 2, chrono: 1800 }
+    { id: "sandpile",     family: "ca", name: "Sandpile",    model: "sand",        palette: "accretion", params: {}, seed: { type: "pacemaker", n: 1, r: 1, every: 2 }, firstSeed: "spec", brush: 0.01, thumbSeed: { type: "center", r: 1 }, thumbStir: { every: 2, spec: { type: "center", r: 1 } }, thumbSteps: 900, thumbScale: 2, chrono: 1200 },
+    { id: "conus",        family: "ca", name: "Conus",       model: "conus",       palette: "physarum", params: {}, seed: { type: "center", r: 1 }, firstSeed: "spec", brush: 0.004, stepScale: 0.35, thumbSeed: { type: "center", r: 1 }, thumbSteps: 108, thumbScale: 2, chrono: 300 },
+    { id: "wildfire",     family: "ca", name: "Wildfire",    model: "wildfire",    palette: "neon", params: {}, seed: { type: "fill" }, firstSeed: "spec", brush: 0.03, stepScale: 0.4, thumbSeed: { type: "fill" }, thumbSteps: 400, thumbScale: 2, chrono: 900 },
+    { id: "grain",        family: "ca", name: "Grain",       model: "grain",       palette: "canopy", params: {}, seed: { type: "fill" }, firstSeed: "spec", brush: 0.08, stepScale: 0.5, thumbSeed: { type: "fill" }, thumbSteps: 400, thumbScale: 2, chrono: 1200 },
+    { id: "wake",         family: "ca", name: "Wake",        model: "wake",        palette: "coastal", params: {}, timeScale: 1.5, seed: { type: "center", r: 9 }, firstSeed: "spec", brush: 0.004, thumbSeed: { type: "center", r: 6 }, thumbSteps: 600, thumbScale: 2, chrono: 1800 }
   ];
   function presetById(id) { for (var i = 0; i < PRESETS.length; i++) if (PRESETS[i].id === id) return PRESETS[i]; return null; }
 
