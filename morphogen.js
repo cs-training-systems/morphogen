@@ -1,7 +1,7 @@
 /*!
  * Morphogen — morphogen.js — an engine of emergent pattern formation on a canvas.
  * Copyright (c) 2026 Christopher A. Stamplis. Released under the MIT License.
- * Source: https://github.com/cs-training-systems/morphogen   Version 2.0.0-beta.1
+ * Source: https://github.com/cs-training-systems/morphogen   Version 2.0.0-beta.3
  *
  * Every model is written from its published equations or rules with no borrowed code.
  * Visual inspiration: pmneila/jsexp (BSD-3-Clause). Sources are cited beside each model.
@@ -43,7 +43,7 @@
 (function (global) {
   "use strict";
 
-  var VERSION = "2.0.0-beta.1";
+  var VERSION = "2.0.0-beta.3";
   var GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 
   // Nine palettes, each four colours over the display scalar: the ground (black, so a decaying
@@ -115,8 +115,13 @@
     } else if (spec.type === "grow") {
       var n = growCount || 3;
       for (i = 0; i < n; i++) { p = spiralPoint(W, H, i, spec.n, center && center.x, center && center.y); list.push({ x: p.x, y: p.y, r: r }); }
-    } else if (spec.type === "center") {
-      list.push({ x: W / 2, y: H / 2, r: r });
+    } else if (spec.type === "center") {              // one disc at the field's centre, or where the first mark was made
+      list.push({ x: center ? center.x : W / 2, y: center ? center.y : H / 2, r: r });
+    } else if (spec.type === "streak") {              // a petri-dish streak (owner 2026-10-10): the centre point, then a tight zig-zag of long,
+      var sx = center ? center.x : W / 2, sy = center ? center.y : H / 2;   // nearly parallel legs creeping out toward one quadrant's centre
+      list.push({ x: sx, y: sy, r: r });
+      var pts = streakPath(W, H, sx, sy, spec, salt || Math.floor(Math.random() * 1e6));   // a fresh quadrant every press
+      for (i = 0; i < pts.length; i++) list.push({ x: pts[i].x, y: pts[i].y, r: r });
     } else if (spec.type === "pacemaker") {           // fixed points that fire again and again
       var rnd3 = mulberry32((salt || 3) * 2654435761);
       for (i = 0; i < spec.n; i++) list.push({ x: W * (0.2 + 0.6 * rnd3()), y: H * (0.2 + 0.6 * rnd3()), r: r });
@@ -128,6 +133,24 @@
     }
     return list;
   }
+  // The streak's path: from (sx, sy) toward the centre of a random quadrant (jittered), `legs` legs of length `len`
+  // (a share of the field's shorter side) laid across the direction of travel, each a small step farther along, so
+  // consecutive legs are nearly antiparallel and the turns acute, as a loop streaks agar. Points every `gap` pixels.
+  function streakPath(W, H, sx, sy, spec, salt) {
+    var rnd = mulberry32((salt || 13) * 2654435761), q = Math.floor(rnd() * 4);
+    var tx = W * ((q & 1) ? 0.75 : 0.25) + W * 0.16 * (rnd() - 0.5), ty = H * ((q & 2) ? 0.75 : 0.25) + H * 0.16 * (rnd() - 0.5);
+    var dx = tx - sx, dy = ty - sy, dist = Math.hypot(dx, dy) || 1, ux = dx / dist, uy = dy / dist, nx = -uy, ny = ux;
+    var legs = spec.legs || 7, len = (spec.len || 0.18) * Math.min(W, H), step = dist / legs, gap = Math.max(1, spec.gap || 2), out = [];
+    var px = sx, py = sy;
+    for (var l = 0; l < legs; l++) {
+      var side = (l % 2 ? -1 : 1), ex = sx + ux * step * (l + 1) + nx * side * len / 2, ey = sy + uy * step * (l + 1) + ny * side * len / 2;
+      var segLen = Math.hypot(ex - px, ey - py), n = Math.max(1, Math.ceil(segLen / gap));
+      for (var k = 1; k <= n; k++) out.push({ x: px + (ex - px) * k / n, y: py + (ey - py) * k / n });
+      px = ex; py = ey;
+    }
+    return out;
+  }
+
   // Dense, even seeding of the whole field for the chronogram: a hexagonal lattice of the preset's
   // own seed kind, so every column of the chronogram holds pattern from the start.
   function latticeSeedList(W, H, spec) {
@@ -151,19 +174,37 @@
   function hexRows(h) { return Math.max(4, Math.round(h / HEX_ROW)); }
   function hexCell(x, y, cols, rows) { var r = clamp(Math.round(y / HEX_ROW - 0.5), 0, rows - 1), off = (r & 1) ? 0.5 : 0; return { r: r, c: clamp(Math.round(x - off - 0.5), 0, cols - 1) }; }
   function hexCenter(r, c) { return { x: c + 0.5 + ((r & 1) ? 0.5 : 0), y: (r + 0.5) * HEX_ROW }; }
-  // nearest-cell sampling of a lattice (cols × rows) onto a pixel grid (w × h): out[pixel] = disp(cell index), or `empty` off-lattice
+  // sampling of a lattice (cols × rows, in lattice pixel units cols wide) onto a pixel grid (w × h): each pixel takes the
+  // barycentric blend of its three nearest cell centres (the triangle of the lattice that holds it), so a coarse lattice
+  // is shown as a smooth field with no cell ever visible; off-lattice pixels take `empty`
   function hexSample(disp, cols, rows, w, h, empty, out) {
+    var sc = cols / w;
     for (var py = 0; py < h; py++) {
-      var yc = (py + 0.5) / HEX_ROW, r0 = Math.round(yc - 0.5);
+      var ly = (py + 0.5) * sc, r0 = Math.floor(ly / HEX_ROW);
       for (var pxl = 0; pxl < w; pxl++) {
-        var xc = pxl + 0.5, best = -1, bd = 1e9;
+        var lx = (pxl + 0.5) * sc, c0 = Math.floor(lx);
+        var d0 = 1e9, d1 = 1e9, d2 = 1e9, i0 = -1, i1 = -1, i2 = -1, x0 = 0, y0 = 0, x1 = 0, y1 = 0, x2 = 0, y2 = 0;
         for (var r = r0 - 1; r <= r0 + 1; r++) {
           if (r < 0 || r >= rows) continue;
-          var off = (r & 1) ? 0.5 : 0, c = Math.round(xc - off - 0.5); if (c < 0 || c >= cols) continue;
-          var dx = c + 0.5 + off - xc, dy = (r + 0.5) * HEX_ROW - (py + 0.5), d = dx * dx + dy * dy;
-          if (d < bd) { bd = d; best = r * cols + c; }
+          var off = (r & 1) ? 0.5 : 0, cy = (r + 0.5) * HEX_ROW;
+          for (var c = c0 - 1; c <= c0 + 1; c++) {
+            if (c < 0 || c >= cols) continue;
+            var cx = c + 0.5 + off, dx = cx - lx, dy = cy - ly, d = dx * dx + dy * dy, idx = r * cols + c;
+            if (d < d0) { d2 = d1; i2 = i1; x2 = x1; y2 = y1; d1 = d0; i1 = i0; x1 = x0; y1 = y0; d0 = d; i0 = idx; x0 = cx; y0 = cy; }
+            else if (d < d1) { d2 = d1; i2 = i1; x2 = x1; y2 = y1; d1 = d; i1 = idx; x1 = cx; y1 = cy; }
+            else if (d < d2) { d2 = d; i2 = idx; x2 = cx; y2 = cy; }
+          }
         }
-        out[py * w + pxl] = best < 0 ? empty : disp(best);
+        var v;
+        if (i0 < 0) v = empty;
+        else if (i2 < 0) v = disp(i0);
+        else {
+          var e1x = x1 - x0, e1y = y1 - y0, e2x = x2 - x0, e2y = y2 - y0, epx = lx - x0, epy = ly - y0, det = e1x * e2y - e1y * e2x, w1 = 0, w2 = 0;
+          if (Math.abs(det) > 1e-9) { w1 = (epx * e2y - epy * e2x) / det; w2 = (e1x * epy - e1y * epx) / det; }
+          w1 = clamp(w1, 0, 1); w2 = clamp(w2, 0, 1); var w0 = clamp(1 - w1 - w2, 0, 1), ws = w0 + w1 + w2;
+          v = (w0 * disp(i0) + w1 * disp(i1) + w2 * disp(i2)) / ws;
+        }
+        out[py * w + pxl] = v;
       }
     }
     return out;
@@ -256,7 +297,9 @@
         "vec2 l=0.2*(e+w+n+so)+0.05*(ne+nw+se+sw)-c;float f=uP.x,k=uP.y,g=uP.z,ds=uQ.x;" +
         "float a=g*c.r*c.g*c.g;float u=c.r+(ds*0.2097*l.r-a+f*(1.0-c.r));float v=c.g+(ds*0.105*l.g+a-(f+k)*c.g);" +
         "o0=vec4(clamp(u,0.0,1.0),clamp(v,0.0,1.0),0.0,1.0);}" }],
-      seed: "c.g=max(c.g,uVal);",
+      // the seed carries a few per cent of random variation (no real seed is uniform), so a centred seed on a symmetric
+      // stencil does not grow a mirror-symmetric pattern (owner 2026-10-10: a recorded Turbulence run read as mirrored)
+      seed: "c.g=max(c.g,uVal*(0.94+0.12*hash(p,uQ.w)));",
       display: "float display(vec4 c,ivec2 p){return c.g;}",
       alive: "bool alive(vec4 c,ivec2 p){return c.g>0.01;}"
     },
@@ -284,7 +327,7 @@
         for (var d = 0; d < discs.length; d++) {
           var cx = discs[d].x, cy = discs[d].y, r = discs[d].r, r2 = r * r;
           for (var y = Math.max(0, Math.floor(cy - r)); y <= Math.min(H - 1, Math.ceil(cy + r)); y++) for (var x = Math.max(0, Math.floor(cx - r)); x <= Math.min(W - 1, Math.ceil(cx + r)); x++) {
-            var dx = x + 0.5 - cx, dy = y + 0.5 - cy; if (dx * dx + dy * dy <= r2) { var i = y * W + x; if (V[i] < value) V[i] = value; }
+            var dx = x + 0.5 - cx, dy = y + 0.5 - cy; if (dx * dx + dy * dy <= r2) { var i = y * W + x, v = value * (0.94 + 0.12 * st.rnd()); if (V[i] < v) V[i] = v; }
           }
         }
       },
@@ -383,12 +426,72 @@
     }
   });
 
+  // ---- the complex Ginzburg–Landau equation --------------------------------------------------------------
+  // I. S. Aranson and L. Kramer, Rev. Mod. Phys. 74 (2002) 99–143 (read at source 2026-10-09), the normal form of
+  // every reaction–diffusion system just past the onset of oscillation: one complex amplitude A = u + iv,
+  //   ∂A/∂t = A + (1 + iα) ∇²A − (1 + iβ) |A|² A
+  // with α the linear and β the nonlinear dispersion (Aranson & Kramer write b and c; the keys below keep those letters).
+  // Plane waves are stable while 1 + αβ > 0 (Benjamin–Feir–Newell);
+  // past that line the field falls into phase and defect turbulence. A phase singularity is a spiral wave, a source
+  // whose waves travel outward; near onset, with b > c, the phase velocity turns inward and the spiral is an ANTISPIRAL
+  // (S. Nicola, L. Brusch, M. Bär, 2004: antispirals when c1 + c3 > 0 in their convention). The field is zero until
+  // seeded; a disc of random phase invades the dark field as a front and its singularities spin up into rotors.
+  // Explicit Euler on the isotropic 9-point Laplacian at spacing dx and step dt (stable for |b| ≤ 2 at dt 0.03, dx 0.6).
+  defineModel({
+    id: "cgl", family: "rd", name: "Complex Ginzburg–Landau", lattice: "square", channels: 2, grid: "ladder", keeps: true,
+    source: "I. S. Aranson and L. Kramer, Rev. Mod. Phys. 74 (2002) 99–143; S. Nicola, L. Brusch and M. Bär, J. Phys. Chem. B 108 (2004)",
+    params: [
+      // owner 2026-10-10: α 1.75 and β −0.65 are the defaults, each at the centre of a fixed track one unit each way; the
+      // sliders carry the equation's own letters (α on the diffusion term, β on the nonlinear term; Aranson & Kramer's b and c)
+      { key: "b", label: "α", min: 0.75, max: 2.75, step: 0.05, def: 1.75, fixedRange: true },
+      { key: "c", label: "β", min: -1.65, max: 0.35, step: 0.05, def: -0.65, fixedRange: true }
+    ],
+    extra: { dx: 0.6, dt: 0.03 },
+    init: function () { return [[0, 0, 0, 1]]; },
+    gpu: {
+      passes: [{ fs:
+        "void main(){ivec2 p=ivec2(gl_FragCoord.xy);vec2 a=S(p).rg;float b=uP.x,c=uP.y,dx=uP.z,dt=uP.w;" +
+        "vec2 e=S(p+ivec2(1,0)).rg,w=S(p+ivec2(-1,0)).rg,n=S(p+ivec2(0,1)).rg,so=S(p+ivec2(0,-1)).rg,ne=S(p+ivec2(1,1)).rg,nw=S(p+ivec2(-1,1)).rg,se=S(p+ivec2(1,-1)).rg,sw=S(p+ivec2(-1,-1)).rg;" +
+        "vec2 l=(4.0*(e+w+n+so)+(ne+nw+se+sw)-20.0*a)/(6.0*dx*dx);float m2=dot(a,a);" +
+        "vec2 dif=vec2(l.x-b*l.y,l.y+b*l.x);vec2 nl=m2*vec2(a.x-c*a.y,a.y+c*a.x);" +
+        "o0=vec4(a+dt*(a+dif-nl),0.0,1.0);}" }],
+      // a disc of random phase at a modest amplitude; the brush does the same
+      seed: "float ph=hash(p+ivec2(17,31),uQ.w)*6.2831853;float am=0.6*uVal;c.rg=vec2(am*cos(ph),am*sin(ph));",
+      // the real part over the amplitude: black where the field is quiet, dark at a spiral's core, the ramp along the wave
+      display: "float display(vec4 c,ivec2 p){float m=length(c.rg);return 0.5*VMAX*max(m+c.r,0.0);}",
+      alive: "bool alive(vec4 c,ivec2 p){return dot(c.rg,c.rg)>1e-4;}"
+    },
+    cpu: {
+      step: function (st, n, P) {
+        var W = st.W, H = st.H, U = st.p[0][0], V = st.p[0][1], U2 = st.aux[0], V2 = st.aux[1], b = P.b, c = P.c, k = 1 / (6 * P.dx * P.dx), dt = P.dt;
+        for (var s = 0; s < n; s++) {
+          for (var y = 0; y < H; y++) {
+            var y0 = y * W, ym = (y > 0 ? y - 1 : y) * W, yp = (y < H - 1 ? y + 1 : y) * W;
+            for (var x = 0; x < W; x++) {
+              var xm = x > 0 ? x - 1 : x, xp = x < W - 1 ? x + 1 : x, i = y0 + x, u = U[i], v = V[i];
+              var lu = (4 * (U[y0 + xm] + U[y0 + xp] + U[ym + x] + U[yp + x]) + (U[ym + xm] + U[ym + xp] + U[yp + xm] + U[yp + xp]) - 20 * u) * k;
+              var lv = (4 * (V[y0 + xm] + V[y0 + xp] + V[ym + x] + V[yp + x]) + (V[ym + xm] + V[ym + xp] + V[yp + xm] + V[yp + xp]) - 20 * v) * k;
+              var m2 = u * u + v * v;
+              U2[i] = u + dt * (u + (lu - b * lv) - m2 * (u - c * v));
+              V2[i] = v + dt * (v + (lv + b * lu) - m2 * (v + c * u));
+            }
+          }
+          var t = U; U = U2; U2 = t; t = V; V = V2; V2 = t;
+        }
+        st.p[0][0] = U; st.p[0][1] = V; st.aux[0] = U2; st.aux[1] = V2;
+      },
+      seed: function (st, discs, value) { discSeed(st, discs, function (i) { var ph = st.rnd() * 2 * Math.PI, am = 0.6 * value; st.p[0][0][i] = am * Math.cos(ph); st.p[0][1][i] = am * Math.sin(ph); }); },
+      display: function (st, i) { var u = st.p[0][0][i], v = st.p[0][1][i]; return 0.5 * VMAX * Math.max(Math.hypot(u, v) + u, 0); },
+      alive: function (st) { var U = st.p[0][0], V = st.p[0][1], n = 0; for (var i = 0; i < st.N; i++) if (U[i] * U[i] + V[i] * V[i] > 1e-4) n++; return n; }
+    }
+  });
+
 
   // ==== FAMILY "ca" — cellular automata ==================================================================
-  // Every automaton here runs on the canvas's own device pixels ("pixels"), so a cell is a pixel and the
-  // structures are many pixels wide, or on the ladder with bilinear display where the state is a smooth
-  // field (Lenia, the fluid). The resolution rung reaches a pixel-lattice model only as its scale (uQ.y,
-  // the crystal radius), which the size-controlled models use and the others ignore.
+  // Every automaton runs on the ladder (owner 2026-10-09: Resolution means "lower is bigger" on every tile): the
+  // lattice is the chosen rung, a cell is a few pixels wide at 320 and one at 1600, and the glow stage's blur follows
+  // the cell so no hard edge shows. The smooth-field models (Lenia, the fluid) are shown by the browser's bilinear
+  // upscaling; the hexagonal crystals are interpolated onto the screen's own pixels by the backends.
 
   // A crystal's seed is remembered by every cell that grows from it, packed into one float as
   // row × 4096 + column + 1 (exact in a 32-bit float up to 4096 × 4096 cells). Growth stops beyond the
@@ -505,11 +608,19 @@
   // vapour is β; a little noise in the vapour makes every crystal branch differently. Two passes: classify
   // and split, then diffuse and recombine. A no-flux boundary (the paper's edge held at β is an endless
   // reservoir that feeds an arm along the edge of a bounded screen); the outer two rings never freeze.
+  // Resolution (owner 2026-10-09, "lower is bigger" on every tile): the lattice is the ladder rung, 320 cells across for
+  // big bold arms up to 1600 for the finest lace, and on Automatic it is the screen's own pixels, one cell per pixel. The
+  // lattice is always shown on the canvas's device pixels by interpolating its three nearest cells (the backends), so no
+  // cell is ever seen at any rung. The edge is drawn from the continuous water field: the quasi-liquid rim (receptive
+  // cells rising toward 1) blends into the ice over the last 18 % of the climb, so the boundary is antialiased by the
+  // physics instead of thresholded (the ragged edge of 1.0.2 was a hard mask at s = 1).
+  // No size cap (owner 2026-10-09): the arms grow until they reach the edge of the field. `crystal`: the brush is a void
+  // with one pinpoint nucleus at its centre, dropped once a second (see the field). Vapor default 0.30 (owner, same day).
   defineModel({
-    id: "reiter", family: "ca", name: "Reiter snow", lattice: "hex", channels: 4, grid: "ladder", maxRung: 8, keeps: true, glow: { blur: 0.9, decay: 0.965, cell: true },
+    id: "reiter", family: "ca", name: "Reiter snow", lattice: "hex", channels: 4, grid: "ladder", crystal: true, keeps: true, glow: { blur: 1.1, decay: 0.965, cell: true },
     source: "C. A. Reiter, Chaos, Solitons & Fractals 23(4) (2005) 1111–1119",
     params: [
-      { key: "beta", label: "Vapor", min: 0.30, max: 0.90, step: 0.01, def: 0.5 },
+      { key: "beta", label: "Vapor", min: 0.10, max: 0.90, step: 0.01, def: 0.30 },
       { key: "gamma", label: "Growth", min: 0.0001, max: 0.003, step: 0.0001, def: 0.001 }
     ],
     extra: { alpha: 1, noise: 0.02, crystal: 1 / 3, pearl: 0.5 },
@@ -518,15 +629,18 @@
       passes: [
         { out: "aux", fs: GLSL_ORIGIN +     // pass A: receptive? → (u diffusing, v held + γ, origin)
           "void main(){ivec2 p=ivec2(gl_FragCoord.xy);vec4 c=S(p);float s=c.r;bool ice=s>=1.0;float og=c.g;" +
-          "if(!ice){for(int k=0;k<6;k++){vec4 v=S(hexN(p,k));if(v.r>=1.0){if(inRadius(p,v.g)){ice=true;og=v.g;}break;}}}" +
+          "if(!ice){for(int k=0;k<6;k++){vec4 v=S(hexN(p,k));if(v.r>=1.0){ice=true;og=v.g;break;}}}" +
           "if(p.x<2||p.y<2||p.x>=uSize.x-2||p.y>=uSize.y-2)ice=false;" +
           "o0=ice?vec4(0.0,s+uP.y,og,1.0):vec4(s,0.0,og,0.0);}" },
         { fs:                                // pass B: diffuse u toward the six-neighbour mean, recombine, noise
           "void main(){ivec2 p=ivec2(gl_FragCoord.xy);vec4 c=A(p);float m=0.0;for(int k=0;k<6;k++)m+=A(hexN(p,k)).r;" +
           "float u=c.r+uP.z*0.5*(m/6.0-c.r);float s=u+c.g;if(uP.w>0.0&&c.a<0.5)s+=(hash(p,uQ.w)-0.5)*uP.w;o0=vec4(s,c.b,0.0,1.0);}" }
       ],
-      seed: GLSL_SEED_ORIGIN + "c=vec4(1.0,sorigin,0.0,1.0);",
-      display: GLSL_ORIGIN + GLSL_HALO + GLSL_CRYSTAL + "float display(vec4 c,ivec2 p){return c.r>=1.0?crystal(p,c.g):halo(c.r,uP.x);}",
+      // a seed value below zero is the eraser: the cell returns to vapour at the background level, no crystal, no origin
+      seed: GLSL_SEED_ORIGIN + "if(uVal<0.0)c=vec4(uP.x,0.0,0.0,1.0);else c=vec4(1.0,sorigin,0.0,1.0);",
+      // the ice wears the ramp by AGE, as 1.0.2 did (owner, N-26): new ice in the front colour, fading through the body to the
+      // trail colour as its water keeps climbing past 1 (2.5 units, about 2,500 steps at γ 0.001); the rim blends in softly
+      display: GLSL_HALO + "float display(vec4 c,ivec2 p){float s=c.r;float ice=smoothstep(0.82,1.0,s);float cr=0.4-0.28*min(1.0,max(s-1.0,0.0)/2.5);return mix(halo(s,uP.x),cr,ice);}",
       alive: "bool alive(vec4 c,ivec2 p){return c.r>=1.0;}"
     },
     cpu: {
@@ -536,7 +650,7 @@
         for (var s = 0; s < n; s++) {
           for (r = 0; r < H; r++) for (c = 0; c < W; c++) {
             i = r * W + c; var ice = Sx[i] >= 1, og = O[i];
-            if (!ice) { hexNb(r, c, W, H, nb); for (k = 0; k < 6; k++) { var j = nb[k]; if (Sx[j] >= 1) { if (inRadius(r, c, O[j], R)) { ice = true; og = O[j]; } break; } } }
+            if (!ice) { hexNb(r, c, W, H, nb); for (k = 0; k < 6; k++) { var j = nb[k]; if (Sx[j] >= 1) { ice = true; og = O[j]; break; } } }
             if (r < 2 || c < 2 || r >= H - 2 || c >= W - 2) ice = false;
             REC[i] = ice ? 1 : 0; if (ice) { V[i] = Sx[i] + g; U[i] = 0; O[i] = og; } else { V[i] = 0; U[i] = Sx[i]; }
           }
@@ -547,14 +661,27 @@
           for (i = 0; i < st.N; i++) { var w2 = U2[i] + V[i]; if (noise && !REC[i]) w2 += (rnd() - 0.5) * noise; Sx[i] = w2; }
         }
       },
-      seed: function (st, discs) {
+      seed: function (st, discs, value, X) {
         var W = st.W, H = st.H;
         for (var d = 0; d < discs.length; d++) {
           var cell = hexCell(discs[d].x, discs[d].y, W, H), rr = Math.max(0, Math.round(discs[d].r) - 1), o = originOf(discs[d]);
+          if (value < 0) {                                  // the eraser: every cell within the disc returns to vapour
+            var R2 = discs[d].r * discs[d].r, rspan = Math.ceil(discs[d].r / HEX_ROW) + 1, cspan = Math.ceil(discs[d].r) + 1;
+            for (var er = cell.r - rspan; er <= cell.r + rspan; er++) for (var ec = cell.c - cspan; ec <= cell.c + cspan; ec++) {
+              if (er < 0 || ec < 0 || er >= H || ec >= W) continue;
+              var q = hexCenter(er, ec), dx = q.x - discs[d].x, dy = q.y - discs[d].y;
+              if (dx * dx + dy * dy <= R2) { st.p[0][0][er * W + ec] = X.P.beta; st.p[0][1][er * W + ec] = 0; }
+            }
+            continue;
+          }
           for (var r = cell.r - rr; r <= cell.r + rr; r++) for (var c = cell.c - rr; c <= cell.c + rr; c++) if (r > 0 && c > 0 && r < H - 1 && c < W - 1) { st.p[0][0][r * W + c] = 1; st.p[0][1][r * W + c] = o; }
         }
       },
-      display: function (st, i, P, X) { var sv = st.p[0][0][i]; return sv >= 1 ? crystalValue(Math.floor(i / st.W), i % st.W, st.p[0][1][i], X.radius) : haloValue(sv, P.beta); },
+      display: function (st, i, P, X) {
+        var sv = st.p[0][0][i], t = clamp((sv - 0.82) / 0.18, 0, 1), ice = t * t * (3 - 2 * t);
+        var h = haloValue(sv, P.beta); if (ice <= 0) return h;
+        return h + (0.4 - 0.28 * Math.min(1, Math.max(sv - 1, 0) / 2.5) - h) * ice;
+      },
       alive: function (st) { var Sx = st.p[0][0], n = 0; for (var i = 0; i < st.N; i++) if (Sx[i] >= 1) n++; return n; }
     }
   });
@@ -580,8 +707,8 @@
     id: "lenia", family: "ca", name: "Lenia", lattice: "square", channels: 2, grid: "ladder", maxRung: 7, keeps: true, glow: { blur: 0.8, decay: 0.85 },
     source: "B. W.-C. Chan, Complex Systems 28(3) (2019), arXiv:1812.05433",
     params: [
-      { key: "mu", label: "Growth center", min: 0.05, max: 0.40, step: 0.001, def: 0.133 },     // owner's centres, 2026-10-09
-      { key: "sigma", label: "Growth width", min: 0.005, max: 0.050, step: 0.001, def: 0.011 }
+      { key: "mu", label: "Growth center", min: 0.05, max: 0.40, step: 0.001, def: 0.15 },
+      { key: "sigma", label: "Growth width", min: 0.005, max: 0.050, step: 0.001, def: 0.016 }
     ],
     extra: { R: 13, T: 10 },
     init: function () { return [[0, 0, 0, 1]]; },
@@ -637,13 +764,13 @@
   // consuming blocks, then "demons" (cycles of adjacent cells holding every state) emit spiral waves, the
   // discrete excitable medium. Empty cells (state −1) are inert and black until painted.
   defineModel({
-    id: "rotor", family: "ca", name: "Cyclic automaton", lattice: "square", channels: 2, grid: "pixels", keeps: true, glow: { blur: 2.2, decay: 0.94 },
+    id: "rotor", family: "ca", name: "Cyclic automaton", lattice: "square", channels: 2, grid: "ladder", keeps: true, glow: { blur: 2.2, decay: 0.94 },
     source: "R. Fisch, J. Gravner and D. Griffeath, Statistics and Computing 1 (1991) 23–39",
     params: [
       // the owner's centres and ranges (2026-10-09): 5 states at threshold 3; a half-step threshold means "at least the
       // next whole number of neighbours" (measured on the eight-neighbour lattice: threshold 1 fixates or locks the whole field)
       { key: "states", label: "States", min: 3, max: 7, step: 1, def: 5 },
-      { key: "threshold", label: "Threshold", min: 1.5, max: 3.5, step: 0.5, def: 3, fixedRange: true }
+      { key: "threshold", label: "Threshold", min: 1.5, max: 2.5, step: 0.5, def: 2, fixedRange: true }   // owner 2026-10-10: 2.0 at the centre
     ],
     init: function () { return [[-1, 0, 0, 1]]; },
     gpu: {
@@ -682,16 +809,22 @@
   // channels. Each step relaxes φ by eight Jacobi sweeps, then grows: a candidate joins when a per-cell random
   // number falls below rate · φ^η. Every attached cell remembers the step it joined (its age, for the colour).
   defineModel({
-    id: "lichtenberg", family: "ca", name: "Dielectric breakdown", lattice: "square", channels: 4, grid: "pixels", keeps: true, glow: { blur: 1.6, decay: 0.985 },
+    id: "lichtenberg", family: "ca", name: "Dielectric breakdown", lattice: "square", channels: 4, grid: "ladder", keeps: true, glow: { blur: 1.6, decay: 0.985 },
     source: "L. Niemeyer, L. Pietronero and H. J. Wiesmann, Phys. Rev. Lett. 52 (1984) 1033–1036",
     params: [
       { key: "eta", label: "Exponent", min: 1.0, max: 6.0, step: 0.1, def: 2.1 },     // owner's centre points, 2026-10-09
       { key: "rate", label: "Rate", min: 0.1, max: 4.0, step: 0.1, def: 1.3 }
     ],
+    // sweeps: the Jacobi relaxations of the potential per step on the graphics path (3, the demo's look). OPEN FINDING
+    // (2026-10-10, measured at 480 × 269 over 840 steps from a centred seed): the two paths do not agree at equal sweeps —
+    // graphics 1/3/8 sweeps grew 11,427 / 2,170 / 4,414 cells, the processor path 129,594 / 16,719 / 497 — and the cause was
+    // not found by reading. `sweepsCpu` 4 is the processor count that reproduces the graphics path's growth (1,892 cells), a
+    // calibrated equivalence used by the recorder and the fallback, not an explanation. Next session: find the divergence.
+    extra: { sweeps: 3, sweepsCpu: 4 },
     init: function () { return [[1, 0, 0, 1]]; },
     gpu: {
       passes: [
-        { repeat: 3, fs:
+        { repeat: function (P) { return P.sweeps; }, fs:
           "void main(){ivec2 p=ivec2(gl_FragCoord.xy);vec4 c=S(p);if(c.g>0.0){o0=vec4(0.0,c.g,c.b,1.0);return;}" +
           "if(p.x==0||p.y==0||p.x==uSize.x-1||p.y==uSize.y-1){o0=vec4(1.0,0.0,c.b,1.0);return;}" +
           "float s=S(p+ivec2(1,0)).r+S(p+ivec2(-1,0)).r+S(p+ivec2(0,1)).r+S(p+ivec2(0,-1)).r;o0=vec4(s*0.25,0.0,c.b,1.0);}" },
@@ -707,9 +840,9 @@
     },
     cpu: {
       step: function (st, n, P, X) {
-        var W = st.W, H = st.H, F = st.p[0][0], G = st.p[0][1], F2 = st.aux[0], rnd = st.rnd, eta = P.eta, rate = P.rate;
+        var W = st.W, H = st.H, F = st.p[0][0], G = st.p[0][1], F2 = st.aux[0], G0 = st.aux[1], rnd = st.rnd, eta = P.eta, rate = P.rate, sweeps = P.sweepsCpu || P.sweeps || 3;
         for (var s = 0; s < n; s++) {
-          for (var it = 0; it < 8; it++) {
+          for (var it = 0; it < sweeps; it++) {
             for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
               var i = y * W + x;
               if (G[i] > 0) { F2[i] = 0; continue; }
@@ -718,10 +851,10 @@
             }
             F.set(F2);
           }
-          // the growth sweep reads the discharge as it stood before the sweep (as the graphics path does): updating in
-          // place let a cell that had just broken down make its right and lower neighbours eligible in the same sweep,
-          // which filled a solid block from the seed to the far corner (processor-path defect found 2026-10-09)
-          var G0 = st.g0 && st.g0.length === G.length ? st.g0 : (st.g0 = new Float32Array(G.length)); G0.set(G);
+          // the growth sweep reads a SNAPSHOT of the discharge (G0), as the graphics path reads the previous state: a cell
+          // that breaks down in this sweep must not make its right and lower neighbours eligible in the same sweep, or the
+          // discharge cascades into a solid block toward the far corner (the defect ADR 0292 §4 recorded; fixed here, 2026-10-10)
+          G0.set(G);
           for (var y2 = 1; y2 < H - 1; y2++) for (var x2 = 1; x2 < W - 1; x2++) {
             var j = y2 * W + x2; if (G0[j] > 0) continue;
             if ((G0[j + 1] > 0 || G0[j - 1] > 0 || G0[j + W] > 0 || G0[j - W] > 0) && rnd() < rate * Math.pow(Math.max(F[j], 0), eta)) { G[j] = X.step; F[j] = 0; }
@@ -742,7 +875,7 @@
   // point build the circular fractal pattern of the identity-like configurations; the four levels 0–3 take
   // the four colours of the palette.
   defineModel({
-    id: "sandpile", family: "ca", name: "Abelian sandpile", lattice: "square", channels: 2, grid: "pixels", stepsPerUnit: 8, keeps: true, glow: { blur: 1.3, decay: 0.9 },
+    id: "sandpile", family: "ca", name: "Abelian sandpile", lattice: "square", channels: 2, grid: "ladder", stepsPerUnit: 8, keeps: true, glow: { blur: 1.3, decay: 0.9 },
     source: "P. Bak, C. Tang and K. Wiesenfeld, Phys. Rev. Lett. 59 (1987) 381–384",
     params: [
       { key: "grains", label: "Grains", min: 1, max: 64, step: 1, def: 16 },
@@ -795,7 +928,7 @@
     "if(ntl>0.5&&nbl>0.5&&nbr<0.5&&ntr<0.5&&r<slip){ntl=0.0;nbr=1.0;}else if(ntr>0.5&&nbr>0.5&&nbl<0.5&&ntl<0.5&&r<slip){ntr=0.0;nbl=1.0;}" +
     "float o=me.x==0?(me.y==0?ntl:nbl):(me.y==0?ntr:nbr);float was=S(p).r;moved=(o>0.5&&was<0.5)?1.0:0.0;return o;}\n";
   defineModel({
-    id: "sand", family: "ca", name: "Falling sand", lattice: "square", channels: 2, grid: "pixels", stepsPerUnit: 2, keeps: true, glow: { blur: 1.2, decay: 0.9 },
+    id: "sand", family: "ca", name: "Falling sand", lattice: "square", channels: 2, grid: "ladder", stepsPerUnit: 2, keeps: true, glow: { blur: 1.2, decay: 0.9 },
     source: "T. Toffoli and N. Margolus, Cellular Automata Machines, MIT Press (1987), the sand rule",
     params: [
       { key: "grains", label: "Grains", min: 1, max: 12, step: 0.5, def: 4 },
@@ -839,7 +972,7 @@
   // bottom, scrolling up — the pigmentation of Conus textile's shell, laid down row by row at the mantle edge.
   // The brush and Seed act on the live row (the bottom); Density sprinkles random cells into the stroke.
   defineModel({
-    id: "conus", family: "ca", name: "Elementary automaton", lattice: "square", channels: 2, grid: "pixels", keeps: true, seedAll: true, glow: { blur: 1.0, decay: 0 },   // its history is its own trail: blur only
+    id: "conus", family: "ca", name: "Elementary automaton", lattice: "square", channels: 2, grid: "ladder", keeps: true, seedAll: true, glow: { blur: 1.0, decay: 0 },   // its history is its own trail: blur only
     source: "S. Wolfram, Rev. Mod. Phys. 55 (1983) 601–644",
     params: [
       { key: "rule", label: "Rule", min: 0, max: 255, step: 1, def: 30 },
@@ -880,7 +1013,7 @@
   // as contagion it is the SIR epidemic with regrowth. The brush ignites what it touches and plants where it
   // finds nothing; the first Seed plants the whole field. Burnt ground glows in the trail colour, fading.
   defineModel({
-    id: "wildfire", family: "ca", name: "Forest fire", lattice: "square", channels: 2, grid: "pixels", keeps: true, glow: { blur: 1.6, decay: 0.96 },
+    id: "wildfire", family: "ca", name: "Forest fire", lattice: "square", channels: 2, grid: "ladder", keeps: true, glow: { blur: 1.6, decay: 0.96 },
     source: "B. Drossel and F. Schwabl, Phys. Rev. Lett. 69 (1992) 1629–1632",
     params: [
       { key: "growth", label: "Growth", min: 0.0005, max: 0.02, step: 0.0005, def: 0.005 },
@@ -932,7 +1065,7 @@
       "float dE=e1-e0;bool acc=dE<=0.0||hash(p+ivec2(7,3),uQ.w)<exp(-dE/T);o0=vec4(acc?ns:s,(acc&&abs(ns-s)>0.5)?1.0:0.0,0.0,1.0);}";
   }
   defineModel({
-    id: "grain", family: "ca", name: "Potts grain growth", lattice: "square", channels: 2, grid: "pixels", keeps: true, glow: { blur: 1.6, decay: 0.85 },
+    id: "grain", family: "ca", name: "Potts grain growth", lattice: "square", channels: 2, grid: "ladder", keeps: true, glow: { blur: 1.6, decay: 0.85 },
     source: "M. P. Anderson, D. J. Srolovitz, G. S. Grest and P. S. Sahni, Acta Metall. 32 (1984) 783–791",
     params: [
       { key: "states", label: "Orientations", min: 2, max: 32, step: 1, def: 12 },
@@ -992,8 +1125,10 @@
     id: "wake", family: "ca", name: "Lattice-Boltzmann fluid", lattice: "square", channels: 4, targets: 3, grid: "ladder", keeps: true, glow: { blur: 0.8, decay: 0.8 },
     source: "Y. H. Qian, D. d'Humières and P. Lallemand, Europhys. Lett. 17 (1992) 479–484",
     params: [
-      { key: "flow", label: "Flow", min: 0.02, max: 0.13, step: 0.005, def: 0.115 },        // owner's centre points, 2026-10-09
-      { key: "viscosity", label: "Viscosity", min: 0.004, max: 0.10, step: 0.001, def: 0.005 }
+      // owner 2026-10-10: flow 0.130 and viscosity 0.005 are the defaults and sit at the centre of their tracks. Fixed ranges,
+      // because the lattice-Boltzmann method is only stable for a flow below about 0.16 and a relaxation time τ = 3ν + ½ above ½
+      { key: "flow", label: "Flow", min: 0.10, max: 0.16, step: 0.005, def: 0.130, fixedRange: true },
+      { key: "viscosity", label: "Viscosity", min: 0.004, max: 0.006, step: 0.0005, def: 0.005, fixedRange: true }
     ],
     init: function (P) { var f = []; for (var i = 0; i < 9; i++) f.push(lbmEq(i, 1, P.flow, 0)); return [[f[0], f[1], f[2], f[3]], [f[4], f[5], f[6], f[7]], [f[8], 0, P.flow, 0]]; },
     gpu: {
@@ -1154,18 +1289,25 @@
         "vec2 q=uHex>0.5?hexQ(p):vec2(p)+0.5;bool hit=false;vec2 og=vec2(0.0);float rr=0.0;" +
         "for(int i=0;i<32;i++){if(i>=uN)break;vec2 d=q-uD[i].xy;if(dot(d,d)<=uD[i].z*uD[i].z){hit=true;og=uD[i].xy;rr=uD[i].z;}}" +
         "if(uAll>0.5&&uN>0){og=uD[0].xy;rr=uD[0].z;}if(hit||uAll>0.5){" + g.seed + "}o0=c;" + (NT > 1 ? "o1=c1;" : "") + (NT > 2 ? "o2=c2;" : "") + "}");
-      set.show = program(GLSL_HEAD + "uniform sampler2D uL;uniform float uVmax,uHex;uniform vec2 uOut;out vec4 o;\n" + g.display + "\n" +
-        "void main(){ivec2 g=uSize;ivec2 p;if(uHex>0.5){vec2 pix=vec2(gl_FragCoord.x,uOut.y-gl_FragCoord.y);float yc=pix.y/0.8660254;int r0=int(floor(yc));float best=1e9;p=ivec2(0);" +
-        "for(int dr=-1;dr<=1;dr++){int r=r0+dr;if(r<0||r>=g.y)continue;float off=((r&1)==1)?0.5:0.0;int cc=int(floor(pix.x-off));if(cc<0||cc>=g.x)continue;" +
-        "vec2 d=vec2(float(cc)+0.5+off-pix.x,(float(r)+0.5)*0.8660254-pix.y);float dd=dot(d,d);if(dd<best){best=dd;p=ivec2(cc,r);}}}" +
-        "else{p=ivec2(int(gl_FragCoord.x),g.y-1-int(gl_FragCoord.y));}" +
-        "float v=display(texelFetch(uS0,p,0),p);o=vec4(texture(uL,vec2(clamp(v/uVmax,0.0,1.0),0.5)).rgb,1.0);}");
-      // the display scalar into a float texture, for reading back (thumbnails): the same sampling as the show pass
-      set.scalar = program(GLSL_HEAD + "uniform float uHex;uniform vec2 uOut;out vec4 o;\n" + g.display + "\n" +
-        "void main(){ivec2 g=uSize;ivec2 p;if(uHex>0.5){vec2 pix=vec2(gl_FragCoord.x,uOut.y-gl_FragCoord.y);float yc=pix.y/0.8660254;int r0=int(floor(yc));float best=1e9;p=ivec2(0);" +
-        "for(int dr=-1;dr<=1;dr++){int r=r0+dr;if(r<0||r>=g.y)continue;float off=((r&1)==1)?0.5:0.0;int cc=int(floor(pix.x-off));if(cc<0||cc>=g.x)continue;" +
-        "vec2 d=vec2(float(cc)+0.5+off-pix.x,(float(r)+0.5)*0.8660254-pix.y);float dd=dot(d,d);if(dd<best){best=dd;p=ivec2(cc,r);}}}" +
-        "else{p=ivec2(int(gl_FragCoord.x),g.y-1-int(gl_FragCoord.y));}o=vec4(display(texelFetch(uS0,p,0),p),0.0,0.0,1.0);}");
+      // the display scalar at a canvas pixel. Square lattice: the cell under the pixel (the canvas is the lattice). Hexagonal
+      // lattice: the canvas may be finer than the lattice (its own device pixels over a ladder rung), and the pixel takes the
+      // barycentric blend of its three nearest cell centres, the lattice triangle that holds it, so no cell is ever seen.
+      var SAMPLE = g.display + "\n" +
+        "float sampleAt(){ivec2 g=uSize;if(uHex>0.5){float sc=float(g.x)/uOut.x;vec2 pix=vec2(gl_FragCoord.x,uOut.y-gl_FragCoord.y)*sc;int r0=int(floor(pix.y/0.8660254));int c0=int(floor(pix.x));" +
+        "float d0=1e9,d1=1e9,d2=1e9;ivec2 b0=ivec2(0),b1=ivec2(0),b2=ivec2(0);vec2 q0=vec2(0.0),q1=vec2(0.0),q2=vec2(0.0);" +
+        "for(int dr=-1;dr<=1;dr++){int r=r0+dr;if(r<0||r>=g.y)continue;float off=((r&1)==1)?0.5:0.0;float cy=(float(r)+0.5)*0.8660254;" +
+        "for(int dc=-1;dc<=1;dc++){int c=c0+dc;if(c<0||c>=g.x)continue;vec2 qc=vec2(float(c)+0.5+off,cy);vec2 dv=qc-pix;float dd=dot(dv,dv);" +
+        "if(dd<d0){d2=d1;b2=b1;q2=q1;d1=d0;b1=b0;q1=q0;d0=dd;b0=ivec2(c,r);q0=qc;}else if(dd<d1){d2=d1;b2=b1;q2=q1;d1=dd;b1=ivec2(c,r);q1=qc;}else if(dd<d2){d2=dd;b2=ivec2(c,r);q2=qc;}}}" +
+        "if(d0>1e8)return 0.0;if(d2>1e8)return display(texelFetch(uS0,b0,0),b0);" +
+        "vec2 e1=q1-q0,e2=q2-q0,ep=pix-q0;float det=e1.x*e2.y-e1.y*e2.x;float w1=0.0,w2=0.0;if(abs(det)>1e-6){w1=(ep.x*e2.y-ep.y*e2.x)/det;w2=(e1.x*ep.y-e1.y*ep.x)/det;}" +
+        "w1=clamp(w1,0.0,1.0);w2=clamp(w2,0.0,1.0);float w0=clamp(1.0-w1-w2,0.0,1.0);float ws=w0+w1+w2;" +
+        "return (w0*display(texelFetch(uS0,b0,0),b0)+w1*display(texelFetch(uS0,b1,0),b1)+w2*display(texelFetch(uS0,b2,0),b2))/ws;}" +
+        "ivec2 p=ivec2(int(gl_FragCoord.x),g.y-1-int(gl_FragCoord.y));return display(texelFetch(uS0,p,0),p);}\n";
+      set.show = program(GLSL_HEAD + "uniform sampler2D uL;uniform float uVmax,uHex;uniform vec2 uOut;out vec4 o;\n" + SAMPLE +
+        "void main(){float v=sampleAt();o=vec4(texture(uL,vec2(clamp(v/uVmax,0.0,1.0),0.5)).rgb,1.0);}");
+      // the display scalar into a float texture, for the glow stage and for reading back (thumbnails): the same sampling as the show pass
+      set.scalar = program(GLSL_HEAD + "uniform float uHex;uniform vec2 uOut;out vec4 o;\n" + SAMPLE +
+        "void main(){o=vec4(sampleAt(),0.0,0.0,1.0);}");
       set.count = program(GLSL_HEAD + g.alive + "\nout vec4 o;void main(){ivec2 b=ivec2(gl_FragCoord.xy)*16;float n=0.0;" +
         "for(int y=0;y<16;y++)for(int x=0;x<16;x++){ivec2 p=b+ivec2(x,y);if(p.x<uSize.x&&p.y<uSize.y&&alive(texelFetch(uS0,p,0),p))n+=1.0;}o=vec4(n,0.0,0.0,1.0);}");
       progs[m.id] = set; return set;
@@ -1181,9 +1323,11 @@
       shared[NT] = s; return s;
     }
 
-    function alloc(w, h, keep) {
+    // w × h: the lattice in lattice pixel units; cw × ch (optional): the canvas, when it is finer than the lattice (a hexagonal
+    // lattice on a ladder rung is shown on the canvas's own device pixels and interpolated there)
+    function alloc(w, h, keep, cw, ch) {
       var old = keep && bufs[cur] ? { b: bufs[cur], w: W, h: H } : null;
-      CW = w; CH = h; canvas.width = w; canvas.height = h;
+      CW = cw || w; CH = ch || h; canvas.width = CW; canvas.height = CH;
       W = w; H = hex ? hexRows(h) : h;
       var fresh = [makeBuf(W, H), makeBuf(W, H)];
       if (old) { var s = sharedFor(); var L = run(s.resample, fresh[0].f, W, H); bindState(L, old.b); gl.uniform2i(L.uNew, W, H); gl.drawArrays(gl.TRIANGLES, 0, 3); }
@@ -1216,7 +1360,9 @@
       },
       setParams: function (P) { curP = P; P8 = packParams(model, P); },
       setContext: function (dscale, radius) { Q[0] = dscale || 1; Q[1] = radius || 0; },
-      resize: function (w, h, keep) { alloc(w, h, keep && model.grid !== "pixels"); },
+      resize: function (w, h, keep, cw, ch) { alloc(w, h, keep && model.grid !== "pixels", cw, ch); },
+      latticeScale: function () { return CW ? W / CW : 1; },   // lattice units per canvas pixel
+      reseed: function (n) { stepIndex = (n | 0) % 9973; },     // the shaders' hash is salted by the step index
       reset: function () { clearBuf(bufs[cur], model.init(curP)); showComp = false; clearGlow(); },
       step: function (n) {
         var set = progs[model.id], per = model.stepsPerUnit || 1;
@@ -1233,11 +1379,13 @@
           }
         }
       },
+      // discs arrive in canvas pixels and are converted to lattice units; on a hexagonal lattice a disc never shrinks below one
+      // cell (0.6: a cell's centre is never farther than 0.58 from any point), so a pinpoint seed is always exactly one cell
       seed: function (discs, value) {
-        var set = progs[model.id], arr = new Float32Array(32 * 3);
+        var set = progs[model.id], arr = new Float32Array(32 * 3), sc = W / CW;
         for (var i = 0; i < discs.length; i += 32) {
           var n = Math.min(32, discs.length - i);
-          for (var j = 0; j < n; j++) { arr[j * 3] = discs[i + j].x; arr[j * 3 + 1] = discs[i + j].y; arr[j * 3 + 2] = discs[i + j].r; }
+          for (var j = 0; j < n; j++) { var rl = discs[i + j].r * sc; if (hex && rl < 0.6) rl = 0.6; arr[j * 3] = discs[i + j].x * sc; arr[j * 3 + 1] = discs[i + j].y * sc; arr[j * 3 + 2] = rl; }
           var L = run(set.seed, bufs[1 - cur].f, W, H); bindState(L, bufs[cur]); setCommon(L);
           gl.uniform3fv(L.uD, arr); gl.uniform1i(L.uN, n); gl.uniform1f(L.uVal, value); gl.uniform1f(L.uHex, hex ? 1 : 0); gl.uniform1f(L.uAll, model.seedAll ? 1 : 0);
           gl.drawArrays(gl.TRIANGLES, 0, 3); cur = 1 - cur;
@@ -1305,14 +1453,14 @@
       return s;
     }
     function fill(s, inits) { for (var t = 0; t < NT; t++) { var c0 = inits[Math.min(t, inits.length - 1)]; for (var c = 0; c < NC; c++) s.p[t][c].fill(c0[c] || 0); } }
-    function alloc(w, h, keep) {
+    function alloc(w, h, keep, cw, ch) {
       var old = keep ? st : null, oW = W, oH = H;
-      CW = w; CH = h; W = w; H = hex ? hexRows(h) : h;
+      CW = cw || w; CH = ch || h; W = w; H = hex ? hexRows(h) : h;
       st = state(W, H); fill(st, model.init(curP));
       if (old) resample(old, oW, oH);
       disp = new Float32Array(CW * CH); comp = null; showComp = false;
-      if (canvas) { canvas.width = w; canvas.height = h; }
-      if (ctx) { image = ctx.createImageData(w, h); px = image.data; }
+      if (canvas) { canvas.width = CW; canvas.height = CH; }
+      if (ctx) { image = ctx.createImageData(CW, CH); px = image.data; }
     }
     function resample(old, oW, oH) {
       for (var t = 0; t < NT; t++) for (var c = 0; c < NC; c++) {
@@ -1351,10 +1499,16 @@
       use: function (m, P) { model = m; curP = P; X.P = P; NT = m.targets || 1; NC = m.channels || 2; hex = m.lattice === "hex"; X.hex = hex; if (CW) alloc(CW, CH, false); },
       setParams: function (P) { curP = P; X.P = P; },
       setContext: function (dscale, radius) { X.dscale = dscale || 1; X.radius = radius || 0; },
-      resize: function (w, h, keep) { alloc(w, h, keep && model.grid !== "pixels" && st); },
+      resize: function (w, h, keep, cw, ch) { alloc(w, h, keep && model.grid !== "pixels" && st, cw, ch); },
+      latticeScale: function () { return CW ? W / CW : 1; },
+      reseed: function (n) { X.rnd = mulberry32(n | 0); if (st) st.rnd = X.rnd; },   // a fresh random stream (every recorded run its own)
       reset: function () { fill(st, model.init(curP)); comp = null; showComp = false; if (glowP) glowP.fill(0); },
       step: function (n) { var per = model.stepsPerUnit || 1; for (var s = 0; s < n * per; s++) { stepIndex++; X.step = stepIndex; model.cpu.step(st, 1, curP, X); } },
-      seed: function (discs, value) { model.cpu.seed(st, discs, value, X); },
+      seed: function (discs, value) {                 // discs in canvas pixels → lattice units (see the graphics backend)
+        var sc = W / CW, list = discs;
+        if (sc !== 1) { list = []; for (var i = 0; i < discs.length; i++) { var rl = discs[i].r * sc; if (hex && rl < 0.6) rl = 0.6; list.push({ x: discs[i].x * sc, y: discs[i].y * sc, r: rl }); } }
+        model.cpu.seed(st, list, value, X);
+      },
       aliveCount: function () { return model.cpu.alive(st, curP, X); },
       render: function (lut) {
         if (!ctx) return;
@@ -1393,6 +1547,7 @@
     seedValue: 0.5,
     brush: 0.03,                 // the pointer's mark: its diameter as a share of the field's height
     seedSpeedGain: 0.25,         // extra radius per cell of pointer travel, relative to the brush
+    pearlMs: 1000,               // crystal fields: the time between two nuclei dropped by a stroke
     chronoSteps: 2400,           // simulation steps the reduced-motion chronogram spans, seed → emergence
     budgetMs: 8, ceilingMs: 12,  // processor path: compute time per frame
     pixelCap: 2048,              // the most cells across a pixel-lattice model takes on the graphics processor
@@ -1414,7 +1569,7 @@
     var model = null, P = null, gain = 1, leftAt = null, stepAcc = 0;
     var grow = null, growN = 0, growTick = 0, growCenter = null, firstMark = null, everyMark = false, marked = false, stir = null;
     var lut = buildLut((PALETTES[o.palette] || PALETTES.canopy).colors);
-    var paused = false, pointerIn = false, alive = false, rafId = 0, last = null, pearlAt = null, pending = [];
+    var paused = false, pointerIn = false, alive = false, rafId = 0, last = null, pearlAt = null, pearlT = 0, pending = [], pendingErase = [];
     var listeners = [];
     var frames = 0, fpsAt = 0, fps = 0, msAvg = 0, msSamples = 0, msHold = 0, lastTs = 0, dtAvg = 16.7, slowRing = new Uint8Array(30), slowCount = 0, sinceMax = 0;
     var level = 1, auto = true, capLevel = LADDER.length - 1, qualityAuto = true;
@@ -1427,9 +1582,13 @@
     function topRung() { var m = model.maxRung !== undefined ? model.maxRung : LADDER.length - 1; return Math.min(capLevel, m); }
     function dims(n) { var w = LADDER[n]; return [w, Math.max(16, Math.round(w / aspect))]; }
     // the grid for the current model: the ladder rung, or the canvas's device pixels for a pixel-lattice model
+    // a hexagonal lattice on the ladder is shown on the canvas's own pixels (the backend interpolates); on Automatic its
+    // lattice IS the canvas's pixels, one cell per pixel, and the explicit rungs are coarser lattices: bigger features
+    function hexLadder() { return model.lattice === "hex" && model.grid === "ladder" && !fixed; }
+    function deviceDims() { var w = devWidth() || 400, cap = be.kind === "gpu" ? o.pixelCap : o.cpuPixelCap; w = clamp(w, 320, cap); return [w, Math.max(16, Math.round(w / aspect))]; }
     function gridDims() {
       if (fixed) return fixed;
-      if (model.grid === "pixels") { var w = devWidth() || 400, cap = be.kind === "gpu" ? o.pixelCap : o.cpuPixelCap; w = clamp(w, 320, cap); return [w, Math.max(16, Math.round(w / aspect))]; }
+      if (model.grid === "pixels" || (hexLadder() && qualityAuto)) return deviceDims();
       return dims(level);
     }
     function displayCap() {
@@ -1445,7 +1604,8 @@
     }
     function pushContext() { be.setContext(model.fade ? o.dscale : (P.noise !== undefined ? P.noise : o.dscale), radius()); }   // uQ.x carries the diffusion scale, or a model's noise amplitude
     function regrid(keep) {
-      var d = gridDims(); be.resize(d[0], d[1], keep); pushContext();
+      var d = gridDims(), cv = hexLadder() ? deviceDims() : null;
+      be.resize(d[0], d[1], keep, cv && cv[0], cv && cv[1]); pushContext();
       msAvg = 0; msSamples = 0; msHold = 60; slowRing.fill(0); slowCount = 0;
     }
     function setLevel(n, keep) {
@@ -1460,7 +1620,7 @@
     function onResize() {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(function () {
-        var a = measureAspect(), pix = model.grid === "pixels" && !fixed;
+        var a = measureAspect(), pix = (model.grid === "pixels" || hexLadder()) && !fixed;
         if (!pix && Math.abs(a / aspect - 1) < 0.02) return;
         aspect = a; regrid(!pix);
         if (o.reducedMotion) chronogram(); else be.render(lut);
@@ -1471,7 +1631,7 @@
 
     function reset() {
       if (model.randomize) { model.randomize(P, Math.random); be.setParams(P); }   // a model may draw fresh randomness for every clear (a crystal's orientation)
-      be.reset(); alive = false; leftAt = null; gain = 1; grow = null; growN = 0; stir = null; marked = false; pending.length = 0;
+      be.reset(); alive = false; leftAt = null; gain = 1; grow = null; growN = 0; stir = null; marked = false; pending.length = 0; pendingErase.length = 0;
     }
     // a "stir" seeding: `points` single marks and `slashes` curved strokes of varying length, each at a random place
     // and a random moment within `frames` frames, different every time (the Vortex opening, owner 2026-10-09)
@@ -1489,9 +1649,13 @@
       return { tick: 0, items: items };
     }
     function scaleR(r) { return r * be.width() / 320; }
+    var NUCLEUS_R = 0.6;         // a crystal's seed: the one lattice cell under the point (a hexagonal cell's centre is never farther than 0.58 away)
     function brushR() { return Math.max(1, o.brush * be.height() / 2); }   // the mark's radius in pixels
     function markSeeded() { alive = true; leftAt = null; gain = 1; marked = true; }
-    function flushSeeds() { if (pending.length) { be.seed(pending, o.seedValue); pending.length = 0; } }
+    function flushSeeds() {
+      if (pendingErase.length) { be.seed(pendingErase, -1); pendingErase.length = 0; }   // the eraser lane first, so a pearl dropped inside it survives
+      if (pending.length) { be.seed(pending, o.seedValue); pending.length = 0; }
+    }
     function growStep() {
       if (stir) {
         stir.tick++; var left = 0;
@@ -1540,7 +1704,7 @@
       var slot = msSamples % 30, wasSlow = slowRing[slot], isSlow = (ms > 16 || dtAvg > 24) ? 1 : 0;
       slowRing[slot] = isSlow; slowCount += isSlow - wasSlow;
       if (auto && msHold > 0) msHold--;
-      else if (auto && qualityAuto && msSamples >= 30 && model.grid === "ladder" && !fixed) {   // the ladder adapts only on Automatic; a chosen rung is the grid
+      else if (auto && qualityAuto && msSamples >= 30 && model.grid === "ladder" && !fixed && !hexLadder()) {   // the ladder adapts only on Automatic; a chosen rung is the grid; a hexagonal lattice on Automatic is the screen's pixels
         var tooSlow = msAvg > o.ceilingMs || slowCount >= 2 || dtAvg > 24, top = Math.min(topRung(), displayCap());
         if ((tooSlow || level > top) && level > 0) setLevel(level - 1, true);
         else if (!tooSlow && msAvg < o.budgetMs && dtAvg < 19 && level < top) setLevel(level + 1, true);
@@ -1592,10 +1756,15 @@
     function paintAt(e) {
       var p = gridPoint(e);
       if ((!marked || everyMark) && firstMark && !last) { api.seedSpec(firstMark, undefined, p); last = p; return; }   // the first mark (or every click, when the preset says so) starts the pattern's own seeding there
-      if (model.sized) {                                   // a string of pearls: single seeds spaced along the stroke by a share of the crystal radius
-        var R = radius() || be.height() / 3, gap = Math.max(2, R * (P.pearl !== undefined ? P.pearl : 0.5)), rs = brushR();
-        if (!pearlAt) { pending.push({ x: p.x, y: p.y, r: rs }); pearlAt = p; }
-        else { var dist = Math.hypot(p.x - pearlAt.x, p.y - pearlAt.y); if (dist >= gap) { var n = Math.floor(dist / gap), ux = (p.x - pearlAt.x) / dist, uy = (p.y - pearlAt.y) / dist; for (var i = 1; i <= n; i++) pending.push({ x: pearlAt.x + ux * gap * i, y: pearlAt.y + uy * gap * i, r: rs }); pearlAt = { x: pearlAt.x + ux * gap * n, y: pearlAt.y + uy * gap * n }; } }
+      if (model.crystal) {
+        // the brush on a crystal field (owner 2026-10-09): a VOID — the brush wipes ice back to vapour along the stroke — with a
+        // single PINPOINT NUCLEUS at its centre, one cell, dropped when the stroke begins and then once every `pearlMs` while it
+        // continues, whatever the brush size: "the nucleus of a hydrogen atom". Never a string, never a disc of ice. The crystals
+        // are permanent and grow together where they meet.
+        var rs = brushR(), tNow = now();
+        if (last) { var dd = Math.hypot(p.x - last.x, p.y - last.y), m = Math.max(1, Math.ceil(dd / Math.max(1, rs * 0.5))); for (var j2 = 1; j2 <= m; j2++) pendingErase.push({ x: last.x + (p.x - last.x) * j2 / m, y: last.y + (p.y - last.y) * j2 / m, r: rs }); }
+        else pendingErase.push({ x: p.x, y: p.y, r: rs });
+        if (!pearlAt || tNow - pearlT >= o.pearlMs) { pending.push({ x: p.x, y: p.y, r: NUCLEUS_R }); pearlAt = p; pearlT = tNow; }
         markSeeded(); last = p; wake(); return;
       }
       var speed = last ? Math.hypot(p.x - last.x, p.y - last.y) : 0;
@@ -1663,7 +1832,8 @@
       setQuality: function (q) {
         qualityAuto = q === "auto";
         capLevel = qualityAuto ? LADDER.length - 1 : clamp(rungOf(q), 0, LADDER.length - 1);
-        if (model.grid === "ladder" && !fixed) { if (!qualityAuto) setLevel(Math.min(capLevel, topRung()), true); else if (level > topRung()) setLevel(topRung(), true); }
+        if (hexLadder()) { if (!qualityAuto) level = Math.min(capLevel, topRung()); regrid(true); if (o.reducedMotion) chronogram(); else be.render(lut); }   // Automatic ↔ a rung always changes a hexagonal lattice's grid
+        else if (model.grid === "ladder" && !fixed) { if (!qualityAuto) setLevel(Math.min(capLevel, topRung()), true); else if (level > topRung()) setLevel(topRung(), true); }
         pushContext(); reevaluate(); emit("quality"); return api;
       },
       quality: function () { return { auto: qualityAuto, cap: capLevel, level: level, width: be.width(), height: be.height(), lattice: [be.latticeWidth(), be.latticeHeight()], grid: model.grid, radius: radius(), ms: msAvg, fps: fps, steps: o.baseSteps * o.timeScale * o.stepScale, backend: be.kind }; },
@@ -1674,7 +1844,7 @@
       seed: function (x, y, r) {
         if (o.reducedMotion) { chronogram(); return api; }
         if ((!marked || everyMark) && firstMark) return api.seedSpec(firstMark, undefined, { x: x, y: y });
-        pending.push({ x: x, y: y, r: r || brushR() }); markSeeded(); wake(); return api;
+        pending.push({ x: x, y: y, r: r || (model.crystal ? NUCLEUS_R : brushR()) }); markSeeded(); wake(); return api;
       },
       setBrush: function (share) { if (typeof share === "number" && !isNaN(share)) o.brush = clamp(share, 0.002, 0.5); emit("brush"); return api; },
       brush: function () { return o.brush; },
@@ -1768,9 +1938,7 @@
 
   function bind(scope, field) {
     var familyBtns = $$(scope, "family"), presets = $$(scope, "preset"), notes = $$(scope, "note");
-    var p1Range = $(scope, "feed-range"), p1Number = $(scope, "feed-number");
-    var p2Range = $(scope, "kill-range"), p2Number = $(scope, "kill-number");
-    var scaleRange = $(scope, "scale-range"), scaleNumber = $(scope, "scale-number"), speedTicks = $(scope, "speed-ticks");
+    var scaleRange = $(scope, "scale-range"), scaleNumber = $(scope, "scale-number");
     var pauseBtn = $(scope, "pause"), resetBtn = $(scope, "reset"), seedBtn = $(scope, "seed");
     var colorsToggle = $(scope, "colors-toggle"), colorsMenu = $(scope, "colors-menu"), paletteRadios = $$(scope, "palette-option");
     var motionBtn = $(scope, "motion"), motionCheck = $(scope, "motion-check"), quality = $(scope, "quality"), measure = $(scope, "measure"), stateLine = $(scope, "state");
@@ -1778,45 +1946,65 @@
     var modeWord = $(scope, "mode"), loading = $(scope, "loading"), brushSel = $(scope, "brush");
     var status = $(scope, "status"), steps = $(scope, "steps");
     var current = null, currentFamily = null, currentPalette = null, thumbs = [], seedClicks = 0;
-    // Speed: the preset's own speed sits dead centre and the range runs speedDef / 5 … speedDef × 5 (owner rulings of
-    // 2026-10-09). A native range track is linear in its own value, so the track position is logarithmic and the REAL
-    // speed is what is shown: the value box, the min / default / max labels under the track, and aria-valuetext.
+    // Speed rides a logarithmic slider centred on the preset's own speed: the slider runs 0 … 1 and maps to
+    // speedDef / 5 … speedDef × 5, so every preset starts mid-range (owner ruling 2026-10-09)
     var speedDef = DEFAULTS.timeScale, SPEED_K = 5;
     function speedFromSlider(s) { return speedDef * Math.pow(SPEED_K, (s - 0.5) * 2); }
-    function fmtSpeed(v) { return v >= 10 ? v.toFixed(1) : v >= 1 ? v.toFixed(2) : v.toFixed(3); }
     function sliderFromSpeed(v) { return clamp(0.5 + Math.log(v / speedDef) / Math.log(SPEED_K) / 2, 0, 1); }
 
     function say(text) { if (status) status.textContent = text; }
     function labelFor(el) { return el && el.id ? scope.querySelector("label[for='" + el.id + "']") : null; }
-    var p1Label = labelFor(p1Range), p2Label = labelFor(p2Range), p1NumLabel = labelFor(p1Number), p2NumLabel = labelFor(p2Number);
+    // the parameter rows, p1 … p3 (`feed-*` and `kill-*` remain the names of p1 and p2 for pages written against 1.x):
+    // a model declares two or three parameters; a row the model does not use is hidden (owner 2026-10-09: a third slider)
+    var PR = [];
+    for (var pi = 0; pi < 3; pi++) {
+      var rg = $(scope, "p" + (pi + 1) + "-range") || (pi === 0 ? $(scope, "feed-range") : (pi === 1 ? $(scope, "kill-range") : null));
+      var nb = $(scope, "p" + (pi + 1) + "-number") || (pi === 0 ? $(scope, "feed-number") : (pi === 1 ? $(scope, "kill-number") : null));
+      PR.push({ range: rg, number: nb, label: labelFor(rg), numLabel: labelFor(nb), row: (rg && rg.closest) ? rg.closest(".rd__param") : null });
+    }
     function familyName(id) { for (var i = 0; i < FAMILIES.length; i++) if (FAMILIES[i].id === id) return FAMILIES[i].name; return id; }
     function paramsText() {
-      var m = field.model(), P = field.params(), a = m.params[0], b = m.params[1];
-      return a.label.toLowerCase() + " " + fmtStep(P[a.key], a.step) + ", " + b.label.toLowerCase() + " " + fmtStep(P[b.key], b.step) + ", speed " + fmt2(field.getParams().timeScale);
+      var m = field.model(), P = field.params(), parts = [];
+      m.params.forEach(function (d) { parts.push(d.label.toLowerCase() + " " + fmtStep(P[d.key], d.step)); });
+      return parts.join(", ") + ", speed " + fmt2(field.getParams().timeScale);
     }
-    // the two sliders take the model's own parameters: names, ranges, steps. For a reaction–diffusion preset the
-    // range is tailored to the preset: its default ± 40 %, so the default sits at the centre (owner, 2026-10-09)
+    // the sliders take the model's own parameters: names, ranges, steps. For a reaction–diffusion preset the range is
+    // tailored to the preset: its default ± 40 %, so the default sits at the centre (owner, 2026-10-09); a parameter
+    // declared `fixedRange` keeps the model's own range (its default is at that range's centre by construction)
     function setSliders(preset) {
       var m = field.model(), P = field.params();
       function range(el, d, lo, hi) { if (el) { el.min = String(lo); el.max = String(hi); el.step = String(d.step); } }
-      m.params.forEach(function (d, i) {
+      PR.forEach(function (pr, i) {
+        var d = m.params[i];
+        if (pr.row) pr.row.hidden = !d;
+        if (!d) return;
         var lo = d.min, hi = d.max, def = P[d.key];
-        if (preset && d.step < 1 && !d.fixedRange) { lo = Math.max(d.min, +(def * 0.6).toFixed(6)); hi = Math.min(d.max, +(def * 1.4).toFixed(6)); }
-        range(i ? p2Range : p1Range, d, lo, hi); range(i ? p2Number : p1Number, d, lo, hi);
+        pr.K = 0; pr.def = def; pr.step = d.step;
+        if (preset && preset.logRange && d.step < 1) {        // a logarithmic track, as Speed's: the preset dead centre, a factor logRange each way, real numbers in the box
+          pr.K = preset.logRange; lo = +(def / pr.K).toFixed(6); hi = +(def * pr.K).toFixed(6);
+          if (pr.range) { pr.range.min = "0"; pr.range.max = "1"; pr.range.step = "0.002"; }
+          range(pr.number, d, lo, hi);
+        } else {
+          // a linear track SYMMETRIC about the default (owner 2026-10-10: the default at the track's spatial centre, never the
+          // arithmetic accident of a clipped side): ± 40 % of the default, never below zero; a model's own limits bind only
+          // when it declares `fixedRange` (then it must have put its default at the centre itself); a zero default has no
+          // centre and keeps the model's range
+          if (preset && d.step < 1 && !d.fixedRange && def > 0) { var span = Math.max(1, Math.round(Math.min(0.4 * def, def) / d.step)) * d.step; lo = +(def - span).toFixed(6); hi = +(def + span).toFixed(6); }   // a whole number of steps each way, so the default sits on the input's own grid
+          range(pr.range, d, lo, hi); range(pr.number, d, lo, hi);
+        }
+        if (pr.label) pr.label.textContent = d.label + ":"; if (pr.numLabel) pr.numLabel.textContent = d.label + ", exact value";
       });
-      if (p1Label) p1Label.textContent = m.params[0].label + ":"; if (p2Label) p2Label.textContent = m.params[1].label + ":";
-      if (p1NumLabel) p1NumLabel.textContent = m.params[0].label + ", exact value"; if (p2NumLabel) p2NumLabel.textContent = m.params[1].label + ", exact value";
-      var sLo = +(speedDef / SPEED_K).toFixed(3), sHi = +(speedDef * SPEED_K).toFixed(3);
       if (scaleRange) { scaleRange.min = "0"; scaleRange.max = "1"; scaleRange.step = "0.005"; }
-      if (scaleNumber) { scaleNumber.min = String(sLo); scaleNumber.max = String(sHi); scaleNumber.step = "0.005"; }
-      if (speedTicks) speedTicks.innerHTML = "<span>" + fmtSpeed(sLo) + "</span><span>" + fmtSpeed(speedDef) + "</span><span>" + fmtSpeed(sHi) + "</span>";
+      if (scaleNumber) { scaleNumber.min = String(+(speedDef / SPEED_K).toFixed(3)); scaleNumber.max = String(+(speedDef * SPEED_K).toFixed(3)); scaleNumber.step = "0.005"; }
     }
     function syncInputs() {
-      var m = field.model(), P = field.params(), a = m.params[0], b = m.params[1], t = field.getParams().timeScale;
-      if (p1Range) p1Range.value = fmtStep(P[a.key], a.step); if (p1Number) p1Number.value = fmtStep(P[a.key], a.step);
-      if (p2Range) p2Range.value = fmtStep(P[b.key], b.step); if (p2Number) p2Number.value = fmtStep(P[b.key], b.step);
-      if (scaleRange) { scaleRange.value = sliderFromSpeed(t).toFixed(3); scaleRange.setAttribute("aria-valuetext", fmtSpeed(t) + " (speed; " + fmtSpeed(speedDef) + " is this pattern's own)"); }
-      if (scaleNumber) scaleNumber.value = t.toFixed(3);
+      var m = field.model(), P = field.params(), t = field.getParams().timeScale;
+      PR.forEach(function (pr, i) {
+        var d = m.params[i]; if (!d) return;
+        if (pr.range) pr.range.value = pr.K ? clamp(0.5 + Math.log(P[d.key] / pr.def) / Math.log(pr.K) / 2, 0, 1).toFixed(3) : fmtStep(P[d.key], d.step);
+        if (pr.number) pr.number.value = fmtStep(P[d.key], d.step);
+      });
+      if (scaleRange) scaleRange.value = sliderFromSpeed(t).toFixed(3); if (scaleNumber) scaleNumber.value = t.toFixed(3);
     }
     function currentName() { return current ? current.name : "custom"; }
     function updateState() {
@@ -1831,7 +2019,7 @@
       if (modeWord) modeWord.textContent = (preset ? familyName(preset.family).toUpperCase() + ": " + preset.name.toUpperCase() : "CUSTOM");
       updateState();
     }
-    function selectOption(sel, value) { if (!sel) return; for (var i = 0; i < sel.options.length; i++) if (parseFloat(sel.options[i].value) === value) { sel.selectedIndex = i; return; } }
+    function selectOption(sel, value) { if (!sel) return; for (var i = 0; i < sel.options.length; i++) if (sel.options[i].value === String(value) || parseFloat(sel.options[i].value) === value) { sel.selectedIndex = i; return; } }
     // A tile selects: the field clears to black, the preset's recipe loads (model, parameters, speed, brush,
     // colours), and nothing appears until the visitor paints or presses Seed. In reduced motion the chronogram is
     // computed for the new regime from the preset's own seeding.
@@ -1886,15 +2074,20 @@
 
     function onParam(which, el) {
       var v = parseFloat(el.value); if (isNaN(v)) return;
-      if (which === "p1") field.setParams(v); else if (which === "p2") field.setParams(undefined, v); else field.setTimeScale(el === scaleRange ? speedFromSlider(v) : v);
+      if (which === "scale") field.setTimeScale(el === scaleRange ? speedFromSlider(v) : v);
+      else {
+        var d = field.model().params[which], pr = PR[which]; if (!d) return;
+        if (pr.K && el === pr.range) { v = pr.def * Math.pow(pr.K, (v - 0.5) * 2); v = +fmtStep(v, d.step); }   // the logarithmic track → the real value, on the parameter's step
+        field.setParam(d.key, v);
+      }
       if (which !== "scale") markPreset(null); else updateState();
       syncInputs();
       say((which === "scale" ? currentName() + " pattern" : "Custom") + ": " + paramsText() + "." + (field.isAlive() ? "" : " The field is quiet; press Seed, paint on it, or choose a pattern."));
     }
-    if (p1Range) p1Range.addEventListener("input", function () { onParam("p1", p1Range); });
-    if (p1Number) p1Number.addEventListener("change", function () { onParam("p1", p1Number); });
-    if (p2Range) p2Range.addEventListener("input", function () { onParam("p2", p2Range); });
-    if (p2Number) p2Number.addEventListener("change", function () { onParam("p2", p2Number); });
+    PR.forEach(function (pr, i) {
+      if (pr.range) pr.range.addEventListener("input", function () { onParam(i, pr.range); });
+      if (pr.number) pr.number.addEventListener("change", function () { onParam(i, pr.number); });
+    });
     if (scaleRange) scaleRange.addEventListener("input", function () { onParam("scale", scaleRange); });
     if (scaleNumber) scaleNumber.addEventListener("change", function () { onParam("scale", scaleNumber); });
 
@@ -1980,20 +2173,24 @@
   var PRESETS = [
     // —— reaction–diffusion: Gray–Scott in eight regimes, and the phase-field dendrite ——
     // the owner's defaults of 2026-10-09: palette, rates, speed (timeScale) and brush per pattern; each slider is
-    // (automata palettes, one per tile, are the operator's placement of 2026-10-09 except Frost's Cherenkov, which is
-    // the owner's; open for ruling)
-    // (Malachite, Meandric and Xylem were dictated as 0.040 against a build whose speed floor was 0.1: they ran at
-    // 0.1 when approved, and 0.1 is what they keep; the floor was lowered the same day, which is what had made them
-    // 2.5x slower than approved - the 2.0.0-beta.2 correction)
     // centred on these (the binding tailors the ranges), so every pattern starts mid-range
-    { id: "malachite",   family: "rd", name: "Malachite",   model: "gray-scott", palette: "canopy",   params: { feed: 0.008, kill: 0.031 }, timeScale: 0.1, brush: 0.02, seed: { type: "pacemaker", n: 1, r: 3, every: 75 }, firstSeed: "spec", chrono: 420 },
-    { id: "meandric",    family: "rd", name: "Meandric",    model: "gray-scott", palette: "physarum", params: { feed: 0.024, kill: 0.054 }, timeScale: 0.1, brush: 0.02, seed: { type: "spiral", n: 21, r: 3 }, chrono: 2400 },
+    // Owner's defaults of 2026-10-10 (their own readings off the demo): Malachite speed 0.500; Meandric at Munafo's γ class
+    // (F 0.026, k 0.055: "stripes, either wormlike or branching, with endless instability" — the regime closest to a slime
+    // mould's exploring veins), speed 0.300, Resolution 480, with LOGARITHMIC feed and kill tracks a factor 2.2 each way so the
+    // range runs from the chaotic wavelets below to the hedgerow mazes and corals of class κ above (F 0.050–0.058, k 0.063)
+    { id: "malachite",   family: "rd", name: "Malachite",   model: "gray-scott", palette: "canopy",   params: { feed: 0.008, kill: 0.031 }, timeScale: 0.5, brush: 0.02, seed: { type: "pacemaker", n: 1, r: 3, every: 75 }, firstSeed: "spec", chrono: 420 },
+    { id: "meandric",    family: "rd", name: "Meandric",    model: "gray-scott", palette: "physarum", params: { feed: 0.026, kill: 0.055 }, timeScale: 0.3, brush: 0.02, quality: 480, logRange: 2.2, seed: { type: "spiral", n: 21, r: 3 }, chrono: 2400 },
     { id: "swarm",       family: "rd", name: "Swarm",       model: "gray-scott", palette: "neon",     params: { feed: 0.013, kill: 0.054 }, timeScale: 2.6,  brush: 0.05, seed: { type: "spiral", n: 21, r: 3 }, chrono: 1800 },
-    { id: "xylem",       family: "rd", name: "Xylem",       model: "gray-scott", palette: "coastal",  params: { feed: 0.039, kill: 0.058 }, timeScale: 0.1, brush: 0.04, seed: { type: "spiral", n: 13, r: 4 }, chrono: 2400 },
-    // Frost in this family is the phase-field dendrite: a reaction–diffusion system (Allen–Cahn plus heat)
-    { id: "frost",       family: "rd", name: "Frost",       model: "dendrite",   params: {}, palette: "cherenkov", timeScale: 0.3, seed: { type: "center", r: 2 }, firstSeed: "spec", thumbSeed: { type: "spiral", n: 3, r: 1.5, spread: 0.75 }, thumbSteps: 5000, thumbScale: 4, chrono: 1600, brush: 0.004 },
+    { id: "xylem",       family: "rd", name: "Xylem",       model: "gray-scott", palette: "coastal",  params: { feed: 0.039, kill: 0.058 }, timeScale: 0.04, brush: 0.04, seed: { type: "spiral", n: 13, r: 4 }, chrono: 2400 },
+    // The complex Ginzburg–Landau tile replaces the phase-field dendrite's Frost tile (owner 2026-10-09; the dendrite stays in
+    // the registry). The preset sits where spirals are stable and turn inward (b > c, 1 + bc > 0); the slider ends cross the
+    // Benjamin–Feir line into turbulence. Name and palette proposed, not ruled.
+    // owner 2026-10-10: Neon, dispersion 1.75, nonlinear dispersion −0.65, speed 1.5, Resolution 800 (the model's defaults carry b and c)
+    { id: "antispiral", family: "rd", name: "Antispiral",  model: "cgl",        params: {}, palette: "neon", timeScale: 1.5, brush: 0.03, quality: 800, seed: { type: "center", r: 14 }, firstSeed: "spec", thumbSeed: { type: "center", r: 16 }, thumbSteps: 1500, thumbScale: 2, chrono: 1200 },
     { id: "turbulence",  family: "rd", name: "Turbulence",  model: "gray-scott", palette: "accretion", params: { feed: 0.025, kill: 0.050 }, timeScale: 1.0, brush: 0.05, seed: { type: "discs", n: 7, r: 4 }, chrono: 1800 },
-    { id: "mitosis",     family: "rd", name: "Mitosis",     model: "gray-scott", palette: "spectrum",  params: { feed: 0.036, kill: 0.065 }, timeScale: 2.6, brush: 0.02, quality: 240, seed: { type: "spiral", n: 8, r: 3 }, chrono: 2400 },
+    // Mitosis (owner 2026-10-10): F 0.037, k 0.065, speed 1.750, Resolution 320 (the owner read "300"; 320 is the nearest rung);
+    // the first Seed press is the centre point plus a petri-dish streak toward one quadrant, later presses single random points
+    { id: "mitosis",     family: "rd", name: "Mitosis",     model: "gray-scott", palette: "spectrum",  params: { feed: 0.037, kill: 0.065 }, timeScale: 1.75, brush: 0.02, quality: 320, seed: { type: "streak", r: 2, legs: 7, len: 0.18 }, firstSeed: "spec", chrono: 2400 },
     // Phyllotaxis: `n` sets the head's spacing (144 spots fill the inscribed circle); `edge` keeps placing spots on the
     // golden angle past n until the spiral leaves the frame (owner ruling 2026-10-09)
     { id: "phyllotaxis", family: "rd", name: "Phyllotaxis", model: "gray-scott", palette: "orodruin", params: { feed: 0.030, kill: 0.062 }, timeScale: 1.25, brush: 0.03, seed: { type: "grow", n: 144, r: 1.6, every: 4, edge: true }, firstSeed: "spec", chrono: 1200 },
@@ -2007,16 +2204,26 @@
     { id: "vortex",      family: "rd", name: "Vortex",      model: "gray-scott", palette: "aurora", params: { feed: 0.008, kill: 0.039 }, timeScale: 1.25, brush: 0.03, dscale: 3.2, selfSustaining: false, seed: { type: "stir", points: 5, slashes: 4, frames: 60, r: 2 }, firstSeed: "every", thumbSeed: { type: "strokes", n: 3, r: 2 }, thumbStir: { every: 150, n: 1, r: 2 }, thumbSteps: 1500, thumbScale: 2, chrono: 900 },
 
     // —— cellular automata ——
-    { id: "ca-frost",     family: "ca", name: "Frost",       model: "snow",        params: {}, palette: "cherenkov", seed: { type: "center", r: 1 }, brush: 0.004, stepScale: 1, thumbSeed: { type: "spiral", n: 4, r: 1, spread: 0.8 }, thumbSteps: 900, thumbScale: 2, chrono: 3000 },
-    { id: "lenia",        family: "ca", name: "Lenia",       model: "lenia",       palette: "aurora", params: {}, timeScale: 0.25, seed: { type: "fill" }, firstSeed: "spec", brush: 0.10, stepScale: 0.3, thumbSeed: { type: "fill" }, thumbSteps: 300, chrono: 600 },
-    { id: "rotor",        family: "ca", name: "Rotor",       model: "rotor",       palette: "spectrum", params: {}, seed: { type: "fill" }, firstSeed: "spec", brush: 0.08, stepScale: 0.3, thumbSeed: { type: "fill" }, thumbSteps: 260, thumbScale: 2, chrono: 400 },
-    { id: "lichtenberg",  family: "ca", name: "Lichtenberg", model: "lichtenberg", palette: "orodruin", params: {}, timeScale: 0.25, seed: { type: "center", r: 2 }, firstSeed: "spec", brush: 0.004, thumbSteps: 500, thumbScale: 1.5, chrono: 1200 },
+    // Frost is Reiter's crystal (owner 2026-10-09: "we use Reiter's model and we make it polished"); the Gravner–Griffeath
+    // crystal stays in the registry as `snow` without a tile. The crystal's size follows the Resolution rung (the model is
+    // `sized`), the stroke lays single seeds along a string of pearls, and the lattice is the canvas's own pixels.
+    // brush 0.2 %: the brush here is the void's width around a pinpoint nucleus (see the field), so by default there is no void;
+    // Coastal (owner 2026-10-09); stepScale 1/3: two lattice steps per frame at the default speed, which is 1.0.2's on-screen
+    // tip speed (one step per frame on cells 2.3 px wide) on one-pixel cells
+    // quality "auto": on Frost, Automatic is one lattice cell per screen pixel (the approved look); 320 … 1600 are coarser to finer lattices
+    { id: "ca-frost",     family: "ca", name: "Frost",       model: "reiter",      params: {}, palette: "coastal", quality: "auto", seed: { type: "center", r: 0.6 }, brush: 0.002, stepScale: 1 / 3, thumbSeed: { type: "spiral", n: 4, r: 0.6, spread: 0.8 }, thumbSteps: 2400, thumbScale: 2, chrono: 3000 },
+    // Owner's defaults of 2026-10-10, read off the demo (each tile's own stepScale is unchanged, so the Speed reading keeps its meaning):
+    // Lenia Aurora μ 0.136 σ 0.011 speed 0.250 · Rotor Accretion 5 states, threshold 2.0, speed 0.275 · Lichtenberg Physarum η 2.4,
+    // rate 1.6, speed 0.175 · Wake Spectrum flow 0.130, viscosity 0.005, speed 1.500 (the model carries flow and viscosity)
+    { id: "lenia",        family: "ca", name: "Lenia",       model: "lenia",       params: { mu: 0.136, sigma: 0.011 }, palette: "aurora", timeScale: 0.25, seed: { type: "fill" }, firstSeed: "spec", brush: 0.08, stepScale: 0.1, thumbSeed: { type: "fill" }, thumbSteps: 300, chrono: 600 },
+    { id: "rotor",        family: "ca", name: "Rotor",       model: "rotor",       params: { states: 5, threshold: 2 }, palette: "accretion", timeScale: 0.275, seed: { type: "fill" }, firstSeed: "spec", brush: 0.08, stepScale: 0.3, thumbSeed: { type: "fill" }, thumbSteps: 260, thumbScale: 2, chrono: 400 },
+    { id: "lichtenberg",  family: "ca", name: "Lichtenberg", model: "lichtenberg", params: { eta: 2.4, rate: 1.6 }, palette: "physarum", timeScale: 0.175, quality: 480, seed: { type: "center", r: 2 }, firstSeed: "spec", brush: 0.004, thumbSteps: 500, thumbScale: 1.5, chrono: 1200 },   // Resolution 480 (owner 2026-10-10)
     // Sandpile: falling sand (owner 2026-10-09: "give the sandpile gravity"); the drop point keeps dropping until Reset
-    { id: "sandpile",     family: "ca", name: "Sandpile",    model: "sand",        palette: "accretion", params: {}, seed: { type: "pacemaker", n: 1, r: 1, every: 2 }, firstSeed: "spec", brush: 0.01, thumbSeed: { type: "center", r: 1 }, thumbStir: { every: 2, spec: { type: "center", r: 1 } }, thumbSteps: 900, thumbScale: 2, chrono: 1200 },
-    { id: "conus",        family: "ca", name: "Conus",       model: "conus",       palette: "physarum", params: {}, seed: { type: "center", r: 1 }, firstSeed: "spec", brush: 0.004, stepScale: 0.35, thumbSeed: { type: "center", r: 1 }, thumbSteps: 108, thumbScale: 2, chrono: 300 },
-    { id: "wildfire",     family: "ca", name: "Wildfire",    model: "wildfire",    palette: "neon", params: {}, seed: { type: "fill" }, firstSeed: "spec", brush: 0.03, stepScale: 0.4, thumbSeed: { type: "fill" }, thumbSteps: 400, thumbScale: 2, chrono: 900 },
-    { id: "grain",        family: "ca", name: "Grain",       model: "grain",       palette: "canopy", params: {}, seed: { type: "fill" }, firstSeed: "spec", brush: 0.08, stepScale: 0.5, thumbSeed: { type: "fill" }, thumbSteps: 400, thumbScale: 2, chrono: 1200 },
-    { id: "wake",         family: "ca", name: "Wake",        model: "wake",        palette: "coastal", params: {}, timeScale: 1.5, seed: { type: "center", r: 9 }, firstSeed: "spec", brush: 0.004, thumbSeed: { type: "center", r: 6 }, thumbSteps: 600, thumbScale: 2, chrono: 1800 }
+    { id: "sandpile",     family: "ca", name: "Sandpile",    model: "sand",        params: {}, seed: { type: "pacemaker", n: 1, r: 1, every: 2 }, firstSeed: "spec", brush: 0.01, thumbSeed: { type: "center", r: 1 }, thumbStir: { every: 2, spec: { type: "center", r: 1 } }, thumbSteps: 900, thumbScale: 2, chrono: 1200 },
+    { id: "conus",        family: "ca", name: "Conus",       model: "conus",       params: {}, seed: { type: "center", r: 1 }, firstSeed: "spec", brush: 0.004, stepScale: 0.35, thumbSeed: { type: "center", r: 1 }, thumbSteps: 108, thumbScale: 2, chrono: 300 },
+    { id: "wildfire",     family: "ca", name: "Wildfire",    model: "wildfire",    params: {}, seed: { type: "fill" }, firstSeed: "spec", brush: 0.03, stepScale: 0.4, thumbSeed: { type: "fill" }, thumbSteps: 400, thumbScale: 2, chrono: 900 },
+    { id: "grain",        family: "ca", name: "Grain",       model: "grain",       params: {}, seed: { type: "fill" }, firstSeed: "spec", brush: 0.08, stepScale: 0.5, thumbSeed: { type: "fill" }, thumbSteps: 400, thumbScale: 2, chrono: 1200 },
+    { id: "wake",         family: "ca", name: "Wake",        model: "wake",        params: {}, palette: "spectrum", timeScale: 1.5, seed: { type: "center", r: 9 }, firstSeed: "spec", brush: 0.004, thumbSeed: { type: "center", r: 6 }, thumbSteps: 600, thumbScale: 2, chrono: 1800 }
   ];
   function presetById(id) { for (var i = 0; i < PRESETS.length; i++) if (PRESETS[i].id === id) return PRESETS[i]; return null; }
 

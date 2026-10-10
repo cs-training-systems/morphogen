@@ -7,8 +7,6 @@
 
   function bind(scope, field) {
     var familyBtns = $$(scope, "family"), presets = $$(scope, "preset"), notes = $$(scope, "note");
-    var p1Range = $(scope, "feed-range"), p1Number = $(scope, "feed-number");
-    var p2Range = $(scope, "kill-range"), p2Number = $(scope, "kill-number");
     var scaleRange = $(scope, "scale-range"), scaleNumber = $(scope, "scale-number");
     var pauseBtn = $(scope, "pause"), resetBtn = $(scope, "reset"), seedBtn = $(scope, "seed");
     var colorsToggle = $(scope, "colors-toggle"), colorsMenu = $(scope, "colors-menu"), paletteRadios = $$(scope, "palette-option");
@@ -25,31 +23,56 @@
 
     function say(text) { if (status) status.textContent = text; }
     function labelFor(el) { return el && el.id ? scope.querySelector("label[for='" + el.id + "']") : null; }
-    var p1Label = labelFor(p1Range), p2Label = labelFor(p2Range), p1NumLabel = labelFor(p1Number), p2NumLabel = labelFor(p2Number);
+    // the parameter rows, p1 … p3 (`feed-*` and `kill-*` remain the names of p1 and p2 for pages written against 1.x):
+    // a model declares two or three parameters; a row the model does not use is hidden (owner 2026-10-09: a third slider)
+    var PR = [];
+    for (var pi = 0; pi < 3; pi++) {
+      var rg = $(scope, "p" + (pi + 1) + "-range") || (pi === 0 ? $(scope, "feed-range") : (pi === 1 ? $(scope, "kill-range") : null));
+      var nb = $(scope, "p" + (pi + 1) + "-number") || (pi === 0 ? $(scope, "feed-number") : (pi === 1 ? $(scope, "kill-number") : null));
+      PR.push({ range: rg, number: nb, label: labelFor(rg), numLabel: labelFor(nb), row: (rg && rg.closest) ? rg.closest(".rd__param") : null });
+    }
     function familyName(id) { for (var i = 0; i < FAMILIES.length; i++) if (FAMILIES[i].id === id) return FAMILIES[i].name; return id; }
     function paramsText() {
-      var m = field.model(), P = field.params(), a = m.params[0], b = m.params[1];
-      return a.label.toLowerCase() + " " + fmtStep(P[a.key], a.step) + ", " + b.label.toLowerCase() + " " + fmtStep(P[b.key], b.step) + ", speed " + fmt2(field.getParams().timeScale);
+      var m = field.model(), P = field.params(), parts = [];
+      m.params.forEach(function (d) { parts.push(d.label.toLowerCase() + " " + fmtStep(P[d.key], d.step)); });
+      return parts.join(", ") + ", speed " + fmt2(field.getParams().timeScale);
     }
-    // the two sliders take the model's own parameters: names, ranges, steps. For a reaction–diffusion preset the
-    // range is tailored to the preset: its default ± 40 %, so the default sits at the centre (owner, 2026-10-09)
+    // the sliders take the model's own parameters: names, ranges, steps. For a reaction–diffusion preset the range is
+    // tailored to the preset: its default ± 40 %, so the default sits at the centre (owner, 2026-10-09); a parameter
+    // declared `fixedRange` keeps the model's own range (its default is at that range's centre by construction)
     function setSliders(preset) {
       var m = field.model(), P = field.params();
       function range(el, d, lo, hi) { if (el) { el.min = String(lo); el.max = String(hi); el.step = String(d.step); } }
-      m.params.forEach(function (d, i) {
+      PR.forEach(function (pr, i) {
+        var d = m.params[i];
+        if (pr.row) pr.row.hidden = !d;
+        if (!d) return;
         var lo = d.min, hi = d.max, def = P[d.key];
-        if (preset && d.step < 1 && !d.fixedRange) { lo = Math.max(d.min, +(def * 0.6).toFixed(6)); hi = Math.min(d.max, +(def * 1.4).toFixed(6)); }
-        range(i ? p2Range : p1Range, d, lo, hi); range(i ? p2Number : p1Number, d, lo, hi);
+        pr.K = 0; pr.def = def; pr.step = d.step;
+        if (preset && preset.logRange && d.step < 1) {        // a logarithmic track, as Speed's: the preset dead centre, a factor logRange each way, real numbers in the box
+          pr.K = preset.logRange; lo = +(def / pr.K).toFixed(6); hi = +(def * pr.K).toFixed(6);
+          if (pr.range) { pr.range.min = "0"; pr.range.max = "1"; pr.range.step = "0.002"; }
+          range(pr.number, d, lo, hi);
+        } else {
+          // a linear track SYMMETRIC about the default (owner 2026-10-10: the default at the track's spatial centre, never the
+          // arithmetic accident of a clipped side): ± 40 % of the default, never below zero; a model's own limits bind only
+          // when it declares `fixedRange` (then it must have put its default at the centre itself); a zero default has no
+          // centre and keeps the model's range
+          if (preset && d.step < 1 && !d.fixedRange && def > 0) { var span = Math.max(1, Math.round(Math.min(0.4 * def, def) / d.step)) * d.step; lo = +(def - span).toFixed(6); hi = +(def + span).toFixed(6); }   // a whole number of steps each way, so the default sits on the input's own grid
+          range(pr.range, d, lo, hi); range(pr.number, d, lo, hi);
+        }
+        if (pr.label) pr.label.textContent = d.label + ":"; if (pr.numLabel) pr.numLabel.textContent = d.label + ", exact value";
       });
-      if (p1Label) p1Label.textContent = m.params[0].label + ":"; if (p2Label) p2Label.textContent = m.params[1].label + ":";
-      if (p1NumLabel) p1NumLabel.textContent = m.params[0].label + ", exact value"; if (p2NumLabel) p2NumLabel.textContent = m.params[1].label + ", exact value";
       if (scaleRange) { scaleRange.min = "0"; scaleRange.max = "1"; scaleRange.step = "0.005"; }
       if (scaleNumber) { scaleNumber.min = String(+(speedDef / SPEED_K).toFixed(3)); scaleNumber.max = String(+(speedDef * SPEED_K).toFixed(3)); scaleNumber.step = "0.005"; }
     }
     function syncInputs() {
-      var m = field.model(), P = field.params(), a = m.params[0], b = m.params[1], t = field.getParams().timeScale;
-      if (p1Range) p1Range.value = fmtStep(P[a.key], a.step); if (p1Number) p1Number.value = fmtStep(P[a.key], a.step);
-      if (p2Range) p2Range.value = fmtStep(P[b.key], b.step); if (p2Number) p2Number.value = fmtStep(P[b.key], b.step);
+      var m = field.model(), P = field.params(), t = field.getParams().timeScale;
+      PR.forEach(function (pr, i) {
+        var d = m.params[i]; if (!d) return;
+        if (pr.range) pr.range.value = pr.K ? clamp(0.5 + Math.log(P[d.key] / pr.def) / Math.log(pr.K) / 2, 0, 1).toFixed(3) : fmtStep(P[d.key], d.step);
+        if (pr.number) pr.number.value = fmtStep(P[d.key], d.step);
+      });
       if (scaleRange) scaleRange.value = sliderFromSpeed(t).toFixed(3); if (scaleNumber) scaleNumber.value = t.toFixed(3);
     }
     function currentName() { return current ? current.name : "custom"; }
@@ -65,7 +88,7 @@
       if (modeWord) modeWord.textContent = (preset ? familyName(preset.family).toUpperCase() + ": " + preset.name.toUpperCase() : "CUSTOM");
       updateState();
     }
-    function selectOption(sel, value) { if (!sel) return; for (var i = 0; i < sel.options.length; i++) if (parseFloat(sel.options[i].value) === value) { sel.selectedIndex = i; return; } }
+    function selectOption(sel, value) { if (!sel) return; for (var i = 0; i < sel.options.length; i++) if (sel.options[i].value === String(value) || parseFloat(sel.options[i].value) === value) { sel.selectedIndex = i; return; } }
     // A tile selects: the field clears to black, the preset's recipe loads (model, parameters, speed, brush,
     // colours), and nothing appears until the visitor paints or presses Seed. In reduced motion the chronogram is
     // computed for the new regime from the preset's own seeding.
@@ -120,15 +143,20 @@
 
     function onParam(which, el) {
       var v = parseFloat(el.value); if (isNaN(v)) return;
-      if (which === "p1") field.setParams(v); else if (which === "p2") field.setParams(undefined, v); else field.setTimeScale(el === scaleRange ? speedFromSlider(v) : v);
+      if (which === "scale") field.setTimeScale(el === scaleRange ? speedFromSlider(v) : v);
+      else {
+        var d = field.model().params[which], pr = PR[which]; if (!d) return;
+        if (pr.K && el === pr.range) { v = pr.def * Math.pow(pr.K, (v - 0.5) * 2); v = +fmtStep(v, d.step); }   // the logarithmic track → the real value, on the parameter's step
+        field.setParam(d.key, v);
+      }
       if (which !== "scale") markPreset(null); else updateState();
       syncInputs();
       say((which === "scale" ? currentName() + " pattern" : "Custom") + ": " + paramsText() + "." + (field.isAlive() ? "" : " The field is quiet; press Seed, paint on it, or choose a pattern."));
     }
-    if (p1Range) p1Range.addEventListener("input", function () { onParam("p1", p1Range); });
-    if (p1Number) p1Number.addEventListener("change", function () { onParam("p1", p1Number); });
-    if (p2Range) p2Range.addEventListener("input", function () { onParam("p2", p2Range); });
-    if (p2Number) p2Number.addEventListener("change", function () { onParam("p2", p2Number); });
+    PR.forEach(function (pr, i) {
+      if (pr.range) pr.range.addEventListener("input", function () { onParam(i, pr.range); });
+      if (pr.number) pr.number.addEventListener("change", function () { onParam(i, pr.number); });
+    });
     if (scaleRange) scaleRange.addEventListener("input", function () { onParam("scale", scaleRange); });
     if (scaleNumber) scaleNumber.addEventListener("change", function () { onParam("scale", scaleNumber); });
 

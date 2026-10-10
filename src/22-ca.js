@@ -76,13 +76,13 @@
   // consuming blocks, then "demons" (cycles of adjacent cells holding every state) emit spiral waves, the
   // discrete excitable medium. Empty cells (state −1) are inert and black until painted.
   defineModel({
-    id: "rotor", family: "ca", name: "Cyclic automaton", lattice: "square", channels: 2, grid: "pixels", keeps: true, glow: { blur: 2.2, decay: 0.94 },
+    id: "rotor", family: "ca", name: "Cyclic automaton", lattice: "square", channels: 2, grid: "ladder", keeps: true, glow: { blur: 2.2, decay: 0.94 },
     source: "R. Fisch, J. Gravner and D. Griffeath, Statistics and Computing 1 (1991) 23–39",
     params: [
       // the owner's centres and ranges (2026-10-09): 5 states at threshold 3; a half-step threshold means "at least the
       // next whole number of neighbours" (measured on the eight-neighbour lattice: threshold 1 fixates or locks the whole field)
       { key: "states", label: "States", min: 3, max: 7, step: 1, def: 5 },
-      { key: "threshold", label: "Threshold", min: 1.5, max: 3.5, step: 0.5, def: 3, fixedRange: true }
+      { key: "threshold", label: "Threshold", min: 1.5, max: 2.5, step: 0.5, def: 2, fixedRange: true }   // owner 2026-10-10: 2.0 at the centre
     ],
     init: function () { return [[-1, 0, 0, 1]]; },
     gpu: {
@@ -121,16 +121,22 @@
   // channels. Each step relaxes φ by eight Jacobi sweeps, then grows: a candidate joins when a per-cell random
   // number falls below rate · φ^η. Every attached cell remembers the step it joined (its age, for the colour).
   defineModel({
-    id: "lichtenberg", family: "ca", name: "Dielectric breakdown", lattice: "square", channels: 4, grid: "pixels", keeps: true, glow: { blur: 1.6, decay: 0.985 },
+    id: "lichtenberg", family: "ca", name: "Dielectric breakdown", lattice: "square", channels: 4, grid: "ladder", keeps: true, glow: { blur: 1.6, decay: 0.985 },
     source: "L. Niemeyer, L. Pietronero and H. J. Wiesmann, Phys. Rev. Lett. 52 (1984) 1033–1036",
     params: [
       { key: "eta", label: "Exponent", min: 1.0, max: 6.0, step: 0.1, def: 2.1 },     // owner's centre points, 2026-10-09
       { key: "rate", label: "Rate", min: 0.1, max: 4.0, step: 0.1, def: 1.3 }
     ],
+    // sweeps: the Jacobi relaxations of the potential per step on the graphics path (3, the demo's look). OPEN FINDING
+    // (2026-10-10, measured at 480 × 269 over 840 steps from a centred seed): the two paths do not agree at equal sweeps —
+    // graphics 1/3/8 sweeps grew 11,427 / 2,170 / 4,414 cells, the processor path 129,594 / 16,719 / 497 — and the cause was
+    // not found by reading. `sweepsCpu` 4 is the processor count that reproduces the graphics path's growth (1,892 cells), a
+    // calibrated equivalence used by the recorder and the fallback, not an explanation. Next session: find the divergence.
+    extra: { sweeps: 3, sweepsCpu: 4 },
     init: function () { return [[1, 0, 0, 1]]; },
     gpu: {
       passes: [
-        { repeat: 3, fs:
+        { repeat: function (P) { return P.sweeps; }, fs:
           "void main(){ivec2 p=ivec2(gl_FragCoord.xy);vec4 c=S(p);if(c.g>0.0){o0=vec4(0.0,c.g,c.b,1.0);return;}" +
           "if(p.x==0||p.y==0||p.x==uSize.x-1||p.y==uSize.y-1){o0=vec4(1.0,0.0,c.b,1.0);return;}" +
           "float s=S(p+ivec2(1,0)).r+S(p+ivec2(-1,0)).r+S(p+ivec2(0,1)).r+S(p+ivec2(0,-1)).r;o0=vec4(s*0.25,0.0,c.b,1.0);}" },
@@ -146,9 +152,9 @@
     },
     cpu: {
       step: function (st, n, P, X) {
-        var W = st.W, H = st.H, F = st.p[0][0], G = st.p[0][1], F2 = st.aux[0], rnd = st.rnd, eta = P.eta, rate = P.rate;
+        var W = st.W, H = st.H, F = st.p[0][0], G = st.p[0][1], F2 = st.aux[0], G0 = st.aux[1], rnd = st.rnd, eta = P.eta, rate = P.rate, sweeps = P.sweepsCpu || P.sweeps || 3;
         for (var s = 0; s < n; s++) {
-          for (var it = 0; it < 8; it++) {
+          for (var it = 0; it < sweeps; it++) {
             for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
               var i = y * W + x;
               if (G[i] > 0) { F2[i] = 0; continue; }
@@ -157,9 +163,13 @@
             }
             F.set(F2);
           }
+          // the growth sweep reads a SNAPSHOT of the discharge (G0), as the graphics path reads the previous state: a cell
+          // that breaks down in this sweep must not make its right and lower neighbours eligible in the same sweep, or the
+          // discharge cascades into a solid block toward the far corner (the defect ADR 0292 §4 recorded; fixed here, 2026-10-10)
+          G0.set(G);
           for (var y2 = 1; y2 < H - 1; y2++) for (var x2 = 1; x2 < W - 1; x2++) {
-            var j = y2 * W + x2; if (G[j] > 0) continue;
-            if ((G[j + 1] > 0 || G[j - 1] > 0 || G[j + W] > 0 || G[j - W] > 0) && rnd() < rate * Math.pow(Math.max(F[j], 0), eta)) { G[j] = X.step; F[j] = 0; }
+            var j = y2 * W + x2; if (G0[j] > 0) continue;
+            if ((G0[j + 1] > 0 || G0[j - 1] > 0 || G0[j + W] > 0 || G0[j - W] > 0) && rnd() < rate * Math.pow(Math.max(F[j], 0), eta)) { G[j] = X.step; F[j] = 0; }
           }
         }
       },
@@ -177,7 +187,7 @@
   // point build the circular fractal pattern of the identity-like configurations; the four levels 0–3 take
   // the four colours of the palette.
   defineModel({
-    id: "sandpile", family: "ca", name: "Abelian sandpile", lattice: "square", channels: 2, grid: "pixels", stepsPerUnit: 8, keeps: true, glow: { blur: 1.3, decay: 0.9 },
+    id: "sandpile", family: "ca", name: "Abelian sandpile", lattice: "square", channels: 2, grid: "ladder", stepsPerUnit: 8, keeps: true, glow: { blur: 1.3, decay: 0.9 },
     source: "P. Bak, C. Tang and K. Wiesenfeld, Phys. Rev. Lett. 59 (1987) 381–384",
     params: [
       { key: "grains", label: "Grains", min: 1, max: 64, step: 1, def: 16 },
@@ -230,7 +240,7 @@
     "if(ntl>0.5&&nbl>0.5&&nbr<0.5&&ntr<0.5&&r<slip){ntl=0.0;nbr=1.0;}else if(ntr>0.5&&nbr>0.5&&nbl<0.5&&ntl<0.5&&r<slip){ntr=0.0;nbl=1.0;}" +
     "float o=me.x==0?(me.y==0?ntl:nbl):(me.y==0?ntr:nbr);float was=S(p).r;moved=(o>0.5&&was<0.5)?1.0:0.0;return o;}\n";
   defineModel({
-    id: "sand", family: "ca", name: "Falling sand", lattice: "square", channels: 2, grid: "pixels", stepsPerUnit: 2, keeps: true, glow: { blur: 1.2, decay: 0.9 },
+    id: "sand", family: "ca", name: "Falling sand", lattice: "square", channels: 2, grid: "ladder", stepsPerUnit: 2, keeps: true, glow: { blur: 1.2, decay: 0.9 },
     source: "T. Toffoli and N. Margolus, Cellular Automata Machines, MIT Press (1987), the sand rule",
     params: [
       { key: "grains", label: "Grains", min: 1, max: 12, step: 0.5, def: 4 },
@@ -274,7 +284,7 @@
   // bottom, scrolling up — the pigmentation of Conus textile's shell, laid down row by row at the mantle edge.
   // The brush and Seed act on the live row (the bottom); Density sprinkles random cells into the stroke.
   defineModel({
-    id: "conus", family: "ca", name: "Elementary automaton", lattice: "square", channels: 2, grid: "pixels", keeps: true, seedAll: true, glow: { blur: 1.0, decay: 0 },   // its history is its own trail: blur only
+    id: "conus", family: "ca", name: "Elementary automaton", lattice: "square", channels: 2, grid: "ladder", keeps: true, seedAll: true, glow: { blur: 1.0, decay: 0 },   // its history is its own trail: blur only
     source: "S. Wolfram, Rev. Mod. Phys. 55 (1983) 601–644",
     params: [
       { key: "rule", label: "Rule", min: 0, max: 255, step: 1, def: 30 },
@@ -315,7 +325,7 @@
   // as contagion it is the SIR epidemic with regrowth. The brush ignites what it touches and plants where it
   // finds nothing; the first Seed plants the whole field. Burnt ground glows in the trail colour, fading.
   defineModel({
-    id: "wildfire", family: "ca", name: "Forest fire", lattice: "square", channels: 2, grid: "pixels", keeps: true, glow: { blur: 1.6, decay: 0.96 },
+    id: "wildfire", family: "ca", name: "Forest fire", lattice: "square", channels: 2, grid: "ladder", keeps: true, glow: { blur: 1.6, decay: 0.96 },
     source: "B. Drossel and F. Schwabl, Phys. Rev. Lett. 69 (1992) 1629–1632",
     params: [
       { key: "growth", label: "Growth", min: 0.0005, max: 0.02, step: 0.0005, def: 0.005 },
@@ -367,7 +377,7 @@
       "float dE=e1-e0;bool acc=dE<=0.0||hash(p+ivec2(7,3),uQ.w)<exp(-dE/T);o0=vec4(acc?ns:s,(acc&&abs(ns-s)>0.5)?1.0:0.0,0.0,1.0);}";
   }
   defineModel({
-    id: "grain", family: "ca", name: "Potts grain growth", lattice: "square", channels: 2, grid: "pixels", keeps: true, glow: { blur: 1.6, decay: 0.85 },
+    id: "grain", family: "ca", name: "Potts grain growth", lattice: "square", channels: 2, grid: "ladder", keeps: true, glow: { blur: 1.6, decay: 0.85 },
     source: "M. P. Anderson, D. J. Srolovitz, G. S. Grest and P. S. Sahni, Acta Metall. 32 (1984) 783–791",
     params: [
       { key: "states", label: "Orientations", min: 2, max: 32, step: 1, def: 12 },

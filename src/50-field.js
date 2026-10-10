@@ -14,6 +14,7 @@
     seedValue: 0.5,
     brush: 0.03,                 // the pointer's mark: its diameter as a share of the field's height
     seedSpeedGain: 0.25,         // extra radius per cell of pointer travel, relative to the brush
+    pearlMs: 1000,               // crystal fields: the time between two nuclei dropped by a stroke
     chronoSteps: 2400,           // simulation steps the reduced-motion chronogram spans, seed → emergence
     budgetMs: 8, ceilingMs: 12,  // processor path: compute time per frame
     pixelCap: 2048,              // the most cells across a pixel-lattice model takes on the graphics processor
@@ -35,7 +36,7 @@
     var model = null, P = null, gain = 1, leftAt = null, stepAcc = 0;
     var grow = null, growN = 0, growTick = 0, growCenter = null, firstMark = null, everyMark = false, marked = false, stir = null;
     var lut = buildLut((PALETTES[o.palette] || PALETTES.canopy).colors);
-    var paused = false, pointerIn = false, alive = false, rafId = 0, last = null, pearlAt = null, pending = [];
+    var paused = false, pointerIn = false, alive = false, rafId = 0, last = null, pearlAt = null, pearlT = 0, pending = [], pendingErase = [];
     var listeners = [];
     var frames = 0, fpsAt = 0, fps = 0, msAvg = 0, msSamples = 0, msHold = 0, lastTs = 0, dtAvg = 16.7, slowRing = new Uint8Array(30), slowCount = 0, sinceMax = 0;
     var level = 1, auto = true, capLevel = LADDER.length - 1, qualityAuto = true;
@@ -48,9 +49,13 @@
     function topRung() { var m = model.maxRung !== undefined ? model.maxRung : LADDER.length - 1; return Math.min(capLevel, m); }
     function dims(n) { var w = LADDER[n]; return [w, Math.max(16, Math.round(w / aspect))]; }
     // the grid for the current model: the ladder rung, or the canvas's device pixels for a pixel-lattice model
+    // a hexagonal lattice on the ladder is shown on the canvas's own pixels (the backend interpolates); on Automatic its
+    // lattice IS the canvas's pixels, one cell per pixel, and the explicit rungs are coarser lattices: bigger features
+    function hexLadder() { return model.lattice === "hex" && model.grid === "ladder" && !fixed; }
+    function deviceDims() { var w = devWidth() || 400, cap = be.kind === "gpu" ? o.pixelCap : o.cpuPixelCap; w = clamp(w, 320, cap); return [w, Math.max(16, Math.round(w / aspect))]; }
     function gridDims() {
       if (fixed) return fixed;
-      if (model.grid === "pixels") { var w = devWidth() || 400, cap = be.kind === "gpu" ? o.pixelCap : o.cpuPixelCap; w = clamp(w, 320, cap); return [w, Math.max(16, Math.round(w / aspect))]; }
+      if (model.grid === "pixels" || (hexLadder() && qualityAuto)) return deviceDims();
       return dims(level);
     }
     function displayCap() {
@@ -66,7 +71,8 @@
     }
     function pushContext() { be.setContext(model.fade ? o.dscale : (P.noise !== undefined ? P.noise : o.dscale), radius()); }   // uQ.x carries the diffusion scale, or a model's noise amplitude
     function regrid(keep) {
-      var d = gridDims(); be.resize(d[0], d[1], keep); pushContext();
+      var d = gridDims(), cv = hexLadder() ? deviceDims() : null;
+      be.resize(d[0], d[1], keep, cv && cv[0], cv && cv[1]); pushContext();
       msAvg = 0; msSamples = 0; msHold = 60; slowRing.fill(0); slowCount = 0;
     }
     function setLevel(n, keep) {
@@ -81,7 +87,7 @@
     function onResize() {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(function () {
-        var a = measureAspect(), pix = model.grid === "pixels" && !fixed;
+        var a = measureAspect(), pix = (model.grid === "pixels" || hexLadder()) && !fixed;
         if (!pix && Math.abs(a / aspect - 1) < 0.02) return;
         aspect = a; regrid(!pix);
         if (o.reducedMotion) chronogram(); else be.render(lut);
@@ -92,7 +98,7 @@
 
     function reset() {
       if (model.randomize) { model.randomize(P, Math.random); be.setParams(P); }   // a model may draw fresh randomness for every clear (a crystal's orientation)
-      be.reset(); alive = false; leftAt = null; gain = 1; grow = null; growN = 0; stir = null; marked = false; pending.length = 0;
+      be.reset(); alive = false; leftAt = null; gain = 1; grow = null; growN = 0; stir = null; marked = false; pending.length = 0; pendingErase.length = 0;
     }
     // a "stir" seeding: `points` single marks and `slashes` curved strokes of varying length, each at a random place
     // and a random moment within `frames` frames, different every time (the Vortex opening, owner 2026-10-09)
@@ -110,9 +116,13 @@
       return { tick: 0, items: items };
     }
     function scaleR(r) { return r * be.width() / 320; }
+    var NUCLEUS_R = 0.6;         // a crystal's seed: the one lattice cell under the point (a hexagonal cell's centre is never farther than 0.58 away)
     function brushR() { return Math.max(1, o.brush * be.height() / 2); }   // the mark's radius in pixels
     function markSeeded() { alive = true; leftAt = null; gain = 1; marked = true; }
-    function flushSeeds() { if (pending.length) { be.seed(pending, o.seedValue); pending.length = 0; } }
+    function flushSeeds() {
+      if (pendingErase.length) { be.seed(pendingErase, -1); pendingErase.length = 0; }   // the eraser lane first, so a pearl dropped inside it survives
+      if (pending.length) { be.seed(pending, o.seedValue); pending.length = 0; }
+    }
     function growStep() {
       if (stir) {
         stir.tick++; var left = 0;
@@ -161,7 +171,7 @@
       var slot = msSamples % 30, wasSlow = slowRing[slot], isSlow = (ms > 16 || dtAvg > 24) ? 1 : 0;
       slowRing[slot] = isSlow; slowCount += isSlow - wasSlow;
       if (auto && msHold > 0) msHold--;
-      else if (auto && qualityAuto && msSamples >= 30 && model.grid === "ladder" && !fixed) {   // the ladder adapts only on Automatic; a chosen rung is the grid
+      else if (auto && qualityAuto && msSamples >= 30 && model.grid === "ladder" && !fixed && !hexLadder()) {   // the ladder adapts only on Automatic; a chosen rung is the grid; a hexagonal lattice on Automatic is the screen's pixels
         var tooSlow = msAvg > o.ceilingMs || slowCount >= 2 || dtAvg > 24, top = Math.min(topRung(), displayCap());
         if ((tooSlow || level > top) && level > 0) setLevel(level - 1, true);
         else if (!tooSlow && msAvg < o.budgetMs && dtAvg < 19 && level < top) setLevel(level + 1, true);
@@ -213,10 +223,15 @@
     function paintAt(e) {
       var p = gridPoint(e);
       if ((!marked || everyMark) && firstMark && !last) { api.seedSpec(firstMark, undefined, p); last = p; return; }   // the first mark (or every click, when the preset says so) starts the pattern's own seeding there
-      if (model.sized) {                                   // a string of pearls: single seeds spaced along the stroke by a share of the crystal radius
-        var R = radius() || be.height() / 3, gap = Math.max(2, R * (P.pearl !== undefined ? P.pearl : 0.5)), rs = brushR();
-        if (!pearlAt) { pending.push({ x: p.x, y: p.y, r: rs }); pearlAt = p; }
-        else { var dist = Math.hypot(p.x - pearlAt.x, p.y - pearlAt.y); if (dist >= gap) { var n = Math.floor(dist / gap), ux = (p.x - pearlAt.x) / dist, uy = (p.y - pearlAt.y) / dist; for (var i = 1; i <= n; i++) pending.push({ x: pearlAt.x + ux * gap * i, y: pearlAt.y + uy * gap * i, r: rs }); pearlAt = { x: pearlAt.x + ux * gap * n, y: pearlAt.y + uy * gap * n }; } }
+      if (model.crystal) {
+        // the brush on a crystal field (owner 2026-10-09): a VOID — the brush wipes ice back to vapour along the stroke — with a
+        // single PINPOINT NUCLEUS at its centre, one cell, dropped when the stroke begins and then once every `pearlMs` while it
+        // continues, whatever the brush size: "the nucleus of a hydrogen atom". Never a string, never a disc of ice. The crystals
+        // are permanent and grow together where they meet.
+        var rs = brushR(), tNow = now();
+        if (last) { var dd = Math.hypot(p.x - last.x, p.y - last.y), m = Math.max(1, Math.ceil(dd / Math.max(1, rs * 0.5))); for (var j2 = 1; j2 <= m; j2++) pendingErase.push({ x: last.x + (p.x - last.x) * j2 / m, y: last.y + (p.y - last.y) * j2 / m, r: rs }); }
+        else pendingErase.push({ x: p.x, y: p.y, r: rs });
+        if (!pearlAt || tNow - pearlT >= o.pearlMs) { pending.push({ x: p.x, y: p.y, r: NUCLEUS_R }); pearlAt = p; pearlT = tNow; }
         markSeeded(); last = p; wake(); return;
       }
       var speed = last ? Math.hypot(p.x - last.x, p.y - last.y) : 0;
@@ -284,7 +299,8 @@
       setQuality: function (q) {
         qualityAuto = q === "auto";
         capLevel = qualityAuto ? LADDER.length - 1 : clamp(rungOf(q), 0, LADDER.length - 1);
-        if (model.grid === "ladder" && !fixed) { if (!qualityAuto) setLevel(Math.min(capLevel, topRung()), true); else if (level > topRung()) setLevel(topRung(), true); }
+        if (hexLadder()) { if (!qualityAuto) level = Math.min(capLevel, topRung()); regrid(true); if (o.reducedMotion) chronogram(); else be.render(lut); }   // Automatic ↔ a rung always changes a hexagonal lattice's grid
+        else if (model.grid === "ladder" && !fixed) { if (!qualityAuto) setLevel(Math.min(capLevel, topRung()), true); else if (level > topRung()) setLevel(topRung(), true); }
         pushContext(); reevaluate(); emit("quality"); return api;
       },
       quality: function () { return { auto: qualityAuto, cap: capLevel, level: level, width: be.width(), height: be.height(), lattice: [be.latticeWidth(), be.latticeHeight()], grid: model.grid, radius: radius(), ms: msAvg, fps: fps, steps: o.baseSteps * o.timeScale * o.stepScale, backend: be.kind }; },
@@ -295,7 +311,7 @@
       seed: function (x, y, r) {
         if (o.reducedMotion) { chronogram(); return api; }
         if ((!marked || everyMark) && firstMark) return api.seedSpec(firstMark, undefined, { x: x, y: y });
-        pending.push({ x: x, y: y, r: r || brushR() }); markSeeded(); wake(); return api;
+        pending.push({ x: x, y: y, r: r || (model.crystal ? NUCLEUS_R : brushR()) }); markSeeded(); wake(); return api;
       },
       setBrush: function (share) { if (typeof share === "number" && !isNaN(share)) o.brush = clamp(share, 0.002, 0.5); emit("brush"); return api; },
       brush: function () { return o.brush; },

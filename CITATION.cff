@@ -2,8 +2,8 @@ cff-version: 1.2.0
 message: "If you use Morphogen in work you publish, please cite it as below."
 title: "Morphogen: an engine of emergent pattern formation for the web"
 type: software
-version: 2.0.0-beta.2
-date-released: 2026-10-09
+version: 2.0.0-beta.3
+date-released: 2026-10-10
 license: MIT
 repository-code: "https://github.com/cs-training-systems/morphogen"
 url: "https://cs-training-systems.github.io/morphogen/"
@@ -19,6 +19,8 @@ keywords:
   - snow crystal
   - phase field
   - Turing pattern
+  - Ginzburg-Landau
+  - spiral waves
   - morphogenesis
   - canvas
   - simulation
@@ -76,6 +78,32 @@ references:
     end: 1119
     year: 2005
     doi: 10.1016/s0960-0779(04)00374-1
+  - type: article
+    title: "The world of the complex Ginzburg–Landau equation"
+    authors:
+      - family-names: Aranson
+        given-names: Igor S.
+      - family-names: Kramer
+        given-names: Lorenz
+    journal: "Reviews of Modern Physics"
+    volume: 74
+    start: 99
+    end: 143
+    year: 2002
+    doi: 10.1103/RevModPhys.74.99
+  - type: article
+    title: "Antispiral waves as sources in oscillatory reaction–diffusion media"
+    authors:
+      - family-names: Nicola
+        given-names: Ernesto M.
+      - family-names: Brusch
+        given-names: Lutz
+      - family-names: Bär
+        given-names: Markus
+    journal: "The Journal of Physical Chemistry B"
+    volume: 108
+    year: 2004
+    doi: 10.1021/jp049213r
   - type: article
     title: "Lenia — Biology of Artificial Life"
     authors:

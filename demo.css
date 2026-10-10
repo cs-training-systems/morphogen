@@ -31,6 +31,18 @@ h1 { margin: 0 0 4px; font-size: 28px; font-weight: 600; letter-spacing: .02em; 
 .links { font-family: var(--font-mono); font-size: 13px; }
 .links a { color: var(--text-1); }
 .kicker { font-family: var(--font-mono); font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: var(--text-3); margin: 0 0 13px; }
+/* ---- the loop banner: two rows of seven 16:9 tiles on the 17px gutter, each a 1px frame; the control bar beneath ---- */
+.loops { margin: 21px 0 8px; }
+.loops__grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 17px; }
+.loops__tile { margin: 0; min-width: 0; aspect-ratio: 16 / 9; overflow: hidden; background: #000; border: 1px solid var(--struct-card); }
+.loops__tile video { display: block; width: 100%; height: 100%; object-fit: cover; }
+.loops__bar { display: flex; flex-wrap: wrap; align-items: center; gap: 13px 17px; margin-top: 13px; }
+.loops__btn { min-width: 24px; min-height: 38px; padding: 0 13px; font-family: var(--font-mono); font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--text-1); background: var(--surface); border: 1px solid var(--struct-med); cursor: pointer; }
+.loops__btn:hover, .loops__btn:focus-visible, .loops__btn[aria-pressed="true"] { border-color: var(--green); background: var(--green-10); color: var(--ink); }
+.loops__btn[aria-pressed="true"] { box-shadow: inset 0 0 0 1px var(--green); }
+.loops__note { margin: 0; flex: 1 1 40ch; font-family: var(--font-mono); font-size: 12px; letter-spacing: .03em; line-height: 1.5; color: var(--text-3); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (max-width: 768px) { .loops__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .instructions { margin: 0 0 34px; font-size: 15px; line-height: 1.55; color: var(--text-2); max-width: 90ch; }
 .demo-only { margin-top: 34px; padding: 17px; border: 1px dashed var(--struct-med); background: var(--surface); }
 .demo-only h3 { margin: 0 0 13px; font-family: var(--font-mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); }

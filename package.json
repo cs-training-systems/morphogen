@@ -1,6 +1,6 @@
 {
   "name": "morphogen",
-  "version": "2.0.0-beta.2",
+  "version": "2.0.0-beta.3",
   "description": "Morphogen: an engine of emergent pattern formation for the web — reaction–diffusion and cellular automata in one classic script, no dependencies, on the graphics processor.",
   "main": "morphogen.js",
   "style": "morphogen.css",

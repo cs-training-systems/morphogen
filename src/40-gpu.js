@@ -102,18 +102,25 @@
         "vec2 q=uHex>0.5?hexQ(p):vec2(p)+0.5;bool hit=false;vec2 og=vec2(0.0);float rr=0.0;" +
         "for(int i=0;i<32;i++){if(i>=uN)break;vec2 d=q-uD[i].xy;if(dot(d,d)<=uD[i].z*uD[i].z){hit=true;og=uD[i].xy;rr=uD[i].z;}}" +
         "if(uAll>0.5&&uN>0){og=uD[0].xy;rr=uD[0].z;}if(hit||uAll>0.5){" + g.seed + "}o0=c;" + (NT > 1 ? "o1=c1;" : "") + (NT > 2 ? "o2=c2;" : "") + "}");
-      set.show = program(GLSL_HEAD + "uniform sampler2D uL;uniform float uVmax,uHex;uniform vec2 uOut;out vec4 o;\n" + g.display + "\n" +
-        "void main(){ivec2 g=uSize;ivec2 p;if(uHex>0.5){vec2 pix=vec2(gl_FragCoord.x,uOut.y-gl_FragCoord.y);float yc=pix.y/0.8660254;int r0=int(floor(yc));float best=1e9;p=ivec2(0);" +
-        "for(int dr=-1;dr<=1;dr++){int r=r0+dr;if(r<0||r>=g.y)continue;float off=((r&1)==1)?0.5:0.0;int cc=int(floor(pix.x-off));if(cc<0||cc>=g.x)continue;" +
-        "vec2 d=vec2(float(cc)+0.5+off-pix.x,(float(r)+0.5)*0.8660254-pix.y);float dd=dot(d,d);if(dd<best){best=dd;p=ivec2(cc,r);}}}" +
-        "else{p=ivec2(int(gl_FragCoord.x),g.y-1-int(gl_FragCoord.y));}" +
-        "float v=display(texelFetch(uS0,p,0),p);o=vec4(texture(uL,vec2(clamp(v/uVmax,0.0,1.0),0.5)).rgb,1.0);}");
-      // the display scalar into a float texture, for reading back (thumbnails): the same sampling as the show pass
-      set.scalar = program(GLSL_HEAD + "uniform float uHex;uniform vec2 uOut;out vec4 o;\n" + g.display + "\n" +
-        "void main(){ivec2 g=uSize;ivec2 p;if(uHex>0.5){vec2 pix=vec2(gl_FragCoord.x,uOut.y-gl_FragCoord.y);float yc=pix.y/0.8660254;int r0=int(floor(yc));float best=1e9;p=ivec2(0);" +
-        "for(int dr=-1;dr<=1;dr++){int r=r0+dr;if(r<0||r>=g.y)continue;float off=((r&1)==1)?0.5:0.0;int cc=int(floor(pix.x-off));if(cc<0||cc>=g.x)continue;" +
-        "vec2 d=vec2(float(cc)+0.5+off-pix.x,(float(r)+0.5)*0.8660254-pix.y);float dd=dot(d,d);if(dd<best){best=dd;p=ivec2(cc,r);}}}" +
-        "else{p=ivec2(int(gl_FragCoord.x),g.y-1-int(gl_FragCoord.y));}o=vec4(display(texelFetch(uS0,p,0),p),0.0,0.0,1.0);}");
+      // the display scalar at a canvas pixel. Square lattice: the cell under the pixel (the canvas is the lattice). Hexagonal
+      // lattice: the canvas may be finer than the lattice (its own device pixels over a ladder rung), and the pixel takes the
+      // barycentric blend of its three nearest cell centres, the lattice triangle that holds it, so no cell is ever seen.
+      var SAMPLE = g.display + "\n" +
+        "float sampleAt(){ivec2 g=uSize;if(uHex>0.5){float sc=float(g.x)/uOut.x;vec2 pix=vec2(gl_FragCoord.x,uOut.y-gl_FragCoord.y)*sc;int r0=int(floor(pix.y/0.8660254));int c0=int(floor(pix.x));" +
+        "float d0=1e9,d1=1e9,d2=1e9;ivec2 b0=ivec2(0),b1=ivec2(0),b2=ivec2(0);vec2 q0=vec2(0.0),q1=vec2(0.0),q2=vec2(0.0);" +
+        "for(int dr=-1;dr<=1;dr++){int r=r0+dr;if(r<0||r>=g.y)continue;float off=((r&1)==1)?0.5:0.0;float cy=(float(r)+0.5)*0.8660254;" +
+        "for(int dc=-1;dc<=1;dc++){int c=c0+dc;if(c<0||c>=g.x)continue;vec2 qc=vec2(float(c)+0.5+off,cy);vec2 dv=qc-pix;float dd=dot(dv,dv);" +
+        "if(dd<d0){d2=d1;b2=b1;q2=q1;d1=d0;b1=b0;q1=q0;d0=dd;b0=ivec2(c,r);q0=qc;}else if(dd<d1){d2=d1;b2=b1;q2=q1;d1=dd;b1=ivec2(c,r);q1=qc;}else if(dd<d2){d2=dd;b2=ivec2(c,r);q2=qc;}}}" +
+        "if(d0>1e8)return 0.0;if(d2>1e8)return display(texelFetch(uS0,b0,0),b0);" +
+        "vec2 e1=q1-q0,e2=q2-q0,ep=pix-q0;float det=e1.x*e2.y-e1.y*e2.x;float w1=0.0,w2=0.0;if(abs(det)>1e-6){w1=(ep.x*e2.y-ep.y*e2.x)/det;w2=(e1.x*ep.y-e1.y*ep.x)/det;}" +
+        "w1=clamp(w1,0.0,1.0);w2=clamp(w2,0.0,1.0);float w0=clamp(1.0-w1-w2,0.0,1.0);float ws=w0+w1+w2;" +
+        "return (w0*display(texelFetch(uS0,b0,0),b0)+w1*display(texelFetch(uS0,b1,0),b1)+w2*display(texelFetch(uS0,b2,0),b2))/ws;}" +
+        "ivec2 p=ivec2(int(gl_FragCoord.x),g.y-1-int(gl_FragCoord.y));return display(texelFetch(uS0,p,0),p);}\n";
+      set.show = program(GLSL_HEAD + "uniform sampler2D uL;uniform float uVmax,uHex;uniform vec2 uOut;out vec4 o;\n" + SAMPLE +
+        "void main(){float v=sampleAt();o=vec4(texture(uL,vec2(clamp(v/uVmax,0.0,1.0),0.5)).rgb,1.0);}");
+      // the display scalar into a float texture, for the glow stage and for reading back (thumbnails): the same sampling as the show pass
+      set.scalar = program(GLSL_HEAD + "uniform float uHex;uniform vec2 uOut;out vec4 o;\n" + SAMPLE +
+        "void main(){o=vec4(sampleAt(),0.0,0.0,1.0);}");
       set.count = program(GLSL_HEAD + g.alive + "\nout vec4 o;void main(){ivec2 b=ivec2(gl_FragCoord.xy)*16;float n=0.0;" +
         "for(int y=0;y<16;y++)for(int x=0;x<16;x++){ivec2 p=b+ivec2(x,y);if(p.x<uSize.x&&p.y<uSize.y&&alive(texelFetch(uS0,p,0),p))n+=1.0;}o=vec4(n,0.0,0.0,1.0);}");
       progs[m.id] = set; return set;
@@ -129,9 +136,11 @@
       shared[NT] = s; return s;
     }
 
-    function alloc(w, h, keep) {
+    // w × h: the lattice in lattice pixel units; cw × ch (optional): the canvas, when it is finer than the lattice (a hexagonal
+    // lattice on a ladder rung is shown on the canvas's own device pixels and interpolated there)
+    function alloc(w, h, keep, cw, ch) {
       var old = keep && bufs[cur] ? { b: bufs[cur], w: W, h: H } : null;
-      CW = w; CH = h; canvas.width = w; canvas.height = h;
+      CW = cw || w; CH = ch || h; canvas.width = CW; canvas.height = CH;
       W = w; H = hex ? hexRows(h) : h;
       var fresh = [makeBuf(W, H), makeBuf(W, H)];
       if (old) { var s = sharedFor(); var L = run(s.resample, fresh[0].f, W, H); bindState(L, old.b); gl.uniform2i(L.uNew, W, H); gl.drawArrays(gl.TRIANGLES, 0, 3); }
@@ -164,7 +173,9 @@
       },
       setParams: function (P) { curP = P; P8 = packParams(model, P); },
       setContext: function (dscale, radius) { Q[0] = dscale || 1; Q[1] = radius || 0; },
-      resize: function (w, h, keep) { alloc(w, h, keep && model.grid !== "pixels"); },
+      resize: function (w, h, keep, cw, ch) { alloc(w, h, keep && model.grid !== "pixels", cw, ch); },
+      latticeScale: function () { return CW ? W / CW : 1; },   // lattice units per canvas pixel
+      reseed: function (n) { stepIndex = (n | 0) % 9973; },     // the shaders' hash is salted by the step index
       reset: function () { clearBuf(bufs[cur], model.init(curP)); showComp = false; clearGlow(); },
       step: function (n) {
         var set = progs[model.id], per = model.stepsPerUnit || 1;
@@ -181,11 +192,13 @@
           }
         }
       },
+      // discs arrive in canvas pixels and are converted to lattice units; on a hexagonal lattice a disc never shrinks below one
+      // cell (0.6: a cell's centre is never farther than 0.58 from any point), so a pinpoint seed is always exactly one cell
       seed: function (discs, value) {
-        var set = progs[model.id], arr = new Float32Array(32 * 3);
+        var set = progs[model.id], arr = new Float32Array(32 * 3), sc = W / CW;
         for (var i = 0; i < discs.length; i += 32) {
           var n = Math.min(32, discs.length - i);
-          for (var j = 0; j < n; j++) { arr[j * 3] = discs[i + j].x; arr[j * 3 + 1] = discs[i + j].y; arr[j * 3 + 2] = discs[i + j].r; }
+          for (var j = 0; j < n; j++) { var rl = discs[i + j].r * sc; if (hex && rl < 0.6) rl = 0.6; arr[j * 3] = discs[i + j].x * sc; arr[j * 3 + 1] = discs[i + j].y * sc; arr[j * 3 + 2] = rl; }
           var L = run(set.seed, bufs[1 - cur].f, W, H); bindState(L, bufs[cur]); setCommon(L);
           gl.uniform3fv(L.uD, arr); gl.uniform1i(L.uN, n); gl.uniform1f(L.uVal, value); gl.uniform1f(L.uHex, hex ? 1 : 0); gl.uniform1f(L.uAll, model.seedAll ? 1 : 0);
           gl.drawArrays(gl.TRIANGLES, 0, 3); cur = 1 - cur;

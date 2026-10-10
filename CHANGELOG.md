@@ -3,6 +3,40 @@
 All notable changes to Morphogen are recorded here. The format follows Keep a Changelog; the
 project follows Semantic Versioning.
 
+## [2.0.0-beta.3] — 2026-10-10
+
+- **Frost is Reiter's crystal, polished.** The cellular Frost tile runs Reiter's rule as 1.0.2 did, on a hexagonal
+  lattice drawn on the screen's own pixels by blending each pixel's three nearest cells, with the edge taken from the
+  continuous water field: no cell and no ragged edge at any Resolution. Vapor 0.30, Coastal, no size cap (the arms run
+  to the edge), ice coloured by age, two lattice steps per frame. Crystals are permanent and grow together where they
+  meet. The brush on Frost is a void of the brush's width with one pinpoint nucleus at its centre, dropped once a second
+  while a stroke lasts. The Gravner–Griffeath crystal stays in the registry as `snow`.
+- **Antispiral replaces the reaction–diffusion Frost tile:** the complex Ginzburg–Landau equation (Aranson & Kramer
+  2002), spiral waves whose phase runs inward near onset (Nicola, Brusch & Bär 2004), defect turbulence past the
+  Benjamin–Feir line; sliders α and β, centred on the preset (α 1.75, β −0.65, Neon, 800 rung). The phase-field
+  dendrite stays in the registry as `dendrite`.
+- **Resolution means "lower is bigger" on every tile.** Every automaton runs on the ladder; a hexagonal lattice is
+  interpolated onto the canvas's device pixels, and on Automatic Frost's lattice is the screen's pixels, one cell per
+  pixel. Lichtenberg opens at 480, Meandric at 480, Mitosis at 320.
+- **Every default sits at the spatial centre of its track.** Linear tracks are built symmetric about the preset's
+  default on the input's own step grid; Meandric's feed and kill tracks are logarithmic, a factor 2.2 each way, centred
+  on Munafo's class γ (F 0.026, k 0.055); fixed ranges where the physics has limits (Wake's flow 0.10–0.16).
+- **The owner's defaults:** Malachite speed 0.5; Lenia μ 0.136 σ 0.011 speed 0.25 Aurora; Rotor 5 states, threshold 2,
+  speed 0.275 Accretion; Lichtenberg η 2.4 rate 1.6 speed 0.175 Physarum; Wake flow 0.130 viscosity 0.005 speed 1.5
+  Spectrum; Mitosis F 0.037 k 0.065 speed 1.75; Meandric speed 0.3.
+- **A third parameter slider.** The binding drives as many `p1 … p3` rows as a model declares (`feed-*` and `kill-*`
+  remain p1 and p2); the third row hides on two-parameter models.
+- **Seeding:** Mitosis's first Seed press lays the centre point plus a petri-dish streak toward one quadrant (a new
+  `streak` seed type); a Gray–Scott seed carries a few per cent of random variation, so a centred seed no longer grows a
+  mirror-symmetric pattern. The processor backend can be reseeded (`reseed(n)`), so recorded runs differ.
+- **The demo carries a loop banner:** fourteen silent recorded loops of the engine's patterns, each a distinct prime
+  number of sixths of a second long so no two ever restart together, laid out so that no two alike in colour or kind
+  touch; posters until Play, Stop returns every loop to its still. `banner.js`, `docs/media/banner/`.
+- **Fixes:** the Lichtenberg processor path cascaded (its growth sweep read its own writes; it now reads a snapshot);
+  the Resolution box shows Automatic when a preset applies it; a 0.2 % brush width; the version string in the script and
+  the README's install line, which beta.2 had left at beta.1. **Open finding:** the Lichtenberg graphics and processor
+  paths do not grow alike at equal relaxation sweeps; `sweepsCpu` 4 is a calibrated equivalence, not an explanation.
+
 ## [2.0.0-beta.2] — 2026-10-09
 
 A correction release within the beta.

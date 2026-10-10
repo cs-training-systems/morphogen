@@ -23,8 +23,10 @@
     id: "wake", family: "ca", name: "Lattice-Boltzmann fluid", lattice: "square", channels: 4, targets: 3, grid: "ladder", keeps: true, glow: { blur: 0.8, decay: 0.8 },
     source: "Y. H. Qian, D. d'Humières and P. Lallemand, Europhys. Lett. 17 (1992) 479–484",
     params: [
-      { key: "flow", label: "Flow", min: 0.02, max: 0.13, step: 0.005, def: 0.115 },        // owner's centre points, 2026-10-09
-      { key: "viscosity", label: "Viscosity", min: 0.004, max: 0.10, step: 0.001, def: 0.005 }
+      // owner 2026-10-10: flow 0.130 and viscosity 0.005 are the defaults and sit at the centre of their tracks. Fixed ranges,
+      // because the lattice-Boltzmann method is only stable for a flow below about 0.16 and a relaxation time τ = 3ν + ½ above ½
+      { key: "flow", label: "Flow", min: 0.10, max: 0.16, step: 0.005, def: 0.130, fixedRange: true },
+      { key: "viscosity", label: "Viscosity", min: 0.004, max: 0.006, step: 0.0005, def: 0.005, fixedRange: true }
     ],
     init: function (P) { var f = []; for (var i = 0; i < 9; i++) f.push(lbmEq(i, 1, P.flow, 0)); return [[f[0], f[1], f[2], f[3]], [f[4], f[5], f[6], f[7]], [f[8], 0, P.flow, 0]]; },
     gpu: {

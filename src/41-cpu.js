@@ -15,14 +15,14 @@
       return s;
     }
     function fill(s, inits) { for (var t = 0; t < NT; t++) { var c0 = inits[Math.min(t, inits.length - 1)]; for (var c = 0; c < NC; c++) s.p[t][c].fill(c0[c] || 0); } }
-    function alloc(w, h, keep) {
+    function alloc(w, h, keep, cw, ch) {
       var old = keep ? st : null, oW = W, oH = H;
-      CW = w; CH = h; W = w; H = hex ? hexRows(h) : h;
+      CW = cw || w; CH = ch || h; W = w; H = hex ? hexRows(h) : h;
       st = state(W, H); fill(st, model.init(curP));
       if (old) resample(old, oW, oH);
       disp = new Float32Array(CW * CH); comp = null; showComp = false;
-      if (canvas) { canvas.width = w; canvas.height = h; }
-      if (ctx) { image = ctx.createImageData(w, h); px = image.data; }
+      if (canvas) { canvas.width = CW; canvas.height = CH; }
+      if (ctx) { image = ctx.createImageData(CW, CH); px = image.data; }
     }
     function resample(old, oW, oH) {
       for (var t = 0; t < NT; t++) for (var c = 0; c < NC; c++) {
@@ -61,10 +61,16 @@
       use: function (m, P) { model = m; curP = P; X.P = P; NT = m.targets || 1; NC = m.channels || 2; hex = m.lattice === "hex"; X.hex = hex; if (CW) alloc(CW, CH, false); },
       setParams: function (P) { curP = P; X.P = P; },
       setContext: function (dscale, radius) { X.dscale = dscale || 1; X.radius = radius || 0; },
-      resize: function (w, h, keep) { alloc(w, h, keep && model.grid !== "pixels" && st); },
+      resize: function (w, h, keep, cw, ch) { alloc(w, h, keep && model.grid !== "pixels" && st, cw, ch); },
+      latticeScale: function () { return CW ? W / CW : 1; },
+      reseed: function (n) { X.rnd = mulberry32(n | 0); if (st) st.rnd = X.rnd; },   // a fresh random stream (every recorded run its own)
       reset: function () { fill(st, model.init(curP)); comp = null; showComp = false; if (glowP) glowP.fill(0); },
       step: function (n) { var per = model.stepsPerUnit || 1; for (var s = 0; s < n * per; s++) { stepIndex++; X.step = stepIndex; model.cpu.step(st, 1, curP, X); } },
-      seed: function (discs, value) { model.cpu.seed(st, discs, value, X); },
+      seed: function (discs, value) {                 // discs in canvas pixels → lattice units (see the graphics backend)
+        var sc = W / CW, list = discs;
+        if (sc !== 1) { list = []; for (var i = 0; i < discs.length; i++) { var rl = discs[i].r * sc; if (hex && rl < 0.6) rl = 0.6; list.push({ x: discs[i].x * sc, y: discs[i].y * sc, r: rl }); } }
+        model.cpu.seed(st, list, value, X);
+      },
       aliveCount: function () { return model.cpu.alive(st, curP, X); },
       render: function (lut) {
         if (!ctx) return;

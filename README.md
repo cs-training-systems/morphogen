@@ -51,7 +51,7 @@ binds any controls you place inside the same `[data-rd-scope]` container by thei
 As a dependency, pinned to a release:
 
 ```
-npm install github:cs-training-systems/morphogen#v2.0.0-beta.1
+npm install github:cs-training-systems/morphogen#v2.0.0-beta.3
 ```
 
 This is a pre-release of 2.0: the engine and all eighteen patterns are in place and their calibration
@@ -96,7 +96,7 @@ presses Seed, which starts the pattern at the center (later presses add one poin
 | ![](docs/media/preset-meandric.png) **Meandric** | Gray–Scott | 0.024 · 0.054 | labyrinthine stripes (a Turing pattern) |
 | ![](docs/media/preset-swarm.png) **Swarm** | Gray–Scott | 0.013 · 0.054 | a crowd of travelling, dividing spots |
 | ![](docs/media/preset-xylem.png) **Xylem** | Gray–Scott | 0.039 · 0.058 | a sheet opening into a pore lattice |
-| ![](docs/media/preset-frost.png) **Frost** | phase-field dendrite | supercooling 0.40 · anisotropy 0.05 | a six-fold dendrite, faceted, side-branching, a random orientation at every reset |
+| **Antispiral** | complex Ginzburg–Landau | α 1.75 · β −0.65 (800 rung) | spiral waves whose phase runs inward to the core (antispirals), outward farther from onset; past the Benjamin–Feir line, defect turbulence |
 | ![](docs/media/preset-turbulence.png) **Turbulence** | Gray–Scott | 0.025 · 0.050 | spatiotemporal chaos that never settles |
 | ![](docs/media/preset-mitosis.png) **Mitosis** | Gray–Scott | 0.036 · 0.065 (240 rung) | self-replicating spots, close, forming colonies |
 | ![](docs/media/preset-phyllotaxis.png) **Phyllotaxis** | Gray–Scott | 0.030 · 0.062 | a sunflower head grown one spot at a time on the golden angle, to the frame's edge |
@@ -110,19 +110,20 @@ U' = U + (Du·∇²U − U·V² + f·(1 − U))      Du = 0.2097
 V' = V + (Dv·∇²V + U·V² − (f + k)·V)      Dv = 0.105
 ```
 
-**The phase-field dendrite** (Kobayashi 1993, in the form documented by Warren et al. and NIST's
-FiPy): an order parameter φ (0 melt, 1 solid) and the undercooling ΔT on a grid of spacing 0.025,
-`τ ∂φ/∂t = ∇·(D ∇φ) + φ(1 − φ)(φ − ½ − (κ₁/π) atan(κ₂ ΔT))`, `∂ΔT/∂t = D_T ∇²ΔT + ∂φ/∂t`, with
-the anisotropic tensor D = α²[[1 + c cos 6ψ, 6c sin 6ψ], [−6c sin 6ψ, 1 + c cos 6ψ]], ψ the
-interface direction plus the crystal's orientation, and a small noise on the reaction for
-side-branching (α 0.015, τ 3·10⁻⁴, κ₁ 0.9, κ₂ 20, D_T 2.25). Stepped explicitly at the stable time
-step, in conservative staggered form, on the canvas's own pixels.
+**The complex Ginzburg–Landau equation** (Aranson & Kramer 2002), the normal form of every
+reaction–diffusion system just past the onset of oscillation: one complex amplitude A,
+`∂A/∂t = A + (1 + iα)∇²A − (1 + iβ)|A|²A`, α the linear and β the nonlinear dispersion (Aranson &
+Kramer's b and c). Plane waves are stable while `1 + αβ > 0`; a phase singularity is a spiral wave,
+and near onset with α > β its phase velocity turns inward (Nicola, Brusch & Bär 2004). Explicit Euler on the 9-point Laplacian
+(spacing 0.6, step 0.03). The field is dark until seeded; a disc of random phase invades it as a front.
+
+The phase-field dendrite of Kobayashi (1993) remains in the registry as the model `dendrite`.
 
 ### Cellular automata
 
 | Preset | Model | Parameters | Looks like |
 |---|---|---|---|
-| **Frost** | Gravner–Griffeath snow crystal (2008) | vapor 0.65 · anisotropy 1.75 | a hexagonal plate growing six arms, on a hexagonal lattice that follows the Resolution rung |
+| **Frost** | Reiter's snow crystal (2005) | vapor 0.30 · growth 0.001 | a six-fold dendrite grown cell by cell on a hexagonal lattice; permanent; crystals grow together where they meet; the brush is a void with one pinpoint nucleus at its centre |
 | ![](docs/media/preset-lenia.png) **Lenia** | Chan 2019 | growth center 0.133 · width 0.011 | smooth, self-propelling creatures from a patch of soup |
 | **Rotor** | cyclic automaton (Griffeath) | 5 states · threshold 3 | spiral rotors self-organizing from noise |
 | **Lichtenberg** | dielectric breakdown (Niemeyer–Pietronero–Wiesmann 1984) | exponent 2.1 · rate 1.3 | lightning and Lichtenberg figures; exponent 1 is diffusion-limited aggregation |
@@ -137,9 +138,10 @@ comment at the head of its source file.
 
 The snow crystal is not a reaction–diffusion system — it has no local chemistry acting everywhere,
 only transport and a sharp interface that advances where mass arrives, a discrete Stefan problem kin
-to diffusion-limited aggregation — which is why it lives in this family while the phase-field
-dendrite, its smooth-interface cousin, lives in the other. Reiter's simpler snow rule (2005) remains in
-the registry as the model `reiter`.
+to diffusion-limited aggregation — which is why it lives in this family. Reiter's rule: a cell that is
+ice, or touches ice, holds its water and gains γ each step; everywhere else the water diffuses toward
+the six-neighbour mean, u' = u + (α/2)(ū − u); a cell freezes at 1. The Gravner–Griffeath crystal (2008)
+remains in the registry as the model `snow`, the abelian sandpile as `sandpile`.
 
 ## Controls
 
@@ -152,8 +154,9 @@ All of them are optional.
 | `preset` | `<button data-rd-id="…">`, optionally holding a `thumb` canvas | Selects a preset and clears the field (nothing is seeded until the visitor paints or presses Seed); `aria-pressed` tracks the active one; `data-rd-default` marks a family's initial tile |
 | `thumb` | `<canvas aria-hidden="true">` inside a preset button | Filled with a thumbnail of that preset, computed by the engine itself after the page has loaded; repainted when the colors change |
 | `note` | any element with `data-rd-for="<preset id>"` | Shown while that preset is active, hidden otherwise |
-| `feed-range` / `feed-number` | `<input type="range">` / `<input type="number">` | The preset's first parameter; the pair tracks itself; its label, range and step follow the preset |
-| `kill-range` / `kill-number` | as above | The second parameter |
+| `p1-range` / `p1-number` (or `feed-*`) | `<input type="range">` / `<input type="number">` | The model's first parameter; the pair tracks itself; its label, range and step follow the preset |
+| `p2-range` / `p2-number` (or `kill-*`) | as above | The second parameter |
+| `p3-range` / `p3-number` | as above, inside a `.rd__param` row | A third parameter; the row is hidden while the model declares only two |
 | `scale-range` / `scale-number` | as above | Speed, centered on the preset's own speed, a fifth to five times it: the track is logarithmic so the preset sits mid-track, and the real value is read from the number box, the labels under the track (`speed-ticks`) and the slider's value text |
 | `pause` | `<button>` | Pause / Play; its text and label follow the state |
 | `reset` | `<button>` | Clears the field to the ground color |
@@ -165,7 +168,7 @@ All of them are optional.
 | `mode` | any element | Receives "FAMILY: PATTERN" in capitals |
 | `loading` | any element with `hidden` | Shown while a reduced-motion still is computed |
 | `quality` | `<select>` | The resolution: a ladder width (240 … 1600) or `auto`; see [Resolution](#how-it-is-built) |
-| `brush` | `<select>` | Brush width: the pointer's mark as a share of the field's height |
+| `brush` | `<select>` | Brush width: the pointer's mark as a share of the field's height. On a crystal field (Frost) the brush is a **void** of that width wiped back to vapour, with one pinpoint nucleus at its centre, dropped once a second while the stroke lasts |
 | `measure` | any element | Receives the lattice in use, the frame rate and the brush, twice a second |
 | `state` | any element | Receives a visible one-line state: family, pattern, colors, animating / paused / reduced motion |
 | `status` | any element with `aria-live="polite"` | Receives a short plain-text status on every change |
@@ -239,15 +242,16 @@ automata the same language, so edges are never seen and every moving front leave
 down the ramp. Each model sets its blur and decay.
 
 **Resolution.** The ladder runs 240 … 1600 cells across; the height follows the frame's own aspect
-ratio. A model declares how it uses it:
-- *ladder* — the grid is the chosen rung, and on Automatic the engine adapts beneath the display:
-  from 400 wide, it climbs while its own compute time stays under 8 ms and frames arrive on time,
-  steps down above 12 ms or when frames arrive late, holds a second after each change, and
-  resamples the running state so a change is invisible. The field is a continuum (Gray–Scott, Lenia,
-  the fluid) or a lattice whose blur follows the cell (the snow crystal), so a coarse rung shows
-  large smooth features, never cells.
-- *pixels* — the lattice is the canvas's own device pixels (capped at 2048 across), so every
-  structure is at full actual resolution; the rung has no effect, which the measure line says.
+ratio, and on every tile a lower rung means bigger features and a higher one finer. The grid is the
+chosen rung; on Automatic the engine adapts beneath the display: from 400 wide, it climbs while its
+own compute time stays under 8 ms and frames arrive on time, steps down above 12 ms or when frames
+arrive late, holds a second after each change, and resamples the running state so a change is
+invisible. A smooth field (Gray–Scott, Ginzburg–Landau, Lenia, the fluid) is shown by the browser's
+bilinear upscaling; a square-lattice automaton's glow blur follows its cell; a hexagonal lattice (the
+crystals) is drawn on the canvas's own device pixels by blending each pixel's three nearest cells, the
+lattice triangle that holds it, so no cell is ever seen, and on Automatic its lattice is the screen's
+pixels themselves, one cell per pixel. A model may still declare *pixels* to run on device pixels
+(capped at 2048 across) regardless of the rung.
 
 **Seeding and speed.** A preset's seeding is geometry in the field's own pixels: Vogel's spiral,
 strokes, discs, a growing head placed one spot every few frames on the golden angle until it leaves
@@ -314,8 +318,9 @@ it, a credit line is appreciated:
 
 For publications, use GitHub's **Cite this repository** button (the metadata is in
 [CITATION.cff](CITATION.cff)) and cite the model's sources, which are listed there and at the head of
-each model's source file: Gray & Scott (1984) and Pearson (1993) for Gray–Scott; Kobayashi (1993) for
-the dendrite; Gravner & Griffeath (2008) and Reiter (2005) for the snow crystals; Chan (2019) for
+each model's source file: Gray & Scott (1984) and Pearson (1993) for Gray–Scott; Aranson & Kramer
+(2002) and Nicola, Brusch & Bär (2004) for the complex Ginzburg–Landau equation; Kobayashi (1993) for
+the dendrite; Reiter (2005) and Gravner & Griffeath (2008) for the snow crystals; Chan (2019) for
 Lenia; Fisch, Gravner & Griffeath (1991) for the cyclic automaton; Niemeyer, Pietronero & Wiesmann
 (1984) for dielectric breakdown; Toffoli & Margolus (1987) for falling sand; Wolfram (1983) for the
 elementary automaton; Drossel & Schwabl (1992) for the forest fire; Anderson, Srolovitz, Grest & Sahni

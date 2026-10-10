@@ -1,9 +1,9 @@
 
   // ==== FAMILY "ca" — cellular automata ==================================================================
-  // Every automaton here runs on the canvas's own device pixels ("pixels"), so a cell is a pixel and the
-  // structures are many pixels wide, or on the ladder with bilinear display where the state is a smooth
-  // field (Lenia, the fluid). The resolution rung reaches a pixel-lattice model only as its scale (uQ.y,
-  // the crystal radius), which the size-controlled models use and the others ignore.
+  // Every automaton runs on the ladder (owner 2026-10-09: Resolution means "lower is bigger" on every tile): the
+  // lattice is the chosen rung, a cell is a few pixels wide at 320 and one at 1600, and the glow stage's blur follows
+  // the cell so no hard edge shows. The smooth-field models (Lenia, the fluid) are shown by the browser's bilinear
+  // upscaling; the hexagonal crystals are interpolated onto the screen's own pixels by the backends.
 
   // A crystal's seed is remembered by every cell that grows from it, packed into one float as
   // row × 4096 + column + 1 (exact in a 32-bit float up to 4096 × 4096 cells). Growth stops beyond the
@@ -120,11 +120,19 @@
   // vapour is β; a little noise in the vapour makes every crystal branch differently. Two passes: classify
   // and split, then diffuse and recombine. A no-flux boundary (the paper's edge held at β is an endless
   // reservoir that feeds an arm along the edge of a bounded screen); the outer two rings never freeze.
+  // Resolution (owner 2026-10-09, "lower is bigger" on every tile): the lattice is the ladder rung, 320 cells across for
+  // big bold arms up to 1600 for the finest lace, and on Automatic it is the screen's own pixels, one cell per pixel. The
+  // lattice is always shown on the canvas's device pixels by interpolating its three nearest cells (the backends), so no
+  // cell is ever seen at any rung. The edge is drawn from the continuous water field: the quasi-liquid rim (receptive
+  // cells rising toward 1) blends into the ice over the last 18 % of the climb, so the boundary is antialiased by the
+  // physics instead of thresholded (the ragged edge of 1.0.2 was a hard mask at s = 1).
+  // No size cap (owner 2026-10-09): the arms grow until they reach the edge of the field. `crystal`: the brush is a void
+  // with one pinpoint nucleus at its centre, dropped once a second (see the field). Vapor default 0.30 (owner, same day).
   defineModel({
-    id: "reiter", family: "ca", name: "Reiter snow", lattice: "hex", channels: 4, grid: "ladder", maxRung: 8, keeps: true, glow: { blur: 0.9, decay: 0.965, cell: true },
+    id: "reiter", family: "ca", name: "Reiter snow", lattice: "hex", channels: 4, grid: "ladder", crystal: true, keeps: true, glow: { blur: 1.1, decay: 0.965, cell: true },
     source: "C. A. Reiter, Chaos, Solitons & Fractals 23(4) (2005) 1111–1119",
     params: [
-      { key: "beta", label: "Vapor", min: 0.30, max: 0.90, step: 0.01, def: 0.5 },
+      { key: "beta", label: "Vapor", min: 0.10, max: 0.90, step: 0.01, def: 0.30 },
       { key: "gamma", label: "Growth", min: 0.0001, max: 0.003, step: 0.0001, def: 0.001 }
     ],
     extra: { alpha: 1, noise: 0.02, crystal: 1 / 3, pearl: 0.5 },
@@ -133,15 +141,18 @@
       passes: [
         { out: "aux", fs: GLSL_ORIGIN +     // pass A: receptive? → (u diffusing, v held + γ, origin)
           "void main(){ivec2 p=ivec2(gl_FragCoord.xy);vec4 c=S(p);float s=c.r;bool ice=s>=1.0;float og=c.g;" +
-          "if(!ice){for(int k=0;k<6;k++){vec4 v=S(hexN(p,k));if(v.r>=1.0){if(inRadius(p,v.g)){ice=true;og=v.g;}break;}}}" +
+          "if(!ice){for(int k=0;k<6;k++){vec4 v=S(hexN(p,k));if(v.r>=1.0){ice=true;og=v.g;break;}}}" +
           "if(p.x<2||p.y<2||p.x>=uSize.x-2||p.y>=uSize.y-2)ice=false;" +
           "o0=ice?vec4(0.0,s+uP.y,og,1.0):vec4(s,0.0,og,0.0);}" },
         { fs:                                // pass B: diffuse u toward the six-neighbour mean, recombine, noise
           "void main(){ivec2 p=ivec2(gl_FragCoord.xy);vec4 c=A(p);float m=0.0;for(int k=0;k<6;k++)m+=A(hexN(p,k)).r;" +
           "float u=c.r+uP.z*0.5*(m/6.0-c.r);float s=u+c.g;if(uP.w>0.0&&c.a<0.5)s+=(hash(p,uQ.w)-0.5)*uP.w;o0=vec4(s,c.b,0.0,1.0);}" }
       ],
-      seed: GLSL_SEED_ORIGIN + "c=vec4(1.0,sorigin,0.0,1.0);",
-      display: GLSL_ORIGIN + GLSL_HALO + GLSL_CRYSTAL + "float display(vec4 c,ivec2 p){return c.r>=1.0?crystal(p,c.g):halo(c.r,uP.x);}",
+      // a seed value below zero is the eraser: the cell returns to vapour at the background level, no crystal, no origin
+      seed: GLSL_SEED_ORIGIN + "if(uVal<0.0)c=vec4(uP.x,0.0,0.0,1.0);else c=vec4(1.0,sorigin,0.0,1.0);",
+      // the ice wears the ramp by AGE, as 1.0.2 did (owner, N-26): new ice in the front colour, fading through the body to the
+      // trail colour as its water keeps climbing past 1 (2.5 units, about 2,500 steps at γ 0.001); the rim blends in softly
+      display: GLSL_HALO + "float display(vec4 c,ivec2 p){float s=c.r;float ice=smoothstep(0.82,1.0,s);float cr=0.4-0.28*min(1.0,max(s-1.0,0.0)/2.5);return mix(halo(s,uP.x),cr,ice);}",
       alive: "bool alive(vec4 c,ivec2 p){return c.r>=1.0;}"
     },
     cpu: {
@@ -151,7 +162,7 @@
         for (var s = 0; s < n; s++) {
           for (r = 0; r < H; r++) for (c = 0; c < W; c++) {
             i = r * W + c; var ice = Sx[i] >= 1, og = O[i];
-            if (!ice) { hexNb(r, c, W, H, nb); for (k = 0; k < 6; k++) { var j = nb[k]; if (Sx[j] >= 1) { if (inRadius(r, c, O[j], R)) { ice = true; og = O[j]; } break; } } }
+            if (!ice) { hexNb(r, c, W, H, nb); for (k = 0; k < 6; k++) { var j = nb[k]; if (Sx[j] >= 1) { ice = true; og = O[j]; break; } } }
             if (r < 2 || c < 2 || r >= H - 2 || c >= W - 2) ice = false;
             REC[i] = ice ? 1 : 0; if (ice) { V[i] = Sx[i] + g; U[i] = 0; O[i] = og; } else { V[i] = 0; U[i] = Sx[i]; }
           }
@@ -162,14 +173,27 @@
           for (i = 0; i < st.N; i++) { var w2 = U2[i] + V[i]; if (noise && !REC[i]) w2 += (rnd() - 0.5) * noise; Sx[i] = w2; }
         }
       },
-      seed: function (st, discs) {
+      seed: function (st, discs, value, X) {
         var W = st.W, H = st.H;
         for (var d = 0; d < discs.length; d++) {
           var cell = hexCell(discs[d].x, discs[d].y, W, H), rr = Math.max(0, Math.round(discs[d].r) - 1), o = originOf(discs[d]);
+          if (value < 0) {                                  // the eraser: every cell within the disc returns to vapour
+            var R2 = discs[d].r * discs[d].r, rspan = Math.ceil(discs[d].r / HEX_ROW) + 1, cspan = Math.ceil(discs[d].r) + 1;
+            for (var er = cell.r - rspan; er <= cell.r + rspan; er++) for (var ec = cell.c - cspan; ec <= cell.c + cspan; ec++) {
+              if (er < 0 || ec < 0 || er >= H || ec >= W) continue;
+              var q = hexCenter(er, ec), dx = q.x - discs[d].x, dy = q.y - discs[d].y;
+              if (dx * dx + dy * dy <= R2) { st.p[0][0][er * W + ec] = X.P.beta; st.p[0][1][er * W + ec] = 0; }
+            }
+            continue;
+          }
           for (var r = cell.r - rr; r <= cell.r + rr; r++) for (var c = cell.c - rr; c <= cell.c + rr; c++) if (r > 0 && c > 0 && r < H - 1 && c < W - 1) { st.p[0][0][r * W + c] = 1; st.p[0][1][r * W + c] = o; }
         }
       },
-      display: function (st, i, P, X) { var sv = st.p[0][0][i]; return sv >= 1 ? crystalValue(Math.floor(i / st.W), i % st.W, st.p[0][1][i], X.radius) : haloValue(sv, P.beta); },
+      display: function (st, i, P, X) {
+        var sv = st.p[0][0][i], t = clamp((sv - 0.82) / 0.18, 0, 1), ice = t * t * (3 - 2 * t);
+        var h = haloValue(sv, P.beta); if (ice <= 0) return h;
+        return h + (0.4 - 0.28 * Math.min(1, Math.max(sv - 1, 0) / 2.5) - h) * ice;
+      },
       alive: function (st) { var Sx = st.p[0][0], n = 0; for (var i = 0; i < st.N; i++) if (Sx[i] >= 1) n++; return n; }
     }
   });

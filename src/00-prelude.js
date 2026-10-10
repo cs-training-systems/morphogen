@@ -1,7 +1,7 @@
 /*!
  * Morphogen — morphogen.js — an engine of emergent pattern formation on a canvas.
  * Copyright (c) 2026 Christopher A. Stamplis. Released under the MIT License.
- * Source: https://github.com/cs-training-systems/morphogen   Version 2.0.0-beta.1
+ * Source: https://github.com/cs-training-systems/morphogen   Version 2.0.0-beta.3
  *
  * Every model is written from its published equations or rules with no borrowed code.
  * Visual inspiration: pmneila/jsexp (BSD-3-Clause). Sources are cited beside each model.
@@ -43,7 +43,7 @@
 (function (global) {
   "use strict";
 
-  var VERSION = "2.0.0-beta.1";
+  var VERSION = "2.0.0-beta.3";
   var GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 
   // Nine palettes, each four colours over the display scalar: the ground (black, so a decaying
@@ -115,8 +115,13 @@
     } else if (spec.type === "grow") {
       var n = growCount || 3;
       for (i = 0; i < n; i++) { p = spiralPoint(W, H, i, spec.n, center && center.x, center && center.y); list.push({ x: p.x, y: p.y, r: r }); }
-    } else if (spec.type === "center") {
-      list.push({ x: W / 2, y: H / 2, r: r });
+    } else if (spec.type === "center") {              // one disc at the field's centre, or where the first mark was made
+      list.push({ x: center ? center.x : W / 2, y: center ? center.y : H / 2, r: r });
+    } else if (spec.type === "streak") {              // a petri-dish streak (owner 2026-10-10): the centre point, then a tight zig-zag of long,
+      var sx = center ? center.x : W / 2, sy = center ? center.y : H / 2;   // nearly parallel legs creeping out toward one quadrant's centre
+      list.push({ x: sx, y: sy, r: r });
+      var pts = streakPath(W, H, sx, sy, spec, salt || Math.floor(Math.random() * 1e6));   // a fresh quadrant every press
+      for (i = 0; i < pts.length; i++) list.push({ x: pts[i].x, y: pts[i].y, r: r });
     } else if (spec.type === "pacemaker") {           // fixed points that fire again and again
       var rnd3 = mulberry32((salt || 3) * 2654435761);
       for (i = 0; i < spec.n; i++) list.push({ x: W * (0.2 + 0.6 * rnd3()), y: H * (0.2 + 0.6 * rnd3()), r: r });
@@ -128,6 +133,24 @@
     }
     return list;
   }
+  // The streak's path: from (sx, sy) toward the centre of a random quadrant (jittered), `legs` legs of length `len`
+  // (a share of the field's shorter side) laid across the direction of travel, each a small step farther along, so
+  // consecutive legs are nearly antiparallel and the turns acute, as a loop streaks agar. Points every `gap` pixels.
+  function streakPath(W, H, sx, sy, spec, salt) {
+    var rnd = mulberry32((salt || 13) * 2654435761), q = Math.floor(rnd() * 4);
+    var tx = W * ((q & 1) ? 0.75 : 0.25) + W * 0.16 * (rnd() - 0.5), ty = H * ((q & 2) ? 0.75 : 0.25) + H * 0.16 * (rnd() - 0.5);
+    var dx = tx - sx, dy = ty - sy, dist = Math.hypot(dx, dy) || 1, ux = dx / dist, uy = dy / dist, nx = -uy, ny = ux;
+    var legs = spec.legs || 7, len = (spec.len || 0.18) * Math.min(W, H), step = dist / legs, gap = Math.max(1, spec.gap || 2), out = [];
+    var px = sx, py = sy;
+    for (var l = 0; l < legs; l++) {
+      var side = (l % 2 ? -1 : 1), ex = sx + ux * step * (l + 1) + nx * side * len / 2, ey = sy + uy * step * (l + 1) + ny * side * len / 2;
+      var segLen = Math.hypot(ex - px, ey - py), n = Math.max(1, Math.ceil(segLen / gap));
+      for (var k = 1; k <= n; k++) out.push({ x: px + (ex - px) * k / n, y: py + (ey - py) * k / n });
+      px = ex; py = ey;
+    }
+    return out;
+  }
+
   // Dense, even seeding of the whole field for the chronogram: a hexagonal lattice of the preset's
   // own seed kind, so every column of the chronogram holds pattern from the start.
   function latticeSeedList(W, H, spec) {
@@ -151,19 +174,37 @@
   function hexRows(h) { return Math.max(4, Math.round(h / HEX_ROW)); }
   function hexCell(x, y, cols, rows) { var r = clamp(Math.round(y / HEX_ROW - 0.5), 0, rows - 1), off = (r & 1) ? 0.5 : 0; return { r: r, c: clamp(Math.round(x - off - 0.5), 0, cols - 1) }; }
   function hexCenter(r, c) { return { x: c + 0.5 + ((r & 1) ? 0.5 : 0), y: (r + 0.5) * HEX_ROW }; }
-  // nearest-cell sampling of a lattice (cols × rows) onto a pixel grid (w × h): out[pixel] = disp(cell index), or `empty` off-lattice
+  // sampling of a lattice (cols × rows, in lattice pixel units cols wide) onto a pixel grid (w × h): each pixel takes the
+  // barycentric blend of its three nearest cell centres (the triangle of the lattice that holds it), so a coarse lattice
+  // is shown as a smooth field with no cell ever visible; off-lattice pixels take `empty`
   function hexSample(disp, cols, rows, w, h, empty, out) {
+    var sc = cols / w;
     for (var py = 0; py < h; py++) {
-      var yc = (py + 0.5) / HEX_ROW, r0 = Math.round(yc - 0.5);
+      var ly = (py + 0.5) * sc, r0 = Math.floor(ly / HEX_ROW);
       for (var pxl = 0; pxl < w; pxl++) {
-        var xc = pxl + 0.5, best = -1, bd = 1e9;
+        var lx = (pxl + 0.5) * sc, c0 = Math.floor(lx);
+        var d0 = 1e9, d1 = 1e9, d2 = 1e9, i0 = -1, i1 = -1, i2 = -1, x0 = 0, y0 = 0, x1 = 0, y1 = 0, x2 = 0, y2 = 0;
         for (var r = r0 - 1; r <= r0 + 1; r++) {
           if (r < 0 || r >= rows) continue;
-          var off = (r & 1) ? 0.5 : 0, c = Math.round(xc - off - 0.5); if (c < 0 || c >= cols) continue;
-          var dx = c + 0.5 + off - xc, dy = (r + 0.5) * HEX_ROW - (py + 0.5), d = dx * dx + dy * dy;
-          if (d < bd) { bd = d; best = r * cols + c; }
+          var off = (r & 1) ? 0.5 : 0, cy = (r + 0.5) * HEX_ROW;
+          for (var c = c0 - 1; c <= c0 + 1; c++) {
+            if (c < 0 || c >= cols) continue;
+            var cx = c + 0.5 + off, dx = cx - lx, dy = cy - ly, d = dx * dx + dy * dy, idx = r * cols + c;
+            if (d < d0) { d2 = d1; i2 = i1; x2 = x1; y2 = y1; d1 = d0; i1 = i0; x1 = x0; y1 = y0; d0 = d; i0 = idx; x0 = cx; y0 = cy; }
+            else if (d < d1) { d2 = d1; i2 = i1; x2 = x1; y2 = y1; d1 = d; i1 = idx; x1 = cx; y1 = cy; }
+            else if (d < d2) { d2 = d; i2 = idx; x2 = cx; y2 = cy; }
+          }
         }
-        out[py * w + pxl] = best < 0 ? empty : disp(best);
+        var v;
+        if (i0 < 0) v = empty;
+        else if (i2 < 0) v = disp(i0);
+        else {
+          var e1x = x1 - x0, e1y = y1 - y0, e2x = x2 - x0, e2y = y2 - y0, epx = lx - x0, epy = ly - y0, det = e1x * e2y - e1y * e2x, w1 = 0, w2 = 0;
+          if (Math.abs(det) > 1e-9) { w1 = (epx * e2y - epy * e2x) / det; w2 = (e1x * epy - e1y * epx) / det; }
+          w1 = clamp(w1, 0, 1); w2 = clamp(w2, 0, 1); var w0 = clamp(1 - w1 - w2, 0, 1), ws = w0 + w1 + w2;
+          v = (w0 * disp(i0) + w1 * disp(i1) + w2 * disp(i2)) / ws;
+        }
+        out[py * w + pxl] = v;
       }
     }
     return out;
