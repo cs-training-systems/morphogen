@@ -129,13 +129,18 @@
   // No size cap (owner 2026-10-09): the arms grow until they reach the edge of the field. `crystal`: the brush is a void
   // with one pinpoint nucleus at its centre, dropped once a second (see the field). Vapor default 0.30 (owner, same day).
   defineModel({
-    id: "reiter", family: "ca", name: "Reiter snow", lattice: "hex", channels: 4, grid: "ladder", crystal: true, keeps: true, glow: { blur: 1.1, decay: 0.965, cell: true },
+    id: "reiter", family: "ca", name: "Reiter snow crystal", lattice: "hex", channels: 4, grid: "ladder", crystal: true, keeps: true, glow: { blur: 1.1, decay: 0.965, cell: true },
     source: "C. A. Reiter, Chaos, Solitons & Fractals 23(4) (2005) 1111–1119",
+    // the three parameters of Reiter's rule, all exposed (owner 2026-10-11: the controls are the model's own variables):
+    // β the background vapour, γ the water a receptive cell gains per step, α the diffusion rate (his figures span β 0–0.95,
+    // γ 0–1 at α 1; α 2.003 gives many levels of dendrites). All dimensionless: water is measured against the freezing level 1.
     params: [
-      { key: "beta", label: "Vapor", min: 0.10, max: 0.90, step: 0.01, def: 0.30 },
-      { key: "gamma", label: "Growth", min: 0.0001, max: 0.003, step: 0.0001, def: 0.001 }
+      { key: "beta",  label: "Vapor β",     min: 0.10, max: 0.90, step: 0.01, def: 0.30, unit: "water, freezing = 1" },
+      { key: "gamma", label: "Addition γ",  min: 0.0001, max: 0.003, step: 0.0001, def: 0.001, unit: "water per step" },
+      { key: "alpha", label: "Diffusion α", min: 0.50, max: 2.00, step: 0.01, def: 1.00, unit: "dimensionless" }
     ],
-    extra: { alpha: 1, noise: 0.02, crystal: 1 / 3, pearl: 0.5 },
+    // noise 0 (owner ruling 2026-10-11): the rule is deterministic; crystals differ through the seed value, not a noise term
+    extra: { noise: 0, crystal: 1 / 3, pearl: 0.5 },
     init: function (P) { return [[P.beta, 0, 0, 0]]; },
     gpu: {
       passes: [

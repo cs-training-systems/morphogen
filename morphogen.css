@@ -8,7 +8,28 @@
 .rd > * { min-width: 0; }
 .rd [hidden] { display: none; }
 
-/* ---- the family row: the mathematical families, spread evenly across the full width ---- */
+/* ---- the category row (0.7.0): DETERMINISTIC and STOCHASTIC named above their groups, one vertical divider between them,
+   three buttons beneath (Stepwise, Flowing | Chance-driven), each with its formal line; the definition under the row ---- */
+.rd__categories { display: grid; grid-template-columns: minmax(0, 2fr) 1px minmax(0, 1fr); gap: var(--gutter, 17px); align-items: stretch; }
+.rd__catgroup { display: grid; gap: 8px; align-content: start; min-width: 0; }
+.rd__cathead { margin: 0; font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--text-3, #6B6B6B); }
+.rd__catbtns { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--gutter, 17px); }
+.rd__catdivider { background: var(--struct-med, rgba(26,26,26,.5)); width: 1px; align-self: stretch; }
+.rd__cat-sub { display: block; margin-top: 3px; font-size: 11px; letter-spacing: .04em; text-transform: none; color: var(--text-3, #6B6B6B); }
+.rd__family[aria-pressed="true"] .rd__cat-sub, .rd__family:hover .rd__cat-sub { color: var(--text-2, #4A4A4A); }
+/* the definition, in its own frame across the full width: the three categories as bullets, the placement rule beside them */
+.rd__catnote { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 13px var(--gutter, 17px); padding: 13px 17px; border: 1px solid var(--struct-card, rgba(26,26,26,.2)); background: var(--surface, #EDF1F4); font-size: 13px; line-height: 1.5; color: var(--text-2, #4A4A4A); }
+.rd__catlist { margin: 0; padding: 0; list-style: none; display: grid; gap: 5px; }
+.rd__catlist li { padding-left: 17px; position: relative; }
+.rd__catlist li::before { content: "▸"; position: absolute; left: 0; color: var(--text-3, #6B6B6B); }
+.rd__catlist b { font-family: var(--font-mono, ui-monospace, monospace); font-weight: 500; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-1, #1A1A1A); }
+.rd__catrule { margin: 0; color: var(--text-3, #6B6B6B); }
+@media (max-width: 768px) {
+  .rd__categories { grid-template-columns: minmax(0, 1fr); }
+  .rd__catdivider { width: auto; height: 1px; }
+  .rd__catnote { grid-template-columns: minmax(0, 1fr); }
+}
+/* the 0.4–0.6 family row (two buttons), kept for pages written against it */
 .rd__families { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gutter, 17px); }
 .rd__family {
   min-height: 38px; padding: 9px 13px; width: 100%;
@@ -19,8 +40,35 @@
 .rd__family:hover { border-color: var(--green, #008432); background: var(--green-10, rgba(0,132,50,.1)); color: var(--ink, #1B1B1B); }
 .rd__family[aria-pressed="true"] { border-color: var(--green, #008432); box-shadow: inset 0 0 0 1px var(--green, #008432); background: var(--green-10, rgba(0,132,50,.1)); color: var(--ink, #1B1B1B); }
 
-/* ---- pattern selectors: live thumbnails with the name beneath, spread evenly across the full width ---- */
+/* ---- the model tiles: nine slots per category (owner ruling 2026-10-12), live thumbnails with the model's name beneath;
+   a slot whose model is not yet built is a greyed, unclickable tile naming it ---- */
 .rd__presets { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: var(--gutter, 17px); margin: 0; padding: 0; list-style: none; }
+.rd__presets li[hidden] { display: none; }
+.rd__thumb--planned { display: block; width: 100%; aspect-ratio: 16 / 9; background: var(--canvas, #F4F7F9); border: 1px dashed var(--struct-card, rgba(26,26,26,.2)); box-sizing: border-box; }
+.rd__preset--planned { cursor: not-allowed; opacity: .55; }
+.rd__preset--planned:hover { border-color: var(--struct-med, rgba(26,26,26,.5)); background: var(--surface, #EDF1F4); color: var(--text-2, #4A4A4A); }
+.rd__planned { display: block; font-size: 10px; letter-spacing: .03em; text-transform: none; color: var(--text-3, #6B6B6B); margin-top: 2px; }
+/* the preset chips under the mode line: one per preset of the active model; the pressed one takes the site's green treatment */
+.rd__chips { display: flex; flex-wrap: wrap; gap: 8px 13px; }
+.rd__chips[hidden] { display: none; }
+.rd__chip {
+  min-height: 24px; padding: 4px 11px; font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--text-2, #4A4A4A); background: var(--surface, #EDF1F4); border: 1px solid var(--struct-med, rgba(26,26,26,.5)); cursor: pointer;
+}
+.rd__chip:hover, .rd__chip:focus-visible { border-color: var(--green, #008432); background: var(--green-10, rgba(0,132,50,.1)); color: var(--ink, #1B1B1B); }
+.rd__chip[aria-pressed="true"] { border-color: var(--green, #008432); box-shadow: inset 0 0 0 1px var(--green, #008432); background: var(--green-10, rgba(0,132,50,.1)); color: var(--ink, #1B1B1B); }
+.rd__preset-line { margin: 0; font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; letter-spacing: .03em; color: var(--text-3, #6B6B6B); }
+/* each parameter's unit, after its number box; the seed row */
+.rd__unit { grid-column: 2 / 4; margin-top: -6px; font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; letter-spacing: .03em; color: var(--text-3, #6B6B6B); }
+.rd__unit:empty { display: none; }
+.rd__seedrow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 13px; }
+.rd__seedrow label { font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-2, #4A4A4A); white-space: nowrap; }
+.rd__seedrow input[type="number"] { width: 100%; }
+.rd__ctl--small { min-height: 24px; padding: 3px 11px; font-size: 11px; width: auto; }
+.rd__modelrow { display: grid; grid-template-columns: 1fr 1fr; gap: 17px; }
+.rd__modelrow > label { display: grid; gap: 5px; font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-2, #4A4A4A); min-width: 0; }
+.rd__modelrow > label[hidden] { display: none; }
+.rd__modelrow input[type="text"] { height: 24px; box-sizing: border-box; padding: 0 6px; font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; color: var(--text-1, #1A1A1A); background: var(--paper, #FFFDF3); border: 1px solid var(--struct-med, rgba(26,26,26,.5)); width: 100%; }
 .rd__preset {
   display: grid; justify-items: center; gap: 6px; padding: 6px 6px 7px; width: 100%;
   background: var(--surface, #EDF1F4); border: 1px solid var(--struct-med, rgba(26,26,26,.5)); cursor: pointer;

@@ -22,6 +22,8 @@
     thumb: { width: 96, height: 54, steps: 300 },
     gpu: true,
     reducedMotion: false,
+    seed: 1,                     // the seed value: every random choice the engine makes (seed variation, stirs, streaks, soups,
+                                 // a crystal's orientation) is drawn from it, so the same seed value gives the same run (owner 2026-10-11)
     clock: null
   };
 
@@ -30,6 +32,9 @@
     for (var key in DEFAULTS) o[key] = DEFAULTS[key];
     for (var k2 in (options || {})) if (options[k2] !== undefined) o[k2] = options[k2];
     var now = o.clock || defaultClock;
+    var seedValue = (typeof o.seed === "number" && isFinite(o.seed)) ? Math.max(0, o.seed | 0) : 1;
+    var rng = mulberry32(seedValue * 2654435761 + 1);
+    function reseedAll() { rng = mulberry32(seedValue * 2654435761 + 1); be.reseed(seedValue); }
 
     var be = (o.gpu && canvas.getContext) ? gpuBackend(canvas) : null;
     if (!be) be = cpuBackend(canvas);
@@ -97,17 +102,18 @@
     if (global.addEventListener) global.addEventListener("resize", onResize);
 
     function reset() {
-      if (model.randomize) { model.randomize(P, Math.random); be.setParams(P); }   // a model may draw fresh randomness for every clear (a crystal's orientation)
+      reseedAll();                                                              // every clear restarts the seed value's stream, so a run repeats exactly
+      if (model.randomize) { model.randomize(P, rng); be.setParams(P); }       // a model may draw fresh randomness for every clear (a crystal's orientation)
       be.reset(); alive = false; leftAt = null; gain = 1; grow = null; growN = 0; stir = null; marked = false; pending.length = 0; pendingErase.length = 0;
     }
     // a "stir" seeding: `points` single marks and `slashes` curved strokes of varying length, each at a random place
-    // and a random moment within `frames` frames, different every time (the Vortex opening, owner 2026-10-09)
+    // and a random moment within `frames` frames, drawn from the seed value's stream (the Vortex opening, owner 2026-10-09)
     function makeStir(spec) {
       var W = be.width(), H = be.height(), r = Math.max((spec.r || 2) * W / 320, 0.75), items = [], i;
-      for (i = 0; i < (spec.points || 5); i++) items.push({ at: Math.random() * (spec.frames || 60), discs: [{ x: W * (0.1 + 0.8 * Math.random()), y: H * (0.1 + 0.8 * Math.random()), r: r }] });
+      for (i = 0; i < (spec.points || 5); i++) items.push({ at: rng() * (spec.frames || 60), discs: [{ x: W * (0.1 + 0.8 * rng()), y: H * (0.1 + 0.8 * rng()), r: r }] });
       for (i = 0; i < (spec.slashes || 4); i++) {
-        var cx = W * (0.15 + 0.7 * Math.random()), cy = H * (0.15 + 0.7 * Math.random()), len = Math.min(W, H) * (0.15 + 0.3 * Math.random()), a = Math.random() * Math.PI;
-        var bend = (Math.random() < 0.5 ? -1 : 1) * len * (0.2 + 0.3 * Math.random()), ux = Math.cos(a), uy = Math.sin(a);
+        var cx = W * (0.15 + 0.7 * rng()), cy = H * (0.15 + 0.7 * rng()), len = Math.min(W, H) * (0.15 + 0.3 * rng()), a = rng() * Math.PI;
+        var bend = (rng() < 0.5 ? -1 : 1) * len * (0.2 + 0.3 * rng()), ux = Math.cos(a), uy = Math.sin(a);
         var p0 = { x: cx - ux * len / 2, y: cy - uy * len / 2 }, p2 = { x: cx + ux * len / 2, y: cy + uy * len / 2 }, p1 = { x: cx - uy * bend, y: cy + ux * bend };
         var discs = [], n = Math.max(4, Math.ceil(len / Math.max(1, r)));
         for (var k = 0; k <= n; k++) { var t = k / n, s = 1 - t; discs.push({ x: s * s * p0.x + 2 * s * t * p1.x + t * t * p2.x, y: s * s * p0.y + 2 * s * t * p1.y + t * t * p2.y, r: r }); }
@@ -281,7 +287,7 @@
         if (typeof b === "number" && !isNaN(b)) P[model.params[1].key] = b;
         be.setParams(P); reevaluate(); if (o.reducedMotion) chronogram(); emit("params"); return api;
       },
-      getParams: function () { return { p1: P[model.params[0].key], p2: P[model.params[1].key], timeScale: o.timeScale, dscale: o.dscale, model: model.id, feed: P.feed, kill: P.kill }; },
+      getParams: function () { return { p1: P[model.params[0].key], p2: model.params[1] ? P[model.params[1].key] : undefined, timeScale: o.timeScale, dscale: o.dscale, model: model.id, feed: P.feed, kill: P.kill }; },
       setDiffusionScale: function (s) { if (typeof s === "number" && !isNaN(s) && s > 0) o.dscale = s; pushContext(); reevaluate(); if (o.reducedMotion) chronogram(); emit("params"); return api; },
       setStepScale: function (s) { if (typeof s === "number" && !isNaN(s) && s > 0) o.stepScale = s; reevaluate(); return api; },
       setHover: function (on) { o.hover = !!on; down = false; last = null; emit("hover"); return api; },
@@ -323,7 +329,7 @@
         chronoSpec = spec;
         if (o.reducedMotion) { chronogram(spec); emit("seed"); return api; }
         if (spec.type === "stir") { stir = makeStir(spec); grow = null; markSeeded(); wake(); emit("seed"); return api; }
-        var list = seedDiscList(be.width(), be.height(), spec, salt, 0, center);
+        var list = seedDiscList(be.width(), be.height(), spec, salt !== undefined ? salt : Math.floor(rng() * 1e6) + 1, 0, center);   // the salt comes from the seed value's stream
         for (var i = 0; i < list.length; i++) pending.push(list[i]);
         if (spec.type === "grow" || spec.type === "pacemaker") { grow = spec; growN = 3; growTick = 0; growCenter = center || null; } else grow = null;
         markSeeded(); wake(); emit("seed"); return api;
@@ -338,6 +344,10 @@
       },
       reducedMotion: function () { return o.reducedMotion; },
       setPointer: function (inside) { pointerIn = !!inside; },
+      // the seed value (owner 2026-10-11: visible, enterable, rerollable): setting it clears the field so the new stream starts clean
+      setSeed: function (n) { if (typeof n === "number" && isFinite(n)) seedValue = Math.max(0, Math.min(999999, n | 0)); api.clear(); emit("seed-value"); return api; },
+      seedValue: function () { return seedValue; },
+      random: function () { return rng(); },      // the engine's own stream, for callers that place things at random (the Seed button)
       tick: tick,
       fps: function () { return fps; },
       thumbSize: function () { return o.thumb; },

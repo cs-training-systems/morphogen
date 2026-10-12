@@ -12,8 +12,8 @@
     id: "gray-scott", family: "rd", name: "Gray–Scott", lattice: "square", channels: 2, grid: "ladder", fade: true,
     source: "P. Gray and S. K. Scott, Chem. Eng. Sci. 39 (1984); J. E. Pearson, Science 261 (1993)",
     params: [
-      { key: "feed", label: "Feed", min: 0.008, max: 0.070, step: 0.001, def: 0.010 },
-      { key: "kill", label: "Kill", min: 0.030, max: 0.066, step: 0.001, def: 0.035 }
+      { key: "feed", label: "Feed F", min: 0.008, max: 0.070, step: 0.001, def: 0.010, unit: "per step" },
+      { key: "kill", label: "Kill k", min: 0.030, max: 0.066, step: 0.001, def: 0.035, unit: "per step" }
     ],
     extra: { gain: 1 },
     init: function () { return [[1, 0, 0, 1]]; },
@@ -170,8 +170,8 @@
     params: [
       // owner 2026-10-10: α 1.75 and β −0.65 are the defaults, each at the centre of a fixed track one unit each way; the
       // sliders carry the equation's own letters (α on the diffusion term, β on the nonlinear term; Aranson & Kramer's b and c)
-      { key: "b", label: "α", min: 0.75, max: 2.75, step: 0.05, def: 1.75, fixedRange: true },
-      { key: "c", label: "β", min: -1.65, max: 0.35, step: 0.05, def: -0.65, fixedRange: true }
+      { key: "b", label: "Dispersion α", min: 0.75, max: 2.75, step: 0.05, def: 1.75, unit: "dimensionless", fixedRange: true },
+      { key: "c", label: "Nonlinear dispersion β", min: -1.65, max: 0.35, step: 0.05, def: -0.65, unit: "dimensionless", fixedRange: true }
     ],
     extra: { dx: 0.6, dt: 0.03 },
     init: function () { return [[0, 0, 0, 1]]; },

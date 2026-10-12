@@ -32,6 +32,45 @@ section of CONTRIBUTING.md. The entries below keep their original text under the
 | 2.0.0-beta.2 | 0.5.0 | `7ba1c60` |
 | 2.0.0-beta.3 | 0.6.0 | the commit tagged `v0.6.0` (code of `125b20f`) |
 
+## [0.7.0] — 2026-10-12
+
+The framework of the 1.0 design, on the existing models (owner rulings of 2026-10-11).
+
+- **Three categories replace the two families**, by the mathematics of the rule as written, never by appearance:
+  **Stepwise** (deterministic, discrete time), **Flowing** (deterministic, continuous time) and **Chance-driven**
+  (the rule contains a probability law), the first two under a DETERMINISTIC header and the third under
+  STOCHASTIC, divided. One definition line sits beneath the row, with the rule that randomness in a seed does
+  not make a model chance-driven and that a look belonging elsewhere is the computation, not the model.
+- **The tiles are named models, nine slots per category.** Ten are built: Gray–Scott, Ginzburg–Landau
+  (Flowing); Reiter snow crystal, the cellular automaton, Lenia, lattice Boltzmann, the cyclic automaton
+  (Stepwise); dielectric breakdown, the Potts model, the forest fire (Chance-driven). The remaining slots are
+  greyed, unclickable tiles naming the models in development (a `planned` role with `data-rd-category`).
+  **The eight Gray–Scott regimes that were tiles are now presets of one model**, chosen by a row of chips
+  under the mode line; every model has its presets there. The falling-sand tile is retired (the model stays
+  in the registry; `v0.6.0` carries the tile).
+- **One cellular-automaton model with a dimension toggle** replaces the Rule 30 tile: in 1-D a Wolfram rule
+  number (0–255) in a Rule box, rows stacking in time; in 2-D a Life-like B/S/C rule string on the Moore
+  neighbourhood with dying states (Life, HighLife, Day and Night, Seeds and Brian's Brain as presets). The two
+  are one lookup table on a lattice (Curtis–Hedlund–Lyndon).
+- **Every control is the model's own variable, with its unit**, as many rows as the model declares; the
+  binding reads a parameter's `unit`, and a `log` factor gives it a logarithmic track centred on the default.
+  Reiter's diffusion rate α is exposed beside β and γ. The lattice-Boltzmann viscosity runs 0.002 to 0.2 on a
+  logarithmic track centred on 0.02.
+- **The model's note stays while settings change**; a preset line under the chips names the preset, or
+  "Custom settings", and says when a preset's slider box is provisional (hand-set, awaiting the range bench).
+- **A seed value**, visible and enterable with a reroll: every random choice the engine makes (seed variation,
+  stirs, streaks, soups, a crystal's orientation, the Seed button's random points) is drawn from it, and every
+  clear restarts its stream, so the same value with the same actions repeats the same pattern. Reiter's vapour
+  noise is zero: the crystal is deterministic, and crystals differ through the seed.
+- **Paces ruled 2026-10-11:** Meandric 0.400, Xylem 0.300 (Canopy), the 1-D automaton 0.100 (Neon),
+  lattice Boltzmann 1.00, Phyllotaxis 0.125. New presets: Ginzburg–Landau defect turbulence; dielectric
+  breakdown at η = 1 (aggregation); the Potts model at q = 2 near criticality (provisional temperature).
+- Vocabulary: `category` buttons, `tile` buttons, `chips` with one `chip` per preset, `preset-line`,
+  `pN-unit`, `rule`, `rule-label`, `dimension`, `model-controls`, `seed-value`, `seed-reroll`;
+  `Morphogen.categories`, `Morphogen.tiles`, `parseLifeRule`, `lifeRuleString`, `field.setSeed`,
+  `field.seedValue`, `field.random`; the mount option `seed` and attribute `data-seed`. The 0.4–0.6 roles
+  (`family`, `preset` as a tile, notes keyed by preset) still bind, and `Morphogen.families` is an alias.
+
 ## [0.6.0] — 2026-10-12 · the code published 2026-10-10 as 2.0.0-beta.3, renumbered
 
 - **Frost is Reiter's crystal, polished.** The cellular Frost tile runs Reiter's rule as 1.0.2 did, on a hexagonal

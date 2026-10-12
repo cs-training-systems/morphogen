@@ -19,8 +19,8 @@
     id: "lenia", family: "ca", name: "Lenia", lattice: "square", channels: 2, grid: "ladder", maxRung: 7, keeps: true, glow: { blur: 0.8, decay: 0.85 },
     source: "B. W.-C. Chan, Complex Systems 28(3) (2019), arXiv:1812.05433",
     params: [
-      { key: "mu", label: "Growth center", min: 0.05, max: 0.40, step: 0.001, def: 0.15 },
-      { key: "sigma", label: "Growth width", min: 0.005, max: 0.050, step: 0.001, def: 0.016 }
+      { key: "mu", label: "Growth centre μ", min: 0.05, max: 0.40, step: 0.001, def: 0.15, unit: "potential, 0–1" },
+      { key: "sigma", label: "Growth width σ", min: 0.005, max: 0.050, step: 0.001, def: 0.016, unit: "potential, 0–1" }
     ],
     extra: { R: 13, T: 10 },
     init: function () { return [[0, 0, 0, 1]]; },
@@ -81,8 +81,8 @@
     params: [
       // the owner's centres and ranges (2026-10-09): 5 states at threshold 3; a half-step threshold means "at least the
       // next whole number of neighbours" (measured on the eight-neighbour lattice: threshold 1 fixates or locks the whole field)
-      { key: "states", label: "States", min: 3, max: 7, step: 1, def: 5 },
-      { key: "threshold", label: "Threshold", min: 1.5, max: 2.5, step: 0.5, def: 2, fixedRange: true }   // owner 2026-10-10: 2.0 at the centre
+      { key: "states", label: "States n", min: 3, max: 7, step: 1, def: 5, unit: "count" },
+      { key: "threshold", label: "Threshold", min: 1.5, max: 2.5, step: 0.5, def: 2, unit: "neighbours", fixedRange: true }   // owner 2026-10-10: 2.0 at the centre
     ],
     init: function () { return [[-1, 0, 0, 1]]; },
     gpu: {
@@ -124,8 +124,8 @@
     id: "lichtenberg", family: "ca", name: "Dielectric breakdown", lattice: "square", channels: 4, grid: "ladder", keeps: true, glow: { blur: 1.6, decay: 0.985 },
     source: "L. Niemeyer, L. Pietronero and H. J. Wiesmann, Phys. Rev. Lett. 52 (1984) 1033–1036",
     params: [
-      { key: "eta", label: "Exponent", min: 1.0, max: 6.0, step: 0.1, def: 2.1 },     // owner's centre points, 2026-10-09
-      { key: "rate", label: "Rate", min: 0.1, max: 4.0, step: 0.1, def: 1.3 }
+      { key: "eta", label: "Exponent η", min: 1.0, max: 6.0, step: 0.1, def: 2.1, unit: "dimensionless" },     // owner's centre points, 2026-10-09
+      { key: "rate", label: "Rate", min: 0.1, max: 4.0, step: 0.1, def: 1.3, unit: "probability scale per step" }
     ],
     // sweeps: the Jacobi relaxations of the potential per step on the graphics path (3, the demo's look). OPEN FINDING
     // (2026-10-10, measured at 480 × 269 over 840 steps from a centred seed): the two paths do not agree at equal sweeps —
@@ -277,44 +277,80 @@
     }
   });
 
-  // ---- Rule 30 (Conus) ---------------------------------------------------------------------------------------------
-  // S. Wolfram, "Statistical mechanics of cellular automata", Rev. Mod. Phys. 55 (1983) 601–644; "A New Kind of
-  // Science" (2002). An elementary one-dimensional automaton: each cell's next state is the rule's bit for the
-  // 3-cell neighbourhood (left, self, right) read as a number 0–7. Rows are stacked in time, the newest at the
-  // bottom, scrolling up — the pigmentation of Conus textile's shell, laid down row by row at the mantle edge.
-  // The brush and Seed act on the live row (the bottom); Density sprinkles random cells into the stroke.
+  // ---- the cellular automaton: one lookup table on a lattice, in one or two dimensions ------------------------------
+  // S. Wolfram, "Statistical mechanics of cellular automata", Rev. Mod. Phys. 55 (1983) 601–644; M. Gardner, Scientific
+  // American 223(4) (1970) 120–123 (Conway's Life); the Curtis–Hedlund–Lyndon theorem (G. A. Hedlund, Math. Systems Theory
+  // 3 (1969) 320–375) is what makes these one object: every continuous, shift-commuting map on a configuration space is a
+  // finite lookup table over a finite neighbourhood. Owner ruling 2026-10-11: one model, a dimension toggle.
+  //   dim 1 — the elementary automaton: each cell's next state is the rule's bit for the 3-cell neighbourhood (left, self,
+  //           right) read as a number 0–7; rule 0–255. Rows are stacked in time, the newest at the bottom, scrolling up.
+  //           The brush and Seed act on the live row; Density sprinkles random cells into the stroke.
+  //   dim 2 — the Life-like automaton on the Moore neighbourhood, written as B/S/C: a dead cell is born when its live-neighbour
+  //           count is in B (a 9-bit mask), a live cell survives when the count is in S, otherwise it dies — directly when
+  //           C = 2, or through C − 2 "dying" states (Brian's Brain is B2/S/C3). Periodic in space.
   defineModel({
-    id: "conus", family: "ca", name: "Elementary automaton", lattice: "square", channels: 2, grid: "ladder", keeps: true, seedAll: true, glow: { blur: 1.0, decay: 0 },   // its history is its own trail: blur only
-    source: "S. Wolfram, Rev. Mod. Phys. 55 (1983) 601–644",
+    id: "ca", family: "ca", name: "Cellular automaton", lattice: "square", channels: 2, grid: "ladder", keeps: true, seedAll: true, glow: { blur: 1.0, decay: 0.9 },
+    source: "S. Wolfram, Rev. Mod. Phys. 55 (1983) 601–644; M. Gardner, Sci. Am. 223(4) (1970); G. A. Hedlund, Math. Systems Theory 3 (1969)",
     params: [
-      { key: "rule", label: "Rule", min: 0, max: 255, step: 1, def: 30 },
-      { key: "density", label: "Density", min: 0, max: 1, step: 0.01, def: 0 }
+      { key: "rule", label: "Rule", min: 0, max: 255, step: 1, def: 30, unit: "Wolfram number, 1-D", fixedRange: true },
+      { key: "density", label: "Seed density", min: 0, max: 1, step: 0.01, def: 0, unit: "fraction of cells", fixedRange: true }
     ],
+    // dim, and the 2-D rule as bit masks and a state count (the binding writes them from the B/S/C string)
+    extra: { dim: 1, bmask: 8, smask: 12, states: 2 },
+    controls: ["dimension", "rule"],
     init: function () { return [[0, 0, 0, 1]]; },
     gpu: {
       passes: [{ fs:
-        "void main(){ivec2 p=ivec2(gl_FragCoord.xy);int Hh=uSize.y-1;if(p.y<Hh){o0=S(p+ivec2(0,1));return;}" +
-        "int rule=int(uP.x);float l=Sp(ivec2(p.x-1,Hh)).r,m=S(ivec2(p.x,Hh)).r,r=Sp(ivec2(p.x+1,Hh)).r;int code=(l>0.5?4:0)+(m>0.5?2:0)+(r>0.5?1:0);" +
-        "float v=((rule>>code)&1)==1?1.0:0.0;o0=vec4(v,float(code),0.0,1.0);}" }],
-      seed: "if(p.y==uSize.y-1&&abs(q.x-og.x)<=max(rr,0.5)){c.r=(hash(p,uQ.w)<uP.y||abs(q.x-og.x)<=0.5)?1.0:c.r;}",
-      display: "float display(vec4 c,ivec2 p){return c.r>0.5?0.22+0.18*c.g/7.0:0.0;}",
-      alive: "bool alive(vec4 c,ivec2 p){return p.y==uSize.y-1&&c.r>0.5;}"
+        "void main(){ivec2 p=ivec2(gl_FragCoord.xy);" +
+        "if(uP.z<1.5){int Hh=uSize.y-1;if(p.y<Hh){o0=S(p+ivec2(0,1));return;}" +
+        " int rule=int(uP.x+0.5);float l=Sp(ivec2(p.x-1,Hh)).r,m=S(ivec2(p.x,Hh)).r,r=Sp(ivec2(p.x+1,Hh)).r;int code=(l>0.5?4:0)+(m>0.5?2:0)+(r>0.5?1:0);" +
+        " float v=((rule>>code)&1)==1?1.0:0.0;o0=vec4(v,float(code),0.0,1.0);return;}" +
+        "vec4 c=S(p);float s=c.r;int n=0;for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){if(i==0&&j==0)continue;float v=Sp(p+ivec2(i,j)).r;if(v>0.5&&v<1.5)n++;}" +
+        "int bm=int(uP.w+0.5),sm=int(uP2.x+0.5);float st=uP2.y;float ns;" +
+        "if(s<0.5)ns=((bm>>n)&1)==1?1.0:0.0;else if(s<1.5)ns=((sm>>n)&1)==1?1.0:(st>2.5?2.0:0.0);else ns=(s+1.0<st-0.5)?s+1.0:0.0;" +
+        "o0=vec4(ns,abs(ns-s)>0.5?1.0:0.0,0.0,1.0);}" }],
+      seed:
+        "if(uP.z<1.5){if(p.y==uSize.y-1&&abs(q.x-og.x)<=max(rr,0.5)){c.r=(hash(p,uQ.w)<uP.y||abs(q.x-og.x)<=0.5)?1.0:c.r;}}" +
+        "else{vec2 dd=q-og;if(dot(dd,dd)<=rr*rr&&hash(p,uQ.w)<max(uP.y,0.02))c.r=1.0;}",
+      // 1-D: the live cells by their neighbourhood code; 2-D: a live cell in the front colour, the dying states fading down the ramp
+      display: "float display(vec4 c,ivec2 p){if(uP.z<1.5)return c.r>0.5?0.22+0.18*c.g/7.0:0.0;if(c.r<0.5)return 0.0;if(c.r<1.5)return VMAX;return 0.3-0.18*clamp((c.r-2.0)/max(uP2.y-2.0,1.0),0.0,1.0);}",
+      alive: "bool alive(vec4 c,ivec2 p){return uP.z<1.5?(p.y==uSize.y-1&&c.r>0.5):c.g>0.5;}"
     },
     cpu: {
       step: function (st, n, P) {
-        var W = st.W, H = st.H, A = st.p[0][0], C = st.p[0][1], rule = P.rule | 0, bot = (H - 1) * W;
-        for (var s = 0; s < n; s++) {
-          var row = new Float32Array(W), code = new Float32Array(W);
-          for (var x = 0; x < W; x++) { var l = A[bot + (x + W - 1) % W], m = A[bot + x], r = A[bot + (x + 1) % W]; var cd = (l > 0.5 ? 4 : 0) + (m > 0.5 ? 2 : 0) + (r > 0.5 ? 1 : 0); row[x] = (rule >> cd) & 1; code[x] = cd; }
-          A.copyWithin(0, W); C.copyWithin(0, W); A.set(row, bot); C.set(code, bot);
+        var W = st.W, H = st.H, A = st.p[0][0], C = st.p[0][1], s;
+        if (P.dim < 1.5) {
+          var rule = P.rule | 0, bot = (H - 1) * W;
+          for (s = 0; s < n; s++) {
+            var row = new Float32Array(W), code = new Float32Array(W);
+            for (var x = 0; x < W; x++) { var l = A[bot + (x + W - 1) % W], m = A[bot + x], r = A[bot + (x + 1) % W]; var cd = (l > 0.5 ? 4 : 0) + (m > 0.5 ? 2 : 0) + (r > 0.5 ? 1 : 0); row[x] = (rule >> cd) & 1; code[x] = cd; }
+            A.copyWithin(0, W); C.copyWithin(0, W); A.set(row, bot); C.set(code, bot);
+          }
+          return;
+        }
+        var A2 = st.aux[0], bm = P.bmask | 0, sm = P.smask | 0, states = P.states;
+        for (s = 0; s < n; s++) {
+          for (var y = 0; y < H; y++) for (var x2 = 0; x2 < W; x2++) {
+            var i = y * W + x2, v = A[i], cnt = 0;
+            for (var j = -1; j <= 1; j++) { var yy = ((y + j) % H + H) % H; for (var k = -1; k <= 1; k++) { if (!j && !k) continue; var w = A[yy * W + ((x2 + k) % W + W) % W]; if (w > 0.5 && w < 1.5) cnt++; } }
+            var ns;
+            if (v < 0.5) ns = (bm >> cnt) & 1; else if (v < 1.5) ns = ((sm >> cnt) & 1) ? 1 : (states > 2.5 ? 2 : 0); else ns = (v + 1 < states - 0.5) ? v + 1 : 0;
+            A2[i] = ns; C[i] = Math.abs(ns - v) > 0.5 ? 1 : 0;
+          }
+          A.set(A2);
         }
       },
       seed: function (st, discs, value, X) {
-        var W = st.W, bot = (st.H - 1) * st.W;
-        for (var d = 0; d < discs.length; d++) { var cx = discs[d].x, r = Math.max(discs[d].r, 0.5); for (var x = 0; x < W; x++) if (Math.abs(x + 0.5 - cx) <= r && (st.rnd() < X.P.density || Math.abs(x + 0.5 - cx) <= 0.5)) st.p[0][0][bot + x] = 1; }
+        var W = st.W, H = st.H, P = X.P;
+        if (P.dim < 1.5) {
+          var bot = (H - 1) * W;
+          for (var d = 0; d < discs.length; d++) { var cx = discs[d].x, r = Math.max(discs[d].r, 0.5); for (var x = 0; x < W; x++) if (Math.abs(x + 0.5 - cx) <= r && (st.rnd() < P.density || Math.abs(x + 0.5 - cx) <= 0.5)) st.p[0][0][bot + x] = 1; }
+          return;
+        }
+        discSeed(st, discs, function (i) { if (st.rnd() < Math.max(P.density, 0.02)) st.p[0][0][i] = 1; });
       },
-      display: function (st, i) { return st.p[0][0][i] > 0.5 ? 0.22 + 0.18 * st.p[0][1][i] / 7 : 0; },
-      alive: function (st) { var bot = (st.H - 1) * st.W, n = 0; for (var x = 0; x < st.W; x++) if (st.p[0][0][bot + x] > 0.5) n++; return n; }
+      display: function (st, i, P) { var v = st.p[0][0][i]; if (P.dim < 1.5) return v > 0.5 ? 0.22 + 0.18 * st.p[0][1][i] / 7 : 0; if (v < 0.5) return 0; if (v < 1.5) return VMAX; return 0.3 - 0.18 * clamp((v - 2) / Math.max(P.states - 2, 1), 0, 1); },
+      alive: function (st, P) { if (P.dim < 1.5) { var bot = (st.H - 1) * st.W, n = 0; for (var x = 0; x < st.W; x++) if (st.p[0][0][bot + x] > 0.5) n++; return n; } return countAbove(st.p[0][1], 0.5); }
     }
   });
 
@@ -328,8 +364,8 @@
     id: "wildfire", family: "ca", name: "Forest fire", lattice: "square", channels: 2, grid: "ladder", keeps: true, glow: { blur: 1.6, decay: 0.96 },
     source: "B. Drossel and F. Schwabl, Phys. Rev. Lett. 69 (1992) 1629–1632",
     params: [
-      { key: "growth", label: "Growth", min: 0.0005, max: 0.02, step: 0.0005, def: 0.005 },
-      { key: "lightning", label: "Lightning", min: 0, max: 0.0002, step: 0.000005, def: 0.00002 }
+      { key: "growth", label: "Growth p", min: 0.0005, max: 0.02, step: 0.0005, def: 0.005, unit: "probability per step" },
+      { key: "lightning", label: "Lightning f", min: 0, max: 0.0002, step: 0.000005, def: 0.00002, unit: "probability per step" }
     ],
     init: function () { return [[0, 0, 0, 1]]; },
     gpu: {
@@ -380,8 +416,8 @@
     id: "grain", family: "ca", name: "Potts grain growth", lattice: "square", channels: 2, grid: "ladder", keeps: true, glow: { blur: 1.6, decay: 0.85 },
     source: "M. P. Anderson, D. J. Srolovitz, G. S. Grest and P. S. Sahni, Acta Metall. 32 (1984) 783–791",
     params: [
-      { key: "states", label: "Orientations", min: 2, max: 32, step: 1, def: 12 },
-      { key: "temperature", label: "Temperature", min: 0.05, max: 2.0, step: 0.05, def: 0.6 }
+      { key: "states", label: "States q", min: 2, max: 32, step: 1, def: 12, unit: "count; q = 2 is Ising" },
+      { key: "temperature", label: "Temperature T", min: 0.05, max: 4.0, step: 0.05, def: 0.6, unit: "coupling units, eight neighbours" }
     ],
     init: function () { return [[-1, 0, 0, 1]]; },
     gpu: {

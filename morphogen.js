@@ -1,7 +1,7 @@
 /*!
  * Morphogen — morphogen.js — an engine of emergent pattern formation on a canvas.
  * Copyright (c) 2026 Christopher A. Stamplis. Released under the MIT License.
- * Source: https://github.com/cs-training-systems/morphogen   Version 0.6.0
+ * Source: https://github.com/cs-training-systems/morphogen   Version 0.7.0
  *
  * Every model is written from its published equations or rules with no borrowed code.
  * Visual inspiration: pmneila/jsexp (BSD-3-Clause). Sources are cited beside each model.
@@ -43,7 +43,7 @@
 (function (global) {
   "use strict";
 
-  var VERSION = "0.6.0";
+  var VERSION = "0.7.0";
   var GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 
   // Nine palettes, each four colours over the display scalar: the ground (black, so a decaying
@@ -285,8 +285,8 @@
     id: "gray-scott", family: "rd", name: "Gray–Scott", lattice: "square", channels: 2, grid: "ladder", fade: true,
     source: "P. Gray and S. K. Scott, Chem. Eng. Sci. 39 (1984); J. E. Pearson, Science 261 (1993)",
     params: [
-      { key: "feed", label: "Feed", min: 0.008, max: 0.070, step: 0.001, def: 0.010 },
-      { key: "kill", label: "Kill", min: 0.030, max: 0.066, step: 0.001, def: 0.035 }
+      { key: "feed", label: "Feed F", min: 0.008, max: 0.070, step: 0.001, def: 0.010, unit: "per step" },
+      { key: "kill", label: "Kill k", min: 0.030, max: 0.066, step: 0.001, def: 0.035, unit: "per step" }
     ],
     extra: { gain: 1 },
     init: function () { return [[1, 0, 0, 1]]; },
@@ -443,8 +443,8 @@
     params: [
       // owner 2026-10-10: α 1.75 and β −0.65 are the defaults, each at the centre of a fixed track one unit each way; the
       // sliders carry the equation's own letters (α on the diffusion term, β on the nonlinear term; Aranson & Kramer's b and c)
-      { key: "b", label: "α", min: 0.75, max: 2.75, step: 0.05, def: 1.75, fixedRange: true },
-      { key: "c", label: "β", min: -1.65, max: 0.35, step: 0.05, def: -0.65, fixedRange: true }
+      { key: "b", label: "Dispersion α", min: 0.75, max: 2.75, step: 0.05, def: 1.75, unit: "dimensionless", fixedRange: true },
+      { key: "c", label: "Nonlinear dispersion β", min: -1.65, max: 0.35, step: 0.05, def: -0.65, unit: "dimensionless", fixedRange: true }
     ],
     extra: { dx: 0.6, dt: 0.03 },
     init: function () { return [[0, 0, 0, 1]]; },
@@ -617,13 +617,18 @@
   // No size cap (owner 2026-10-09): the arms grow until they reach the edge of the field. `crystal`: the brush is a void
   // with one pinpoint nucleus at its centre, dropped once a second (see the field). Vapor default 0.30 (owner, same day).
   defineModel({
-    id: "reiter", family: "ca", name: "Reiter snow", lattice: "hex", channels: 4, grid: "ladder", crystal: true, keeps: true, glow: { blur: 1.1, decay: 0.965, cell: true },
+    id: "reiter", family: "ca", name: "Reiter snow crystal", lattice: "hex", channels: 4, grid: "ladder", crystal: true, keeps: true, glow: { blur: 1.1, decay: 0.965, cell: true },
     source: "C. A. Reiter, Chaos, Solitons & Fractals 23(4) (2005) 1111–1119",
+    // the three parameters of Reiter's rule, all exposed (owner 2026-10-11: the controls are the model's own variables):
+    // β the background vapour, γ the water a receptive cell gains per step, α the diffusion rate (his figures span β 0–0.95,
+    // γ 0–1 at α 1; α 2.003 gives many levels of dendrites). All dimensionless: water is measured against the freezing level 1.
     params: [
-      { key: "beta", label: "Vapor", min: 0.10, max: 0.90, step: 0.01, def: 0.30 },
-      { key: "gamma", label: "Growth", min: 0.0001, max: 0.003, step: 0.0001, def: 0.001 }
+      { key: "beta",  label: "Vapor β",     min: 0.10, max: 0.90, step: 0.01, def: 0.30, unit: "water, freezing = 1" },
+      { key: "gamma", label: "Addition γ",  min: 0.0001, max: 0.003, step: 0.0001, def: 0.001, unit: "water per step" },
+      { key: "alpha", label: "Diffusion α", min: 0.50, max: 2.00, step: 0.01, def: 1.00, unit: "dimensionless" }
     ],
-    extra: { alpha: 1, noise: 0.02, crystal: 1 / 3, pearl: 0.5 },
+    // noise 0 (owner ruling 2026-10-11): the rule is deterministic; crystals differ through the seed value, not a noise term
+    extra: { noise: 0, crystal: 1 / 3, pearl: 0.5 },
     init: function (P) { return [[P.beta, 0, 0, 0]]; },
     gpu: {
       passes: [
@@ -707,8 +712,8 @@
     id: "lenia", family: "ca", name: "Lenia", lattice: "square", channels: 2, grid: "ladder", maxRung: 7, keeps: true, glow: { blur: 0.8, decay: 0.85 },
     source: "B. W.-C. Chan, Complex Systems 28(3) (2019), arXiv:1812.05433",
     params: [
-      { key: "mu", label: "Growth center", min: 0.05, max: 0.40, step: 0.001, def: 0.15 },
-      { key: "sigma", label: "Growth width", min: 0.005, max: 0.050, step: 0.001, def: 0.016 }
+      { key: "mu", label: "Growth centre μ", min: 0.05, max: 0.40, step: 0.001, def: 0.15, unit: "potential, 0–1" },
+      { key: "sigma", label: "Growth width σ", min: 0.005, max: 0.050, step: 0.001, def: 0.016, unit: "potential, 0–1" }
     ],
     extra: { R: 13, T: 10 },
     init: function () { return [[0, 0, 0, 1]]; },
@@ -769,8 +774,8 @@
     params: [
       // the owner's centres and ranges (2026-10-09): 5 states at threshold 3; a half-step threshold means "at least the
       // next whole number of neighbours" (measured on the eight-neighbour lattice: threshold 1 fixates or locks the whole field)
-      { key: "states", label: "States", min: 3, max: 7, step: 1, def: 5 },
-      { key: "threshold", label: "Threshold", min: 1.5, max: 2.5, step: 0.5, def: 2, fixedRange: true }   // owner 2026-10-10: 2.0 at the centre
+      { key: "states", label: "States n", min: 3, max: 7, step: 1, def: 5, unit: "count" },
+      { key: "threshold", label: "Threshold", min: 1.5, max: 2.5, step: 0.5, def: 2, unit: "neighbours", fixedRange: true }   // owner 2026-10-10: 2.0 at the centre
     ],
     init: function () { return [[-1, 0, 0, 1]]; },
     gpu: {
@@ -812,8 +817,8 @@
     id: "lichtenberg", family: "ca", name: "Dielectric breakdown", lattice: "square", channels: 4, grid: "ladder", keeps: true, glow: { blur: 1.6, decay: 0.985 },
     source: "L. Niemeyer, L. Pietronero and H. J. Wiesmann, Phys. Rev. Lett. 52 (1984) 1033–1036",
     params: [
-      { key: "eta", label: "Exponent", min: 1.0, max: 6.0, step: 0.1, def: 2.1 },     // owner's centre points, 2026-10-09
-      { key: "rate", label: "Rate", min: 0.1, max: 4.0, step: 0.1, def: 1.3 }
+      { key: "eta", label: "Exponent η", min: 1.0, max: 6.0, step: 0.1, def: 2.1, unit: "dimensionless" },     // owner's centre points, 2026-10-09
+      { key: "rate", label: "Rate", min: 0.1, max: 4.0, step: 0.1, def: 1.3, unit: "probability scale per step" }
     ],
     // sweeps: the Jacobi relaxations of the potential per step on the graphics path (3, the demo's look). OPEN FINDING
     // (2026-10-10, measured at 480 × 269 over 840 steps from a centred seed): the two paths do not agree at equal sweeps —
@@ -965,44 +970,80 @@
     }
   });
 
-  // ---- Rule 30 (Conus) ---------------------------------------------------------------------------------------------
-  // S. Wolfram, "Statistical mechanics of cellular automata", Rev. Mod. Phys. 55 (1983) 601–644; "A New Kind of
-  // Science" (2002). An elementary one-dimensional automaton: each cell's next state is the rule's bit for the
-  // 3-cell neighbourhood (left, self, right) read as a number 0–7. Rows are stacked in time, the newest at the
-  // bottom, scrolling up — the pigmentation of Conus textile's shell, laid down row by row at the mantle edge.
-  // The brush and Seed act on the live row (the bottom); Density sprinkles random cells into the stroke.
+  // ---- the cellular automaton: one lookup table on a lattice, in one or two dimensions ------------------------------
+  // S. Wolfram, "Statistical mechanics of cellular automata", Rev. Mod. Phys. 55 (1983) 601–644; M. Gardner, Scientific
+  // American 223(4) (1970) 120–123 (Conway's Life); the Curtis–Hedlund–Lyndon theorem (G. A. Hedlund, Math. Systems Theory
+  // 3 (1969) 320–375) is what makes these one object: every continuous, shift-commuting map on a configuration space is a
+  // finite lookup table over a finite neighbourhood. Owner ruling 2026-10-11: one model, a dimension toggle.
+  //   dim 1 — the elementary automaton: each cell's next state is the rule's bit for the 3-cell neighbourhood (left, self,
+  //           right) read as a number 0–7; rule 0–255. Rows are stacked in time, the newest at the bottom, scrolling up.
+  //           The brush and Seed act on the live row; Density sprinkles random cells into the stroke.
+  //   dim 2 — the Life-like automaton on the Moore neighbourhood, written as B/S/C: a dead cell is born when its live-neighbour
+  //           count is in B (a 9-bit mask), a live cell survives when the count is in S, otherwise it dies — directly when
+  //           C = 2, or through C − 2 "dying" states (Brian's Brain is B2/S/C3). Periodic in space.
   defineModel({
-    id: "conus", family: "ca", name: "Elementary automaton", lattice: "square", channels: 2, grid: "ladder", keeps: true, seedAll: true, glow: { blur: 1.0, decay: 0 },   // its history is its own trail: blur only
-    source: "S. Wolfram, Rev. Mod. Phys. 55 (1983) 601–644",
+    id: "ca", family: "ca", name: "Cellular automaton", lattice: "square", channels: 2, grid: "ladder", keeps: true, seedAll: true, glow: { blur: 1.0, decay: 0.9 },
+    source: "S. Wolfram, Rev. Mod. Phys. 55 (1983) 601–644; M. Gardner, Sci. Am. 223(4) (1970); G. A. Hedlund, Math. Systems Theory 3 (1969)",
     params: [
-      { key: "rule", label: "Rule", min: 0, max: 255, step: 1, def: 30 },
-      { key: "density", label: "Density", min: 0, max: 1, step: 0.01, def: 0 }
+      { key: "rule", label: "Rule", min: 0, max: 255, step: 1, def: 30, unit: "Wolfram number, 1-D", fixedRange: true },
+      { key: "density", label: "Seed density", min: 0, max: 1, step: 0.01, def: 0, unit: "fraction of cells", fixedRange: true }
     ],
+    // dim, and the 2-D rule as bit masks and a state count (the binding writes them from the B/S/C string)
+    extra: { dim: 1, bmask: 8, smask: 12, states: 2 },
+    controls: ["dimension", "rule"],
     init: function () { return [[0, 0, 0, 1]]; },
     gpu: {
       passes: [{ fs:
-        "void main(){ivec2 p=ivec2(gl_FragCoord.xy);int Hh=uSize.y-1;if(p.y<Hh){o0=S(p+ivec2(0,1));return;}" +
-        "int rule=int(uP.x);float l=Sp(ivec2(p.x-1,Hh)).r,m=S(ivec2(p.x,Hh)).r,r=Sp(ivec2(p.x+1,Hh)).r;int code=(l>0.5?4:0)+(m>0.5?2:0)+(r>0.5?1:0);" +
-        "float v=((rule>>code)&1)==1?1.0:0.0;o0=vec4(v,float(code),0.0,1.0);}" }],
-      seed: "if(p.y==uSize.y-1&&abs(q.x-og.x)<=max(rr,0.5)){c.r=(hash(p,uQ.w)<uP.y||abs(q.x-og.x)<=0.5)?1.0:c.r;}",
-      display: "float display(vec4 c,ivec2 p){return c.r>0.5?0.22+0.18*c.g/7.0:0.0;}",
-      alive: "bool alive(vec4 c,ivec2 p){return p.y==uSize.y-1&&c.r>0.5;}"
+        "void main(){ivec2 p=ivec2(gl_FragCoord.xy);" +
+        "if(uP.z<1.5){int Hh=uSize.y-1;if(p.y<Hh){o0=S(p+ivec2(0,1));return;}" +
+        " int rule=int(uP.x+0.5);float l=Sp(ivec2(p.x-1,Hh)).r,m=S(ivec2(p.x,Hh)).r,r=Sp(ivec2(p.x+1,Hh)).r;int code=(l>0.5?4:0)+(m>0.5?2:0)+(r>0.5?1:0);" +
+        " float v=((rule>>code)&1)==1?1.0:0.0;o0=vec4(v,float(code),0.0,1.0);return;}" +
+        "vec4 c=S(p);float s=c.r;int n=0;for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){if(i==0&&j==0)continue;float v=Sp(p+ivec2(i,j)).r;if(v>0.5&&v<1.5)n++;}" +
+        "int bm=int(uP.w+0.5),sm=int(uP2.x+0.5);float st=uP2.y;float ns;" +
+        "if(s<0.5)ns=((bm>>n)&1)==1?1.0:0.0;else if(s<1.5)ns=((sm>>n)&1)==1?1.0:(st>2.5?2.0:0.0);else ns=(s+1.0<st-0.5)?s+1.0:0.0;" +
+        "o0=vec4(ns,abs(ns-s)>0.5?1.0:0.0,0.0,1.0);}" }],
+      seed:
+        "if(uP.z<1.5){if(p.y==uSize.y-1&&abs(q.x-og.x)<=max(rr,0.5)){c.r=(hash(p,uQ.w)<uP.y||abs(q.x-og.x)<=0.5)?1.0:c.r;}}" +
+        "else{vec2 dd=q-og;if(dot(dd,dd)<=rr*rr&&hash(p,uQ.w)<max(uP.y,0.02))c.r=1.0;}",
+      // 1-D: the live cells by their neighbourhood code; 2-D: a live cell in the front colour, the dying states fading down the ramp
+      display: "float display(vec4 c,ivec2 p){if(uP.z<1.5)return c.r>0.5?0.22+0.18*c.g/7.0:0.0;if(c.r<0.5)return 0.0;if(c.r<1.5)return VMAX;return 0.3-0.18*clamp((c.r-2.0)/max(uP2.y-2.0,1.0),0.0,1.0);}",
+      alive: "bool alive(vec4 c,ivec2 p){return uP.z<1.5?(p.y==uSize.y-1&&c.r>0.5):c.g>0.5;}"
     },
     cpu: {
       step: function (st, n, P) {
-        var W = st.W, H = st.H, A = st.p[0][0], C = st.p[0][1], rule = P.rule | 0, bot = (H - 1) * W;
-        for (var s = 0; s < n; s++) {
-          var row = new Float32Array(W), code = new Float32Array(W);
-          for (var x = 0; x < W; x++) { var l = A[bot + (x + W - 1) % W], m = A[bot + x], r = A[bot + (x + 1) % W]; var cd = (l > 0.5 ? 4 : 0) + (m > 0.5 ? 2 : 0) + (r > 0.5 ? 1 : 0); row[x] = (rule >> cd) & 1; code[x] = cd; }
-          A.copyWithin(0, W); C.copyWithin(0, W); A.set(row, bot); C.set(code, bot);
+        var W = st.W, H = st.H, A = st.p[0][0], C = st.p[0][1], s;
+        if (P.dim < 1.5) {
+          var rule = P.rule | 0, bot = (H - 1) * W;
+          for (s = 0; s < n; s++) {
+            var row = new Float32Array(W), code = new Float32Array(W);
+            for (var x = 0; x < W; x++) { var l = A[bot + (x + W - 1) % W], m = A[bot + x], r = A[bot + (x + 1) % W]; var cd = (l > 0.5 ? 4 : 0) + (m > 0.5 ? 2 : 0) + (r > 0.5 ? 1 : 0); row[x] = (rule >> cd) & 1; code[x] = cd; }
+            A.copyWithin(0, W); C.copyWithin(0, W); A.set(row, bot); C.set(code, bot);
+          }
+          return;
+        }
+        var A2 = st.aux[0], bm = P.bmask | 0, sm = P.smask | 0, states = P.states;
+        for (s = 0; s < n; s++) {
+          for (var y = 0; y < H; y++) for (var x2 = 0; x2 < W; x2++) {
+            var i = y * W + x2, v = A[i], cnt = 0;
+            for (var j = -1; j <= 1; j++) { var yy = ((y + j) % H + H) % H; for (var k = -1; k <= 1; k++) { if (!j && !k) continue; var w = A[yy * W + ((x2 + k) % W + W) % W]; if (w > 0.5 && w < 1.5) cnt++; } }
+            var ns;
+            if (v < 0.5) ns = (bm >> cnt) & 1; else if (v < 1.5) ns = ((sm >> cnt) & 1) ? 1 : (states > 2.5 ? 2 : 0); else ns = (v + 1 < states - 0.5) ? v + 1 : 0;
+            A2[i] = ns; C[i] = Math.abs(ns - v) > 0.5 ? 1 : 0;
+          }
+          A.set(A2);
         }
       },
       seed: function (st, discs, value, X) {
-        var W = st.W, bot = (st.H - 1) * st.W;
-        for (var d = 0; d < discs.length; d++) { var cx = discs[d].x, r = Math.max(discs[d].r, 0.5); for (var x = 0; x < W; x++) if (Math.abs(x + 0.5 - cx) <= r && (st.rnd() < X.P.density || Math.abs(x + 0.5 - cx) <= 0.5)) st.p[0][0][bot + x] = 1; }
+        var W = st.W, H = st.H, P = X.P;
+        if (P.dim < 1.5) {
+          var bot = (H - 1) * W;
+          for (var d = 0; d < discs.length; d++) { var cx = discs[d].x, r = Math.max(discs[d].r, 0.5); for (var x = 0; x < W; x++) if (Math.abs(x + 0.5 - cx) <= r && (st.rnd() < P.density || Math.abs(x + 0.5 - cx) <= 0.5)) st.p[0][0][bot + x] = 1; }
+          return;
+        }
+        discSeed(st, discs, function (i) { if (st.rnd() < Math.max(P.density, 0.02)) st.p[0][0][i] = 1; });
       },
-      display: function (st, i) { return st.p[0][0][i] > 0.5 ? 0.22 + 0.18 * st.p[0][1][i] / 7 : 0; },
-      alive: function (st) { var bot = (st.H - 1) * st.W, n = 0; for (var x = 0; x < st.W; x++) if (st.p[0][0][bot + x] > 0.5) n++; return n; }
+      display: function (st, i, P) { var v = st.p[0][0][i]; if (P.dim < 1.5) return v > 0.5 ? 0.22 + 0.18 * st.p[0][1][i] / 7 : 0; if (v < 0.5) return 0; if (v < 1.5) return VMAX; return 0.3 - 0.18 * clamp((v - 2) / Math.max(P.states - 2, 1), 0, 1); },
+      alive: function (st, P) { if (P.dim < 1.5) { var bot = (st.H - 1) * st.W, n = 0; for (var x = 0; x < st.W; x++) if (st.p[0][0][bot + x] > 0.5) n++; return n; } return countAbove(st.p[0][1], 0.5); }
     }
   });
 
@@ -1016,8 +1057,8 @@
     id: "wildfire", family: "ca", name: "Forest fire", lattice: "square", channels: 2, grid: "ladder", keeps: true, glow: { blur: 1.6, decay: 0.96 },
     source: "B. Drossel and F. Schwabl, Phys. Rev. Lett. 69 (1992) 1629–1632",
     params: [
-      { key: "growth", label: "Growth", min: 0.0005, max: 0.02, step: 0.0005, def: 0.005 },
-      { key: "lightning", label: "Lightning", min: 0, max: 0.0002, step: 0.000005, def: 0.00002 }
+      { key: "growth", label: "Growth p", min: 0.0005, max: 0.02, step: 0.0005, def: 0.005, unit: "probability per step" },
+      { key: "lightning", label: "Lightning f", min: 0, max: 0.0002, step: 0.000005, def: 0.00002, unit: "probability per step" }
     ],
     init: function () { return [[0, 0, 0, 1]]; },
     gpu: {
@@ -1068,8 +1109,8 @@
     id: "grain", family: "ca", name: "Potts grain growth", lattice: "square", channels: 2, grid: "ladder", keeps: true, glow: { blur: 1.6, decay: 0.85 },
     source: "M. P. Anderson, D. J. Srolovitz, G. S. Grest and P. S. Sahni, Acta Metall. 32 (1984) 783–791",
     params: [
-      { key: "states", label: "Orientations", min: 2, max: 32, step: 1, def: 12 },
-      { key: "temperature", label: "Temperature", min: 0.05, max: 2.0, step: 0.05, def: 0.6 }
+      { key: "states", label: "States q", min: 2, max: 32, step: 1, def: 12, unit: "count; q = 2 is Ising" },
+      { key: "temperature", label: "Temperature T", min: 0.05, max: 4.0, step: 0.05, def: 0.6, unit: "coupling units, eight neighbours" }
     ],
     init: function () { return [[-1, 0, 0, 1]]; },
     gpu: {
@@ -1127,8 +1168,10 @@
     params: [
       // owner 2026-10-10: flow 0.130 and viscosity 0.005 are the defaults and sit at the centre of their tracks. Fixed ranges,
       // because the lattice-Boltzmann method is only stable for a flow below about 0.16 and a relaxation time τ = 3ν + ½ above ½
-      { key: "flow", label: "Flow", min: 0.10, max: 0.16, step: 0.005, def: 0.130, fixedRange: true },
-      { key: "viscosity", label: "Viscosity", min: 0.004, max: 0.006, step: 0.0005, def: 0.005, fixedRange: true }
+      // owner 2026-10-11: the viscosity range widens so the slider visibly does something, on a logarithmic track centred on the
+      // default (the binding reads `log: true`): 0.002 (fine eddies, near the stability edge) to 0.2 (a smooth laminar wake), default 0.02
+      { key: "flow", label: "Inlet speed u", min: 0.10, max: 0.16, step: 0.005, def: 0.130, unit: "lattice units per step", fixedRange: true },
+      { key: "viscosity", label: "Viscosity ν", min: 0.002, max: 0.2, step: 0.0005, def: 0.02, unit: "lattice units² per step", fixedRange: true, log: 10 }
     ],
     init: function (P) { var f = []; for (var i = 0; i < 9; i++) f.push(lbmEq(i, 1, P.flow, 0)); return [[f[0], f[1], f[2], f[3]], [f[4], f[5], f[6], f[7]], [f[8], 0, P.flow, 0]]; },
     gpu: {
@@ -1555,6 +1598,8 @@
     thumb: { width: 96, height: 54, steps: 300 },
     gpu: true,
     reducedMotion: false,
+    seed: 1,                     // the seed value: every random choice the engine makes (seed variation, stirs, streaks, soups,
+                                 // a crystal's orientation) is drawn from it, so the same seed value gives the same run (owner 2026-10-11)
     clock: null
   };
 
@@ -1563,6 +1608,9 @@
     for (var key in DEFAULTS) o[key] = DEFAULTS[key];
     for (var k2 in (options || {})) if (options[k2] !== undefined) o[k2] = options[k2];
     var now = o.clock || defaultClock;
+    var seedValue = (typeof o.seed === "number" && isFinite(o.seed)) ? Math.max(0, o.seed | 0) : 1;
+    var rng = mulberry32(seedValue * 2654435761 + 1);
+    function reseedAll() { rng = mulberry32(seedValue * 2654435761 + 1); be.reseed(seedValue); }
 
     var be = (o.gpu && canvas.getContext) ? gpuBackend(canvas) : null;
     if (!be) be = cpuBackend(canvas);
@@ -1630,17 +1678,18 @@
     if (global.addEventListener) global.addEventListener("resize", onResize);
 
     function reset() {
-      if (model.randomize) { model.randomize(P, Math.random); be.setParams(P); }   // a model may draw fresh randomness for every clear (a crystal's orientation)
+      reseedAll();                                                              // every clear restarts the seed value's stream, so a run repeats exactly
+      if (model.randomize) { model.randomize(P, rng); be.setParams(P); }       // a model may draw fresh randomness for every clear (a crystal's orientation)
       be.reset(); alive = false; leftAt = null; gain = 1; grow = null; growN = 0; stir = null; marked = false; pending.length = 0; pendingErase.length = 0;
     }
     // a "stir" seeding: `points` single marks and `slashes` curved strokes of varying length, each at a random place
-    // and a random moment within `frames` frames, different every time (the Vortex opening, owner 2026-10-09)
+    // and a random moment within `frames` frames, drawn from the seed value's stream (the Vortex opening, owner 2026-10-09)
     function makeStir(spec) {
       var W = be.width(), H = be.height(), r = Math.max((spec.r || 2) * W / 320, 0.75), items = [], i;
-      for (i = 0; i < (spec.points || 5); i++) items.push({ at: Math.random() * (spec.frames || 60), discs: [{ x: W * (0.1 + 0.8 * Math.random()), y: H * (0.1 + 0.8 * Math.random()), r: r }] });
+      for (i = 0; i < (spec.points || 5); i++) items.push({ at: rng() * (spec.frames || 60), discs: [{ x: W * (0.1 + 0.8 * rng()), y: H * (0.1 + 0.8 * rng()), r: r }] });
       for (i = 0; i < (spec.slashes || 4); i++) {
-        var cx = W * (0.15 + 0.7 * Math.random()), cy = H * (0.15 + 0.7 * Math.random()), len = Math.min(W, H) * (0.15 + 0.3 * Math.random()), a = Math.random() * Math.PI;
-        var bend = (Math.random() < 0.5 ? -1 : 1) * len * (0.2 + 0.3 * Math.random()), ux = Math.cos(a), uy = Math.sin(a);
+        var cx = W * (0.15 + 0.7 * rng()), cy = H * (0.15 + 0.7 * rng()), len = Math.min(W, H) * (0.15 + 0.3 * rng()), a = rng() * Math.PI;
+        var bend = (rng() < 0.5 ? -1 : 1) * len * (0.2 + 0.3 * rng()), ux = Math.cos(a), uy = Math.sin(a);
         var p0 = { x: cx - ux * len / 2, y: cy - uy * len / 2 }, p2 = { x: cx + ux * len / 2, y: cy + uy * len / 2 }, p1 = { x: cx - uy * bend, y: cy + ux * bend };
         var discs = [], n = Math.max(4, Math.ceil(len / Math.max(1, r)));
         for (var k = 0; k <= n; k++) { var t = k / n, s = 1 - t; discs.push({ x: s * s * p0.x + 2 * s * t * p1.x + t * t * p2.x, y: s * s * p0.y + 2 * s * t * p1.y + t * t * p2.y, r: r }); }
@@ -1814,7 +1863,7 @@
         if (typeof b === "number" && !isNaN(b)) P[model.params[1].key] = b;
         be.setParams(P); reevaluate(); if (o.reducedMotion) chronogram(); emit("params"); return api;
       },
-      getParams: function () { return { p1: P[model.params[0].key], p2: P[model.params[1].key], timeScale: o.timeScale, dscale: o.dscale, model: model.id, feed: P.feed, kill: P.kill }; },
+      getParams: function () { return { p1: P[model.params[0].key], p2: model.params[1] ? P[model.params[1].key] : undefined, timeScale: o.timeScale, dscale: o.dscale, model: model.id, feed: P.feed, kill: P.kill }; },
       setDiffusionScale: function (s) { if (typeof s === "number" && !isNaN(s) && s > 0) o.dscale = s; pushContext(); reevaluate(); if (o.reducedMotion) chronogram(); emit("params"); return api; },
       setStepScale: function (s) { if (typeof s === "number" && !isNaN(s) && s > 0) o.stepScale = s; reevaluate(); return api; },
       setHover: function (on) { o.hover = !!on; down = false; last = null; emit("hover"); return api; },
@@ -1856,7 +1905,7 @@
         chronoSpec = spec;
         if (o.reducedMotion) { chronogram(spec); emit("seed"); return api; }
         if (spec.type === "stir") { stir = makeStir(spec); grow = null; markSeeded(); wake(); emit("seed"); return api; }
-        var list = seedDiscList(be.width(), be.height(), spec, salt, 0, center);
+        var list = seedDiscList(be.width(), be.height(), spec, salt !== undefined ? salt : Math.floor(rng() * 1e6) + 1, 0, center);   // the salt comes from the seed value's stream
         for (var i = 0; i < list.length; i++) pending.push(list[i]);
         if (spec.type === "grow" || spec.type === "pacemaker") { grow = spec; growN = 3; growTick = 0; growCenter = center || null; } else grow = null;
         markSeeded(); wake(); emit("seed"); return api;
@@ -1871,6 +1920,10 @@
       },
       reducedMotion: function () { return o.reducedMotion; },
       setPointer: function (inside) { pointerIn = !!inside; },
+      // the seed value (owner 2026-10-11: visible, enterable, rerollable): setting it clears the field so the new stream starts clean
+      setSeed: function (n) { if (typeof n === "number" && isFinite(n)) seedValue = Math.max(0, Math.min(999999, n | 0)); api.clear(); emit("seed-value"); return api; },
+      seedValue: function () { return seedValue; },
+      random: function () { return rng(); },      // the engine's own stream, for callers that place things at random (the Seed button)
       tick: tick,
       fps: function () { return fps; },
       thumbSize: function () { return o.thumb; },
@@ -1936,8 +1989,15 @@
   function $(scope, role) { return scope.querySelector("[data-rd='" + role + "']"); }
   function $$(scope, role) { return scope.querySelectorAll("[data-rd='" + role + "']"); }
 
+  // The page's control vocabulary (0.7.0, owner rulings 2026-10-11): `category` buttons (stepwise | flowing | chance), `tile`
+  // buttons that are NAMED MODELS, `chips` holding one `chip` per preset of the active tile, `note` elements keyed by tile that
+  // stay visible while the visitor changes settings, p1 … p3 rows that take each model's own variables with their units, a
+  // `rule` box and `dimension` select for models that declare them, and a `seed-value` box with `seed-reroll`. The 0.4–0.6 roles
+  // (`family`, `preset` as tiles, `note` keyed by preset) still bind, so a page written against them keeps working.
   function bind(scope, field) {
-    var familyBtns = $$(scope, "family"), presets = $$(scope, "preset"), notes = $$(scope, "note");
+    var catBtns = $$(scope, "category"); if (!catBtns.length) catBtns = $$(scope, "family");
+    var tileBtns = $$(scope, "tile"), legacy = false; if (!tileBtns.length) { tileBtns = $$(scope, "preset"); legacy = true; }
+    var notes = $$(scope, "note"), chipsBox = $(scope, "chips"), presetLine = $(scope, "preset-line");
     var scaleRange = $(scope, "scale-range"), scaleNumber = $(scope, "scale-number");
     var pauseBtn = $(scope, "pause"), resetBtn = $(scope, "reset"), seedBtn = $(scope, "seed");
     var colorsToggle = $(scope, "colors-toggle"), colorsMenu = $(scope, "colors-menu"), paletteRadios = $$(scope, "palette-option");
@@ -1945,7 +2005,9 @@
     var hoverBtn = $(scope, "hover"), hoverCheck = $(scope, "hover-check");
     var modeWord = $(scope, "mode"), loading = $(scope, "loading"), brushSel = $(scope, "brush");
     var status = $(scope, "status"), steps = $(scope, "steps");
-    var current = null, currentFamily = null, currentPalette = null, thumbs = [], seedClicks = 0;
+    var modelControls = $(scope, "model-controls"), dimSel = $(scope, "dimension"), ruleBox = $(scope, "rule"), ruleLabel = $(scope, "rule-label");
+    var seedInput = $(scope, "seed-value"), seedReroll = $(scope, "seed-reroll");
+    var current = null, currentTile = null, currentCategory = null, currentPalette = null, thumbs = [], seedClicks = 0;
     // Speed rides a logarithmic slider centred on the preset's own speed: the slider runs 0 … 1 and maps to
     // speedDef / 5 … speedDef × 5, so every preset starts mid-range (owner ruling 2026-10-09)
     var speedDef = DEFAULTS.timeScale, SPEED_K = 5;
@@ -1954,23 +2016,27 @@
 
     function say(text) { if (status) status.textContent = text; }
     function labelFor(el) { return el && el.id ? scope.querySelector("label[for='" + el.id + "']") : null; }
-    // the parameter rows, p1 … p3 (`feed-*` and `kill-*` remain the names of p1 and p2 for pages written against 1.x):
-    // a model declares two or three parameters; a row the model does not use is hidden (owner 2026-10-09: a third slider)
+    // the parameter rows, p1 … p3 (`feed-*` and `kill-*` remain the names of p1 and p2 for pages written against 0.1–0.3):
+    // a model declares one to three parameters; a row the model does not use is hidden
     var PR = [];
     for (var pi = 0; pi < 3; pi++) {
       var rg = $(scope, "p" + (pi + 1) + "-range") || (pi === 0 ? $(scope, "feed-range") : (pi === 1 ? $(scope, "kill-range") : null));
       var nb = $(scope, "p" + (pi + 1) + "-number") || (pi === 0 ? $(scope, "feed-number") : (pi === 1 ? $(scope, "kill-number") : null));
-      PR.push({ range: rg, number: nb, label: labelFor(rg), numLabel: labelFor(nb), row: (rg && rg.closest) ? rg.closest(".rd__param") : null });
+      PR.push({ range: rg, number: nb, unit: $(scope, "p" + (pi + 1) + "-unit"), label: labelFor(rg), numLabel: labelFor(nb), row: (rg && rg.closest) ? rg.closest(".rd__param") : null });
     }
-    function familyName(id) { for (var i = 0; i < FAMILIES.length; i++) if (FAMILIES[i].id === id) return FAMILIES[i].name; return id; }
+    function categoryName(id) { var c = categoryById(id); return c ? c.name : id; }
+    function tileOf(preset) { return (preset && preset.tile) ? tileById(preset.tile) : null; }
+    function tileName() { return currentTile ? currentTile.name : (current ? current.name : "custom"); }
     function paramsText() {
       var m = field.model(), P = field.params(), parts = [];
       m.params.forEach(function (d) { parts.push(d.label.toLowerCase() + " " + fmtStep(P[d.key], d.step)); });
       return parts.join(", ") + ", speed " + fmt2(field.getParams().timeScale);
     }
-    // the sliders take the model's own parameters: names, ranges, steps. For a reaction–diffusion preset the range is
-    // tailored to the preset: its default ± 40 %, so the default sits at the centre (owner, 2026-10-09); a parameter
-    // declared `fixedRange` keeps the model's own range (its default is at that range's centre by construction)
+    // the sliders take the model's own parameters: names, units, ranges, steps. A linear track is built SYMMETRIC about the
+    // preset's default (± 40 % on the input's own step grid) so the default sits at the track's spatial centre (owner 2026-10-10);
+    // a parameter declared `fixedRange` keeps the model's own range (its default must then be at that range's centre, or it carries
+    // `log: K`, a logarithmic track a factor K each way around the default); a preset's `logRange` makes every sub-unit parameter
+    // logarithmic. Real numbers are what is read: the value box, the min/default/max labels, and the slider's value text.
     function setSliders(preset) {
       var m = field.model(), P = field.params();
       function range(el, d, lo, hi) { if (el) { el.min = String(lo); el.max = String(hi); el.step = String(d.step); } }
@@ -1980,19 +2046,18 @@
         if (!d) return;
         var lo = d.min, hi = d.max, def = P[d.key];
         pr.K = 0; pr.def = def; pr.step = d.step;
-        if (preset && preset.logRange && d.step < 1) {        // a logarithmic track, as Speed's: the preset dead centre, a factor logRange each way, real numbers in the box
-          pr.K = preset.logRange; lo = +(def / pr.K).toFixed(6); hi = +(def * pr.K).toFixed(6);
+        var K = (preset && preset.logRange && d.step < 1) ? preset.logRange : (d.log || 0);
+        if (K) {
+          pr.K = K; lo = +(def / K).toFixed(6); hi = +(def * K).toFixed(6);
+          if (d.fixedRange) { lo = Math.max(lo, d.min); hi = Math.min(hi, d.max); }
           if (pr.range) { pr.range.min = "0"; pr.range.max = "1"; pr.range.step = "0.002"; }
           range(pr.number, d, lo, hi);
         } else {
-          // a linear track SYMMETRIC about the default (owner 2026-10-10: the default at the track's spatial centre, never the
-          // arithmetic accident of a clipped side): ± 40 % of the default, never below zero; a model's own limits bind only
-          // when it declares `fixedRange` (then it must have put its default at the centre itself); a zero default has no
-          // centre and keeps the model's range
-          if (preset && d.step < 1 && !d.fixedRange && def > 0) { var span = Math.max(1, Math.round(Math.min(0.4 * def, def) / d.step)) * d.step; lo = +(def - span).toFixed(6); hi = +(def + span).toFixed(6); }   // a whole number of steps each way, so the default sits on the input's own grid
+          if (preset && d.step < 1 && !d.fixedRange && def > 0) { var span = Math.max(1, Math.round(Math.min(0.4 * def, def) / d.step)) * d.step; lo = +(def - span).toFixed(6); hi = +(def + span).toFixed(6); }
           range(pr.range, d, lo, hi); range(pr.number, d, lo, hi);
         }
-        if (pr.label) pr.label.textContent = d.label + ":"; if (pr.numLabel) pr.numLabel.textContent = d.label + ", exact value";
+        if (pr.label) pr.label.textContent = d.label + ":"; if (pr.numLabel) pr.numLabel.textContent = d.label + ", exact value" + (d.unit ? ", in " + d.unit : "");
+        if (pr.unit) pr.unit.textContent = d.unit || "";
       });
       if (scaleRange) { scaleRange.min = "0"; scaleRange.max = "1"; scaleRange.step = "0.005"; }
       if (scaleNumber) { scaleNumber.min = String(+(speedDef / SPEED_K).toFixed(3)); scaleNumber.max = String(+(speedDef * SPEED_K).toFixed(3)); scaleNumber.step = "0.005"; }
@@ -2002,27 +2067,57 @@
       PR.forEach(function (pr, i) {
         var d = m.params[i]; if (!d) return;
         if (pr.range) pr.range.value = pr.K ? clamp(0.5 + Math.log(P[d.key] / pr.def) / Math.log(pr.K) / 2, 0, 1).toFixed(3) : fmtStep(P[d.key], d.step);
+        if (pr.range) pr.range.setAttribute("aria-valuetext", fmtStep(P[d.key], d.step) + (d.unit ? " " + d.unit : ""));
         if (pr.number) pr.number.value = fmtStep(P[d.key], d.step);
       });
-      if (scaleRange) scaleRange.value = sliderFromSpeed(t).toFixed(3); if (scaleNumber) scaleNumber.value = t.toFixed(3);
+      if (scaleRange) { scaleRange.value = sliderFromSpeed(t).toFixed(3); scaleRange.setAttribute("aria-valuetext", t.toFixed(3) + " × 8 steps per frame"); }
+      if (scaleNumber) scaleNumber.value = t.toFixed(3);
+      syncModelControls(); syncSeed();
     }
-    function currentName() { return current ? current.name : "custom"; }
+    // the model's own controls: the dimension select and the rule box (the cellular automaton), shown only when declared
+    function syncModelControls() {
+      var m = field.model(), P = field.params(), has = m.controls || [];
+      if (modelControls) modelControls.hidden = !has.length;
+      if (dimSel) { dimSel.hidden = has.indexOf("dimension") < 0; if (dimSel.closest) { var dr = dimSel.closest("label"); if (dr) dr.hidden = dimSel.hidden; } dimSel.value = String(P.dim >= 1.5 ? 2 : 1); }
+      if (ruleBox) {
+        ruleBox.hidden = has.indexOf("rule") < 0; var rr = ruleBox.closest ? ruleBox.closest("label") : null; if (rr) rr.hidden = ruleBox.hidden;
+        if (!ruleBox.hidden) {
+          if (P.dim >= 1.5) { ruleBox.value = lifeRuleString(P.bmask | 0, P.smask | 0, P.states | 0); ruleBox.setAttribute("pattern", "B[0-8]*/S[0-8]*(/C[0-9]+)?"); if (ruleLabel) ruleLabel.textContent = "Rule (B/S/C)"; }
+          else { ruleBox.value = String(P.rule | 0); ruleBox.setAttribute("pattern", "[0-9]{1,3}"); if (ruleLabel) ruleLabel.textContent = "Rule (0–255)"; }
+        }
+      }
+    }
+    function syncSeed() { if (seedInput) seedInput.value = String(field.seedValue()); }
     function updateState() {
       if (!stateLine) return;
-      stateLine.textContent = (current ? familyName(current.family) + " · " + current.name + " pattern" : "Custom settings") + " · " + (currentPalette || "Canopy") + " colors · " +
+      var what = currentTile ? categoryName(currentTile.category) + " · " + currentTile.name + (current ? " · " + current.name : " · custom settings") : (current ? current.name + " pattern" : "Custom settings");
+      stateLine.textContent = what + " · " + (currentPalette || "Canopy") + " colors · seed " + field.seedValue() + " · " +
         (field.reducedMotion() ? "Reduced motion on: one still frame, seed at the left, full emergence at the right" : (field.isPaused() ? "paused" : "animating"));
+    }
+    // the tile's note stays while the visitor changes settings (owner ruling 2026-10-11); the preset line says which preset, or
+    // "custom settings", and whether the box around it is provisional
+    function markTile(tile) {
+      currentTile = tile;
+      for (var i = 0; i < tileBtns.length; i++) {
+        var id = tileBtns[i].getAttribute("data-rd-id"), on = tile ? (legacy ? (current && id === current.id) : id === tile.id) : false;
+        tileBtns[i].setAttribute("aria-pressed", on ? "true" : "false");
+      }
+      for (var j = 0; j < notes.length; j++) {
+        var f = notes[j].getAttribute("data-rd-for");
+        notes[j].hidden = !((tile && f === tile.id) || (legacy && current && f === current.id));
+      }
+      if (modeWord) modeWord.textContent = tile ? (categoryName(tile.category).toUpperCase() + " · " + tile.name.toUpperCase()) : (current ? current.name.toUpperCase() : "CUSTOM");
     }
     function markPreset(preset) {
       current = preset;
-      for (var i = 0; i < presets.length; i++) presets[i].setAttribute("aria-pressed", preset && presets[i].getAttribute("data-rd-id") === preset.id ? "true" : "false");
-      for (var j = 0; j < notes.length; j++) notes[j].hidden = !(preset && notes[j].getAttribute("data-rd-for") === preset.id);
-      if (modeWord) modeWord.textContent = (preset ? familyName(preset.family).toUpperCase() + ": " + preset.name.toUpperCase() : "CUSTOM");
+      if (chipsBox) { var chips = chipsBox.querySelectorAll("[data-rd='chip']"); for (var c = 0; c < chips.length; c++) chips[c].setAttribute("aria-pressed", preset && chips[c].getAttribute("data-rd-preset") === preset.id ? "true" : "false"); }
+      if (presetLine) presetLine.textContent = preset ? ("Preset · " + preset.name + (preset.provisional ? " · slider box provisional, awaiting the range bench" : "")) : "Custom settings";
+      if (legacy) markTile(currentTile);
       updateState();
     }
     function selectOption(sel, value) { if (!sel) return; for (var i = 0; i < sel.options.length; i++) if (sel.options[i].value === String(value) || parseFloat(sel.options[i].value) === value) { sel.selectedIndex = i; return; } }
-    // A tile selects: the field clears to black, the preset's recipe loads (model, parameters, speed, brush,
-    // colours), and nothing appears until the visitor paints or presses Seed. In reduced motion the chronogram is
-    // computed for the new regime from the preset's own seeding.
+    // A preset loads its whole recipe (model, parameters, speed, brush, colours, resolution); the field clears and nothing
+    // appears until the visitor paints or presses Seed. In reduced motion the chronogram is computed from the preset's seeding.
     function applyPreset(preset, announce) {
       field.setModel(preset.model, preset.params);
       speedDef = preset.timeScale || DEFAULTS.timeScale;
@@ -2033,30 +2128,53 @@
       setSliders(preset); markPreset(preset); syncInputs();
       var spec = {}; for (var kk in preset.seed) spec[kk] = preset.seed[kk]; spec.chrono = preset.chrono;
       field.setChronoSpec(spec); field.setFirstMark(preset.firstSeed === "spec" || preset.firstSeed === "every" ? spec : null, preset.firstSeed === "every"); field.clear(); seedClicks = 0;
-      if (announce) say(preset.name + " pattern selected: " + paramsText() + ". " + (field.reducedMotion() ? "Still image." : "The field is black; press Seed, or click and drag on it, to start."));
+      if (announce) say(tileName() + ", " + preset.name + " preset: " + paramsText() + ". " + (field.reducedMotion() ? "Still image." : "The field is black; press Seed, or click and drag on it, to start."));
     }
-    // the family row filters the tiles; choosing a family selects its default (or first) tile
-    function showFamily(id, announce) {
-      currentFamily = id;
-      for (var i = 0; i < familyBtns.length; i++) familyBtns[i].setAttribute("aria-pressed", familyBtns[i].getAttribute("data-rd-id") === id ? "true" : "false");
+    // the chips: one per preset of the active tile, rebuilt when the tile changes
+    function buildChips(tile) {
+      if (!chipsBox) return;
+      while (chipsBox.firstChild) chipsBox.removeChild(chipsBox.firstChild);
+      if (!tile) return;
+      tile.presets.forEach(function (pid) {
+        var p = presetById(pid); if (!p) return;
+        var b = global.document.createElement("button"); b.type = "button"; b.className = "rd__chip"; b.setAttribute("data-rd", "chip"); b.setAttribute("data-rd-preset", p.id); b.setAttribute("aria-pressed", "false"); b.textContent = p.name;
+        b.addEventListener("click", function () { applyPreset(p, true); });
+        chipsBox.appendChild(b);
+      });
+      chipsBox.hidden = tile.presets.length < 2;
+    }
+    function selectTile(tile, announce) {
+      markTile(tile); buildChips(tile);
+      var def = presetById(tile.presets[0]); if (def) applyPreset(def, announce);
+    }
+    // the category row filters the tiles; choosing a category selects its default (or first) tile
+    function showCategory(id, announce) {
+      currentCategory = id;
+      for (var i = 0; i < catBtns.length; i++) catBtns[i].setAttribute("aria-pressed", catBtns[i].getAttribute("data-rd-id") === id ? "true" : "false");
       var first = null, def = null;
-      for (var j = 0; j < presets.length; j++) {
-        var pr = presetById(presets[j].getAttribute("data-rd-id")), li = presets[j].closest ? presets[j].closest("li") || presets[j] : presets[j], show = pr && pr.family === id;
+      for (var j = 0; j < tileBtns.length; j++) {
+        var tid = tileBtns[j].getAttribute("data-rd-id"), li = tileBtns[j].closest ? tileBtns[j].closest("li") || tileBtns[j] : tileBtns[j];
+        var item = legacy ? presetById(tid) : tileById(tid), cat = item ? (legacy ? item.family : item.category) : null, show = cat === id;
         li.hidden = !show;
-        if (show) { if (!first) first = pr; if (presets[j].hasAttribute("data-rd-default")) def = pr; }
+        if (show) { if (!first) first = item; if (tileBtns[j].hasAttribute("data-rd-default")) def = item; }
       }
-      if (def || first) applyPreset(def || first, announce);
+      // the planned slots: greyed tiles naming models not yet built, shown with their category (owner 2026-10-12)
+      var planned = $$(scope, "planned");
+      for (var p = 0; p < planned.length; p++) { var pli = planned[p].closest ? planned[p].closest("li") || planned[p] : planned[p]; pli.hidden = planned[p].getAttribute("data-rd-category") !== id; }
+      var pick = def || first; if (!pick) return;
+      if (legacy) applyPreset(pick, announce); else selectTile(pick, announce);
     }
-    for (var f = 0; f < familyBtns.length; f++) (function (btn) { btn.addEventListener("click", function () { showFamily(btn.getAttribute("data-rd-id"), true); }); })(familyBtns[f]);
-    for (var i = 0; i < presets.length; i++) (function (btn) {
-      var preset = presetById(btn.getAttribute("data-rd-id")); if (!preset) return;
-      btn.addEventListener("click", function () { applyPreset(preset, true); });
+    for (var f = 0; f < catBtns.length; f++) (function (btn) { btn.addEventListener("click", function () { showCategory(btn.getAttribute("data-rd-id"), true); }); })(catBtns[f]);
+    for (var i = 0; i < tileBtns.length; i++) (function (btn) {
+      var id = btn.getAttribute("data-rd-id"), tile = legacy ? null : tileById(id), preset = legacy ? presetById(id) : (tile ? presetById(tile.presets[0]) : null);
+      if (!preset) return;
+      btn.addEventListener("click", function () { if (legacy) applyPreset(preset, true); else selectTile(tile, true); });
       var thumb = btn.querySelector("[data-rd='thumb']");
       if (thumb && thumb.getContext) thumbs.push({ preset: preset, canvas: thumb, data: null });
-    })(presets[i]);
+    })(tileBtns[i]);
 
     function paintThumbs() { var lut = field.lut(); for (var t = 0; t < thumbs.length; t++) { var th = thumbs[t]; if (th.data) paintArray(th.data.V, th.data.W, th.data.H, th.canvas.getContext("2d", { alpha: false }), lut); } }
-    (function renderThumbsLazily() {               // never during page load: after `load`, one tile per idle slot on the graphics processor (a few ms of main-thread work per slot on the processor path)
+    (function renderThumbsLazily() {               // never during page load: after `load`, one tile per idle slot on the graphics processor
       var i = 0, size = field.thumbSize(), job = null, BUDGET_MS = 8, useGpu = field.backend() === "gpu";
       var idle = global.requestIdleCallback ? function (fn) { global.requestIdleCallback(fn, { timeout: 1500 }); } : function (fn) { setTimeout(fn, 50); };
       function next() {
@@ -2082,7 +2200,7 @@
       }
       if (which !== "scale") markPreset(null); else updateState();
       syncInputs();
-      say((which === "scale" ? currentName() + " pattern" : "Custom") + ": " + paramsText() + "." + (field.isAlive() ? "" : " The field is quiet; press Seed, paint on it, or choose a pattern."));
+      say((which === "scale" ? tileName() : tileName() + ", custom settings") + ": " + paramsText() + "." + (field.isAlive() ? "" : " The field is quiet; press Seed, paint on it, or choose a preset."));
     }
     PR.forEach(function (pr, i) {
       if (pr.range) pr.range.addEventListener("input", function () { onParam(i, pr.range); });
@@ -2090,15 +2208,30 @@
     });
     if (scaleRange) scaleRange.addEventListener("input", function () { onParam("scale", scaleRange); });
     if (scaleNumber) scaleNumber.addEventListener("change", function () { onParam("scale", scaleNumber); });
+    // the rule box: a Wolfram number in one dimension, a B/S/C string in two; the dimension select switches the lattice and clears
+    if (ruleBox) ruleBox.addEventListener("change", function () {
+      var P = field.params();
+      if (P.dim >= 1.5) { var r = parseLifeRule(ruleBox.value); if (!r) { say("The rule is written like B3/S23, or B2/S/C3 for dying states."); syncModelControls(); return; } field.setParam("bmask", r.bmask); field.setParam("smask", r.smask); field.setParam("states", r.states); }
+      else { var n = parseInt(ruleBox.value, 10); if (isNaN(n) || n < 0 || n > 255) { say("A one-dimensional rule is a number from 0 to 255."); syncModelControls(); return; } field.setParam("rule", n); }
+      markPreset(null); syncInputs(); say("Rule " + ruleBox.value + ".");
+    });
+    if (dimSel) dimSel.addEventListener("change", function () {
+      var dim = parseInt(dimSel.value, 10) === 2 ? 2 : 1; field.setParam("dim", dim);
+      if (dim === 2 && field.params().density < 0.02) field.setParam("density", 0.35);
+      field.clear(); markPreset(null); syncInputs(); say(dim === 2 ? "Two dimensions: a Life-like rule on the plane. The field is black; press Seed or paint." : "One dimension: a Wolfram rule, rows stacking in time. The field is black; press Seed or paint.");
+    });
+    // the seed value: typed, or rerolled; the field clears so the new stream starts clean
+    if (seedInput) seedInput.addEventListener("change", function () { var n = parseInt(seedInput.value, 10); if (isNaN(n)) { syncSeed(); return; } field.setSeed(n); seedClicks = 0; syncSeed(); updateState(); say("Seed value " + field.seedValue() + ". The field is black; press Seed or paint."); });
+    if (seedReroll) seedReroll.addEventListener("click", function () { field.setSeed(Math.floor(Math.random() * 1000000)); seedClicks = 0; syncSeed(); updateState(); say("Seed value " + field.seedValue() + ". The field is black; press Seed or paint."); });
 
     function setPauseState(playing) { if (!pauseBtn) return; pauseBtn.textContent = playing ? "⏸ PAUSE" : "▶ PLAY"; pauseBtn.setAttribute("aria-label", playing ? "Pause the field" : "Play the field"); updateState(); }
     if (pauseBtn) { setPauseState(true); pauseBtn.addEventListener("click", function () { if (field.isPaused()) { field.play(); setPauseState(true); say("Playing."); } else { field.pause(); setPauseState(false); say("Paused."); } }); }
     if (resetBtn) resetBtn.addEventListener("click", function () { field.clear(); seedClicks = 0; say("Field reset to black."); });
     if (seedBtn) seedBtn.addEventListener("click", function () {
       var q = field.quality(), m = field.model(), first = seedClicks === 0;
-      field.seed(first ? q.width / 2 : Math.random() * q.width, first ? q.height / 2 : Math.random() * q.height, (m.grid === "pixels" || m.sized) ? undefined : 4 * q.width / 320);
+      field.seed(first ? q.width / 2 : field.random() * q.width, first ? q.height / 2 : field.random() * q.height, (m.grid === "pixels" || m.sized) ? undefined : 4 * q.width / 320);
       seedClicks++; if (field.isPaused()) { field.play(); setPauseState(true); }
-      say("Seeded" + (first ? " at the center" : " one point at random") + ": " + currentName() + ", " + paramsText() + ".");
+      say("Seeded" + (first ? " at the center" : " one point at random") + ": " + tileName() + ", " + paramsText() + ".");
     });
 
     function setColorsOpen(open) {
@@ -2136,8 +2269,8 @@
     if (steps) steps.addEventListener("change", function () { field.setSteps(parseInt(steps.value, 10)); });
     if (measure) (function readout() {
       var q = field.quality(), m = field.model();
-      measure.textContent = q.lattice[0] + " × " + q.lattice[1] + (m.grid === "pixels" ? " px" : "") + " · " + (field.reducedMotion() ? "still" : (field.isAlive() ? Math.round(q.fps) + " fps" : "idle")) +
-        " · brush " + (field.brush() * 100).toFixed(field.brush() < 0.01 ? 1 : 0) + "%" + (m.sized ? " · crystal " + Math.round(q.radius) + " px" : "");
+      measure.textContent = q.lattice[0] + " × " + q.lattice[1] + (m.grid === "pixels" ? " px" : " cells") + " · " + (field.reducedMotion() ? "still" : (field.isAlive() ? Math.round(q.fps) + " fps" : "idle")) +
+        " · " + q.steps.toFixed(1) + " steps/frame · brush " + (field.brush() * 100).toFixed(field.brush() < 0.01 ? 1 : 0) + "%" + (m.sized ? " · crystal " + Math.round(q.radius) + " px" : "");
       setTimeout(readout, 500);
     })();
 
@@ -2145,87 +2278,137 @@
       if (type === "quiet") say("The pattern has faded; the field is quiet.");
       if (type === "motion") setMotionState();
       if (type === "clear") seedClicks = 0;
+      if (type === "seed-value") syncSeed();
       if (loading && type === "busy") loading.hidden = false;
       if (loading && (type === "still" || type === "motion" && !field.reducedMotion())) loading.hidden = true;
     });
 
-    // the initial state: the default family (data-rd-default on a family button, else the first), its default tile
-    var initialFamily = null;
-    for (var n = 0; n < familyBtns.length; n++) if (familyBtns[n].hasAttribute("data-rd-default")) initialFamily = familyBtns[n].getAttribute("data-rd-id");
-    if (!initialFamily && familyBtns.length) initialFamily = familyBtns[0].getAttribute("data-rd-id");
-    if (initialFamily) showFamily(initialFamily, false);
-    else { var initial = null; for (var q2 = 0; q2 < presets.length; q2++) if (presets[q2].hasAttribute("data-rd-default")) initial = presetById(presets[q2].getAttribute("data-rd-id")); if (initial) applyPreset(initial, false); else { setSliders(null); syncInputs(); } }
+    // the initial state: the default category (data-rd-default on a category button, else the first), its default tile
+    var initialCategory = null;
+    for (var n = 0; n < catBtns.length; n++) if (catBtns[n].hasAttribute("data-rd-default")) initialCategory = catBtns[n].getAttribute("data-rd-id");
+    if (!initialCategory && catBtns.length) initialCategory = catBtns[0].getAttribute("data-rd-id");
+    if (initialCategory) showCategory(initialCategory, false);
+    else { var initial = null; for (var q2 = 0; q2 < tileBtns.length; q2++) if (tileBtns[q2].hasAttribute("data-rd-default")) initial = legacy ? presetById(tileBtns[q2].getAttribute("data-rd-id")) : tileById(tileBtns[q2].getAttribute("data-rd-id")); if (initial) { if (legacy) applyPreset(initial, false); else selectTile(initial, false); } else { setSliders(null); syncInputs(); } }
     setMotionState();
-    say((current ? current.name + " pattern: " : "") + paramsText() + ". The field is black until you press Seed or click and drag on it.");
+    say((currentTile ? currentTile.name + (current ? ", " + current.name + " preset: " : ": ") : "") + paramsText() + ". The field is black until you press Seed or click and drag on it.");
   }
 
 
-  // ---- the families and their presets ------------------------------------------------------------------------
-  // A preset: { id, family, name, model, params (overrides), seed, firstSeed, palette, brush, timeScale,
-  //   stepScale, dscale, chrono, thumbSeed, thumbSteps, thumbScale, thumbStir }.
-  // firstSeed "spec": the first Seed press (or the first mark on the field) runs the preset's own seeding from
-  // that point; every later press places one random point, as on every pattern (owner ruling 2026-10-09). A tile
-  // itself only selects; the field stays black until the visitor acts.
-  var FAMILIES = [
-    { id: "rd", name: "Reaction–diffusion" },
-    { id: "ca", name: "Cellular automata" }
+  // ---- categories, tiles and presets --------------------------------------------------------------------------
+  // CATEGORIES (owner ruling 2026-10-11): the top-level split is by the mathematics of the rule as written, never by
+  // appearance. DETERMINISTIC rules are split by the time they are written in; every STOCHASTIC rule shares one button.
+  //   stepwise  — deterministic, discrete time: every bounded stretch of time holds finitely many instants
+  //   flowing   — deterministic, continuous time: a differential equation, integrated in steps only to compute it
+  //   chance    — the rule itself contains a probability law (randomness in the SEED does not count: that is instance data)
+  var CATEGORIES = [
+    { id: "stepwise", name: "Stepwise", formal: "discrete time", group: "deterministic" },
+    { id: "flowing",  name: "Flowing",  formal: "continuous time", group: "deterministic" },
+    { id: "chance",   name: "Chance-driven", formal: "probabilistic", group: "stochastic" }
   ];
+  // A TILE is a named model (owner ruling 2026-10-11: "those buttons become NAMED MODELS, period"). Its presets are
+  // whole recipes inside that model; the first listed is the default. Order inside a category is the order shown.
+  var TILES = [
+    { id: "gray-scott",          category: "flowing",  model: "gray-scott",  name: "Gray–Scott",            presets: ["malachite", "meandric", "swarm", "xylem", "turbulence", "mitosis", "phyllotaxis", "vortex"] },
+    { id: "ginzburg-landau",     category: "flowing",  model: "cgl",         name: "Ginzburg–Landau",       presets: ["antispiral", "cgl-turbulence"] },
+    { id: "reiter",              category: "stepwise", model: "reiter",      name: "Reiter snow crystal",   presets: ["ca-frost"] },
+    { id: "cellular-automaton",  category: "stepwise", model: "ca",          name: "Cellular automaton",    presets: ["rule30", "rule110", "rule90", "life", "highlife", "daynight", "seeds", "brain"] },
+    { id: "lenia",               category: "stepwise", model: "lenia",       name: "Lenia",                 presets: ["lenia"] },
+    { id: "lattice-boltzmann",   category: "stepwise", model: "wake",        name: "Lattice Boltzmann",     presets: ["wake"] },
+    { id: "cyclic-automaton",    category: "stepwise", model: "rotor",       name: "Cyclic automaton",      presets: ["rotor"] },
+    { id: "dielectric-breakdown", category: "chance",  model: "lichtenberg", name: "Dielectric breakdown",  presets: ["lichtenberg", "dla"] },
+    { id: "potts",               category: "chance",   model: "grain",       name: "Potts model",           presets: ["grain", "potts-critical"] },
+    { id: "forest-fire",         category: "chance",   model: "wildfire",    name: "Forest fire",           presets: ["wildfire"] }
+  ];
+  // A preset: { id, tile, name, model, params (overrides), seed, firstSeed, palette, brush, timeScale, stepScale, dscale,
+  //   quality, logRange, chrono, thumbSeed, thumbSteps, thumbScale, thumbStir, provisional }.
+  // firstSeed "spec": the first Seed press (or the first mark on the field) runs the preset's own seeding from that
+  // point; every later press places one random point (owner ruling 2026-10-09). A tile selects its default preset; the
+  // field stays black until the visitor acts. `provisional`: the slider box around this preset is hand-set and awaits the
+  // dead-range bench (owner ruling 2026-10-11: provisional ranges now, measured ranges next unit).
   var PRESETS = [
-    // —— reaction–diffusion: Gray–Scott in eight regimes, and the phase-field dendrite ——
-    // the owner's defaults of 2026-10-09: palette, rates, speed (timeScale) and brush per pattern; each slider is
-    // centred on these (the binding tailors the ranges), so every pattern starts mid-range
-    // Owner's defaults of 2026-10-10 (their own readings off the demo): Malachite speed 0.500; Meandric at Munafo's γ class
-    // (F 0.026, k 0.055: "stripes, either wormlike or branching, with endless instability" — the regime closest to a slime
-    // mould's exploring veins), speed 0.300, Resolution 480, with LOGARITHMIC feed and kill tracks a factor 2.2 each way so the
-    // range runs from the chaotic wavelets below to the hedgerow mazes and corals of class κ above (F 0.050–0.058, k 0.063)
-    { id: "malachite",   family: "rd", name: "Malachite",   model: "gray-scott", palette: "canopy",   params: { feed: 0.008, kill: 0.031 }, timeScale: 0.5, brush: 0.02, seed: { type: "pacemaker", n: 1, r: 3, every: 75 }, firstSeed: "spec", chrono: 420 },
-    { id: "meandric",    family: "rd", name: "Meandric",    model: "gray-scott", palette: "physarum", params: { feed: 0.026, kill: 0.055 }, timeScale: 0.3, brush: 0.02, quality: 480, logRange: 2.2, seed: { type: "spiral", n: 21, r: 3 }, chrono: 2400 },
-    { id: "swarm",       family: "rd", name: "Swarm",       model: "gray-scott", palette: "neon",     params: { feed: 0.013, kill: 0.054 }, timeScale: 2.6,  brush: 0.05, seed: { type: "spiral", n: 21, r: 3 }, chrono: 1800 },
-    { id: "xylem",       family: "rd", name: "Xylem",       model: "gray-scott", palette: "coastal",  params: { feed: 0.039, kill: 0.058 }, timeScale: 0.04, brush: 0.04, seed: { type: "spiral", n: 13, r: 4 }, chrono: 2400 },
-    // The complex Ginzburg–Landau tile replaces the phase-field dendrite's Frost tile (owner 2026-10-09; the dendrite stays in
-    // the registry). The preset sits where spirals are stable and turn inward (b > c, 1 + bc > 0); the slider ends cross the
-    // Benjamin–Feir line into turbulence. Name and palette proposed, not ruled.
-    // owner 2026-10-10: Neon, dispersion 1.75, nonlinear dispersion −0.65, speed 1.5, Resolution 800 (the model's defaults carry b and c)
-    { id: "antispiral", family: "rd", name: "Antispiral",  model: "cgl",        params: {}, palette: "neon", timeScale: 1.5, brush: 0.03, quality: 800, seed: { type: "center", r: 14 }, firstSeed: "spec", thumbSeed: { type: "center", r: 16 }, thumbSteps: 1500, thumbScale: 2, chrono: 1200 },
-    { id: "turbulence",  family: "rd", name: "Turbulence",  model: "gray-scott", palette: "accretion", params: { feed: 0.025, kill: 0.050 }, timeScale: 1.0, brush: 0.05, seed: { type: "discs", n: 7, r: 4 }, chrono: 1800 },
-    // Mitosis (owner 2026-10-10): F 0.037, k 0.065, speed 1.750, Resolution 320 (the owner read "300"; 320 is the nearest rung);
-    // the first Seed press is the centre point plus a petri-dish streak toward one quadrant, later presses single random points
-    { id: "mitosis",     family: "rd", name: "Mitosis",     model: "gray-scott", palette: "spectrum",  params: { feed: 0.037, kill: 0.065 }, timeScale: 1.75, brush: 0.02, quality: 320, seed: { type: "streak", r: 2, legs: 7, len: 0.18 }, firstSeed: "spec", chrono: 2400 },
-    // Phyllotaxis: `n` sets the head's spacing (144 spots fill the inscribed circle); `edge` keeps placing spots on the
-    // golden angle past n until the spiral leaves the frame (owner ruling 2026-10-09)
-    { id: "phyllotaxis", family: "rd", name: "Phyllotaxis", model: "gray-scott", palette: "orodruin", params: { feed: 0.030, kill: 0.062 }, timeScale: 1.25, brush: 0.03, seed: { type: "grow", n: 144, r: 1.6, every: 4, edge: true }, firstSeed: "spec", chrono: 1200 },
-    // Vortex: feed 0.008, kill 0.039 (owner ruling 2026-10-09) — Pearson's ξ region, "large, sustained spirals similar to
-    // the Belousov–Zhabotinsky reaction" (Munafo's classification, read 2026-10-09); the 3.2 diffusion scale that
-    // reproduces jsexp's 5-point kernel at its 0.8 step is kept. The tile is stirred so broken fronts curl into rotors.
-    // the opening is a "stir": five points and four curved slashes of varying length, at random places and moments
-    // within one second, different every time (owner, 2026-10-09)
-    // selfSustaining false: spiral waves in this regime live on broken fronts (the stir, the visitor's strokes) and a
-    // single front runs off and dies, so the fade test records its survival without binding it to the window
-    { id: "vortex",      family: "rd", name: "Vortex",      model: "gray-scott", palette: "aurora", params: { feed: 0.008, kill: 0.039 }, timeScale: 1.25, brush: 0.03, dscale: 3.2, selfSustaining: false, seed: { type: "stir", points: 5, slashes: 4, frames: 60, r: 2 }, firstSeed: "every", thumbSeed: { type: "strokes", n: 3, r: 2 }, thumbStir: { every: 150, n: 1, r: 2 }, thumbSteps: 1500, thumbScale: 2, chrono: 900 },
+    // —— Gray–Scott: the eight regimes that were tiles in 0.4–0.6 are now this one model's presets (owner ruling 2026-10-11) ——
+    // the owner's defaults of 2026-10-09/10 (palette, rates, speed, brush) per preset; every slider is centred on them
+    { id: "malachite",   tile: "gray-scott", name: "Malachite",   model: "gray-scott", palette: "canopy",    params: { feed: 0.008, kill: 0.031 }, timeScale: 0.5, brush: 0.02, seed: { type: "pacemaker", n: 1, r: 3, every: 75 }, firstSeed: "spec", chrono: 420, provisional: true },
+    { id: "meandric",    tile: "gray-scott", name: "Meandric",    model: "gray-scott", palette: "physarum",  params: { feed: 0.026, kill: 0.055 }, timeScale: 0.4, brush: 0.02, quality: 480, logRange: 2.2, seed: { type: "spiral", n: 21, r: 3 }, chrono: 2400, provisional: true },   // speed 0.400 (owner 2026-10-11)
+    { id: "swarm",       tile: "gray-scott", name: "Swarm",       model: "gray-scott", palette: "neon",      params: { feed: 0.013, kill: 0.054 }, timeScale: 2.6, brush: 0.05, seed: { type: "spiral", n: 21, r: 3 }, chrono: 1800, provisional: true },
+    { id: "xylem",       tile: "gray-scott", name: "Xylem",       model: "gray-scott", palette: "canopy",    params: { feed: 0.039, kill: 0.058 }, timeScale: 0.3, brush: 0.04, seed: { type: "spiral", n: 13, r: 4 }, chrono: 2400, provisional: true },   // speed 0.300, Canopy (owner 2026-10-11)
+    { id: "turbulence",  tile: "gray-scott", name: "Turbulence",  model: "gray-scott", palette: "accretion", params: { feed: 0.025, kill: 0.050 }, timeScale: 1.0, brush: 0.05, seed: { type: "discs", n: 7, r: 4 }, chrono: 1800, provisional: true },
+    // Mitosis (owner 2026-10-10): F 0.037, k 0.065, speed 1.750, Resolution 320; the first Seed press is the centre point plus a
+    // petri-dish streak toward one quadrant, later presses single random points
+    { id: "mitosis",     tile: "gray-scott", name: "Mitosis",     model: "gray-scott", palette: "spectrum",  params: { feed: 0.037, kill: 0.065 }, timeScale: 1.75, brush: 0.02, quality: 320, seed: { type: "streak", r: 2, legs: 7, len: 0.18 }, firstSeed: "spec", chrono: 2400, provisional: true },
+    // Phyllotaxis: `n` sets the head's spacing; `edge` keeps placing spots on the golden angle until the spiral leaves the frame.
+    // Speed 0.125 (owner 2026-10-11: "0.250 is about 200 % of where it should be"); the Fibonacci overhaul is a later unit
+    { id: "phyllotaxis", tile: "gray-scott", name: "Phyllotaxis", model: "gray-scott", palette: "orodruin",  params: { feed: 0.030, kill: 0.062 }, timeScale: 0.125, brush: 0.03, seed: { type: "grow", n: 144, r: 1.6, every: 4, edge: true }, firstSeed: "spec", chrono: 1200, provisional: true },
+    // Vortex: feed 0.008, kill 0.039 (owner 2026-10-09), the 3.2 diffusion scale; the opening is a stir of five points and four
+    // curved slashes within one second, drawn from the seed value, on every Seed press and click
+    { id: "vortex",      tile: "gray-scott", name: "Vortex",      model: "gray-scott", palette: "aurora",    params: { feed: 0.008, kill: 0.039 }, timeScale: 1.25, brush: 0.03, dscale: 3.2, selfSustaining: false, seed: { type: "stir", points: 5, slashes: 4, frames: 60, r: 2 }, firstSeed: "every", thumbSeed: { type: "strokes", n: 3, r: 2 }, thumbStir: { every: 150, n: 1, r: 2 }, thumbSteps: 1500, thumbScale: 2, chrono: 900, provisional: true },
 
-    // —— cellular automata ——
-    // Frost is Reiter's crystal (owner 2026-10-09: "we use Reiter's model and we make it polished"); the Gravner–Griffeath
-    // crystal stays in the registry as `snow` without a tile. The crystal's size follows the Resolution rung (the model is
-    // `sized`), the stroke lays single seeds along a string of pearls, and the lattice is the canvas's own pixels.
-    // brush 0.2 %: the brush here is the void's width around a pinpoint nucleus (see the field), so by default there is no void;
-    // Coastal (owner 2026-10-09); stepScale 1/3: two lattice steps per frame at the default speed, which is 1.0.2's on-screen
-    // tip speed (one step per frame on cells 2.3 px wide) on one-pixel cells
-    // quality "auto": on Frost, Automatic is one lattice cell per screen pixel (the approved look); 320 … 1600 are coarser to finer lattices
-    { id: "ca-frost",     family: "ca", name: "Frost",       model: "reiter",      params: {}, palette: "coastal", quality: "auto", seed: { type: "center", r: 0.6 }, brush: 0.002, stepScale: 1 / 3, thumbSeed: { type: "spiral", n: 4, r: 0.6, spread: 0.8 }, thumbSteps: 2400, thumbScale: 2, chrono: 3000 },
-    // Owner's defaults of 2026-10-10, read off the demo (each tile's own stepScale is unchanged, so the Speed reading keeps its meaning):
-    // Lenia Aurora μ 0.136 σ 0.011 speed 0.250 · Rotor Accretion 5 states, threshold 2.0, speed 0.275 · Lichtenberg Physarum η 2.4,
-    // rate 1.6, speed 0.175 · Wake Spectrum flow 0.130, viscosity 0.005, speed 1.500 (the model carries flow and viscosity)
-    { id: "lenia",        family: "ca", name: "Lenia",       model: "lenia",       params: { mu: 0.136, sigma: 0.011 }, palette: "aurora", timeScale: 0.25, seed: { type: "fill" }, firstSeed: "spec", brush: 0.08, stepScale: 0.1, thumbSeed: { type: "fill" }, thumbSteps: 300, chrono: 600 },
-    { id: "rotor",        family: "ca", name: "Rotor",       model: "rotor",       params: { states: 5, threshold: 2 }, palette: "accretion", timeScale: 0.275, seed: { type: "fill" }, firstSeed: "spec", brush: 0.08, stepScale: 0.3, thumbSeed: { type: "fill" }, thumbSteps: 260, thumbScale: 2, chrono: 400 },
-    { id: "lichtenberg",  family: "ca", name: "Lichtenberg", model: "lichtenberg", params: { eta: 2.4, rate: 1.6 }, palette: "physarum", timeScale: 0.175, quality: 480, seed: { type: "center", r: 2 }, firstSeed: "spec", brush: 0.004, thumbSteps: 500, thumbScale: 1.5, chrono: 1200 },   // Resolution 480 (owner 2026-10-10)
-    // Sandpile: falling sand (owner 2026-10-09: "give the sandpile gravity"); the drop point keeps dropping until Reset
-    { id: "sandpile",     family: "ca", name: "Sandpile",    model: "sand",        params: {}, seed: { type: "pacemaker", n: 1, r: 1, every: 2 }, firstSeed: "spec", brush: 0.01, thumbSeed: { type: "center", r: 1 }, thumbStir: { every: 2, spec: { type: "center", r: 1 } }, thumbSteps: 900, thumbScale: 2, chrono: 1200 },
-    { id: "conus",        family: "ca", name: "Conus",       model: "conus",       params: {}, seed: { type: "center", r: 1 }, firstSeed: "spec", brush: 0.004, stepScale: 0.35, thumbSeed: { type: "center", r: 1 }, thumbSteps: 108, thumbScale: 2, chrono: 300 },
-    { id: "wildfire",     family: "ca", name: "Wildfire",    model: "wildfire",    params: {}, seed: { type: "fill" }, firstSeed: "spec", brush: 0.03, stepScale: 0.4, thumbSeed: { type: "fill" }, thumbSteps: 400, thumbScale: 2, chrono: 900 },
-    { id: "grain",        family: "ca", name: "Grain",       model: "grain",       params: {}, seed: { type: "fill" }, firstSeed: "spec", brush: 0.08, stepScale: 0.5, thumbSeed: { type: "fill" }, thumbSteps: 400, thumbScale: 2, chrono: 1200 },
-    { id: "wake",         family: "ca", name: "Wake",        model: "wake",        params: {}, palette: "spectrum", timeScale: 1.5, seed: { type: "center", r: 9 }, firstSeed: "spec", brush: 0.004, thumbSeed: { type: "center", r: 6 }, thumbSteps: 600, thumbScale: 2, chrono: 1800 }
+    // —— complex Ginzburg–Landau ——
+    // owner 2026-10-10: Neon, α 1.75, β −0.65, speed 1.5, Resolution 800 (the model's defaults carry b and c)
+    { id: "antispiral",     tile: "ginzburg-landau", name: "Antispiral",  model: "cgl", params: {}, palette: "neon", timeScale: 1.5, brush: 0.03, quality: 800, seed: { type: "center", r: 14 }, firstSeed: "spec", thumbSeed: { type: "center", r: 16 }, thumbSteps: 1500, thumbScale: 2, chrono: 1200 },
+    // past the Benjamin–Feir line (1 + αβ < 0): defect turbulence. The owner's recording setting of 2026-10-10 (α 1.90, β −2.00, Canopy, speed 0.250)
+    { id: "cgl-turbulence", tile: "ginzburg-landau", name: "Defect turbulence", model: "cgl", params: { b: 1.90, c: -2.00 }, palette: "canopy", timeScale: 0.25, brush: 0.03, quality: 320, seed: { type: "fill" }, firstSeed: "spec", thumbSeed: { type: "fill" }, thumbSteps: 1200, thumbScale: 2, chrono: 1200, provisional: true },
+
+    // —— Reiter snow crystal (owner 2026-10-09: "we use Reiter's model and we make it polished") ——
+    // brush 0.2 %: the brush here is the void's width around a pinpoint nucleus (see the field); Coastal; stepScale 1/3: two lattice
+    // steps per frame at the default speed; quality "auto": one lattice cell per screen pixel; 320 … 1600 are coarser to finer lattices.
+    // Vapour noise is ZERO (owner ruling 2026-10-11: the model sits under DETERMINISTIC · STEPWISE; variety comes from the seed)
+    { id: "ca-frost", tile: "reiter", name: "Frost", model: "reiter", params: {}, palette: "coastal", quality: "auto", seed: { type: "center", r: 0.6 }, brush: 0.002, stepScale: 1 / 3, thumbSeed: { type: "spiral", n: 4, r: 0.6, spread: 0.8 }, thumbSteps: 2400, thumbScale: 2, chrono: 3000 },
+
+    // —— the cellular automaton: one model, one dimension toggle (owner ruling 2026-10-11: Wolfram's and Conway's rules are one
+    // mathematical object, a finite lookup table on a lattice). 1-D presets: the rule number; 2-D presets: the B/S(/C) string ——
+    // 1-D (Wolfram): speed 0.100 (owner 2026-10-11), the live row at the bottom scrolling up; the brush and Seed act on that row
+    { id: "rule30",   tile: "cellular-automaton", name: "Rule 30",  model: "ca", params: { rule: 30,  dim: 1 }, palette: "neon",      timeScale: 0.1, brush: 0.004, seed: { type: "center", r: 1 }, firstSeed: "spec", thumbSeed: { type: "center", r: 1 }, thumbSteps: 108, thumbScale: 2, chrono: 300, provisional: true },
+    { id: "rule110",  tile: "cellular-automaton", name: "Rule 110", model: "ca", params: { rule: 110, dim: 1 }, palette: "neon",      timeScale: 0.1, brush: 0.004, seed: { type: "fill" }, firstSeed: "spec", thumbSeed: { type: "fill" }, thumbSteps: 108, thumbScale: 2, chrono: 300, provisional: true },
+    { id: "rule90",   tile: "cellular-automaton", name: "Rule 90",  model: "ca", params: { rule: 90,  dim: 1 }, palette: "neon",      timeScale: 0.1, brush: 0.004, seed: { type: "center", r: 1 }, firstSeed: "spec", thumbSeed: { type: "center", r: 1 }, thumbSteps: 108, thumbScale: 2, chrono: 300, provisional: true },
+    // 2-D (Life-like): a random soup at the given density within the brush or the whole field; the glow stage lays the vapour tails
+    { id: "life",     tile: "cellular-automaton", name: "Life",          model: "ca", params: { dim: 2, bmask: 8,   smask: 12,  states: 2, density: 0.35 }, palette: "aurora", timeScale: 0.25, brush: 0.08, seed: { type: "fill" }, firstSeed: "spec", thumbSeed: { type: "fill" }, thumbSteps: 200, thumbScale: 2, chrono: 400, provisional: true },   // B3/S23
+    { id: "highlife", tile: "cellular-automaton", name: "HighLife",      model: "ca", params: { dim: 2, bmask: 72,  smask: 12,  states: 2, density: 0.35 }, palette: "aurora", timeScale: 0.25, brush: 0.08, seed: { type: "fill" }, firstSeed: "spec", thumbSeed: { type: "fill" }, thumbSteps: 200, thumbScale: 2, chrono: 400, provisional: true },   // B36/S23
+    { id: "daynight", tile: "cellular-automaton", name: "Day and Night", model: "ca", params: { dim: 2, bmask: 456, smask: 472, states: 2, density: 0.5 },  palette: "aurora", timeScale: 0.25, brush: 0.08, seed: { type: "fill" }, firstSeed: "spec", thumbSeed: { type: "fill" }, thumbSteps: 200, thumbScale: 2, chrono: 400, provisional: true },   // B3678/S34678
+    { id: "seeds",    tile: "cellular-automaton", name: "Seeds",         model: "ca", params: { dim: 2, bmask: 4,   smask: 0,   states: 2, density: 0.05 }, palette: "aurora", timeScale: 0.25, brush: 0.08, seed: { type: "center", r: 3 }, firstSeed: "spec", thumbSeed: { type: "center", r: 3 }, thumbSteps: 60, thumbScale: 2, chrono: 200, provisional: true },   // B2/S
+    { id: "brain",    tile: "cellular-automaton", name: "Brian's Brain", model: "ca", params: { dim: 2, bmask: 4,   smask: 0,   states: 3, density: 0.3 },  palette: "aurora", timeScale: 0.25, brush: 0.08, seed: { type: "fill" }, firstSeed: "spec", thumbSeed: { type: "fill" }, thumbSteps: 120, thumbScale: 2, chrono: 300, provisional: true },   // B2/S/C3
+
+    // —— Lenia (owner 2026-10-10: Aurora, μ 0.136, σ 0.011, speed 0.250) ——
+    // thumbScale 3: on the 96 × 54 tile grid the kernel (radius 13) spans half the height and the soup dies within the 300 steps,
+    // which is why the tile was black on the 0.6.0 demo; at 288 × 162 creatures emerge as on the field (finding, 2026-10-12)
+    { id: "lenia", tile: "lenia", name: "Orbium", model: "lenia", params: { mu: 0.136, sigma: 0.011 }, palette: "aurora", timeScale: 0.25, seed: { type: "fill" }, firstSeed: "spec", brush: 0.08, stepScale: 0.1, thumbSeed: { type: "fill" }, thumbSteps: 300, thumbScale: 3, chrono: 600 },
+
+    // —— lattice Boltzmann (owner 2026-10-10: Spectrum, flow 0.130, viscosity 0.005; speed 1.00 ruled 2026-10-11) ——
+    { id: "wake", tile: "lattice-boltzmann", name: "Wake", model: "wake", params: {}, palette: "spectrum", timeScale: 1.0, seed: { type: "center", r: 9 }, firstSeed: "spec", brush: 0.004, thumbSeed: { type: "center", r: 6 }, thumbSteps: 600, thumbScale: 2, chrono: 1800 },
+
+    // —— the cyclic automaton (owner 2026-10-10: Accretion, 5 states, threshold 2.0, speed 0.275) ——
+    { id: "rotor", tile: "cyclic-automaton", name: "Rotor", model: "rotor", params: { states: 5, threshold: 2 }, palette: "accretion", timeScale: 0.275, seed: { type: "fill" }, firstSeed: "spec", brush: 0.08, stepScale: 0.3, thumbSeed: { type: "fill" }, thumbSteps: 260, thumbScale: 2, chrono: 400 },
+
+    // —— dielectric breakdown (owner 2026-10-10: Physarum, η 2.4, rate 1.6, speed 0.175, Resolution 480) ——
+    { id: "lichtenberg", tile: "dielectric-breakdown", name: "Lightning", model: "lichtenberg", params: { eta: 2.4, rate: 1.6 }, palette: "physarum", timeScale: 0.175, quality: 480, seed: { type: "center", r: 2 }, firstSeed: "spec", brush: 0.004, thumbSteps: 500, thumbScale: 1.5, chrono: 1200 },
+    // η = 1 is diffusion-limited aggregation by definition (Niemeyer, Pietronero and Wiesmann 1984): the dense coral
+    { id: "dla",         tile: "dielectric-breakdown", name: "Aggregation", model: "lichtenberg", params: { eta: 1.0, rate: 1.6 }, palette: "physarum", timeScale: 0.175, quality: 480, seed: { type: "center", r: 2 }, firstSeed: "spec", brush: 0.004, thumbSteps: 500, thumbScale: 1.5, chrono: 1200, provisional: true },
+
+    // —— the Potts model ——
+    { id: "grain",          tile: "potts", name: "Grain growth", model: "grain", params: {}, palette: "canopy", seed: { type: "fill" }, firstSeed: "spec", brush: 0.08, stepScale: 0.5, thumbSeed: { type: "fill" }, thumbSteps: 400, thumbScale: 2, chrono: 1200 },
+    // q = 2 is the Ising model; the temperature here is in units of the coupling on the eight-neighbour lattice, and the value
+    // below is a HAND-SET starting point for the critical fog, to be measured by the bench (owner 2026-10-11: provisional)
+    { id: "potts-critical", tile: "potts", name: "Ising, critical", model: "grain", params: { states: 2, temperature: 1.9 }, palette: "cherenkov", seed: { type: "fill" }, firstSeed: "spec", brush: 0.08, stepScale: 0.5, thumbSeed: { type: "fill" }, thumbSteps: 400, thumbScale: 2, chrono: 1200, provisional: true },
+
+    // —— the forest fire ——
+    { id: "wildfire", tile: "forest-fire", name: "Wildfire", model: "wildfire", params: {}, palette: "neon", seed: { type: "fill" }, firstSeed: "spec", brush: 0.03, stepScale: 0.4, thumbSeed: { type: "fill" }, thumbSteps: 400, thumbScale: 2, chrono: 900 }
   ];
   function presetById(id) { for (var i = 0; i < PRESETS.length; i++) if (PRESETS[i].id === id) return PRESETS[i]; return null; }
+  function tileById(id) { for (var i = 0; i < TILES.length; i++) if (TILES[i].id === id) return TILES[i]; return null; }
+  function categoryById(id) { for (var i = 0; i < CATEGORIES.length; i++) if (CATEGORIES[i].id === id) return CATEGORIES[i]; return null; }
+  // the B/S(/C) rule string of the 2-D automaton ↔ the bit masks the shader reads ("B3/S23", "B36/S23", "B2/S/C3")
+  function parseLifeRule(str) {
+    var m = /^\s*B(\d*)\s*\/\s*S(\d*)\s*(?:\/\s*C?(\d+))?\s*$/i.exec(str || ""); if (!m) return null;
+    var b = 0, s = 0, i;
+    for (i = 0; i < m[1].length; i++) b |= 1 << parseInt(m[1][i], 10);
+    for (i = 0; i < m[2].length; i++) s |= 1 << parseInt(m[2][i], 10);
+    return { bmask: b, smask: s, states: m[3] ? Math.max(2, parseInt(m[3], 10)) : 2 };
+  }
+  function lifeRuleString(bmask, smask, states) {
+    var b = "", s = "", i;
+    for (i = 0; i <= 8; i++) { if ((bmask >> i) & 1) b += i; if ((smask >> i) & 1) s += i; }
+    return "B" + b + "/S" + s + (states > 2 ? "/C" + states : "");
+  }
 
   var registry = [];
   function auto(root) {
@@ -2245,6 +2428,7 @@
         brush: d.brush !== undefined ? parseFloat(d.brush) : undefined,
         dscale: d.dscale !== undefined ? parseFloat(d.dscale) : undefined,
         hover: d.hover === "on" || d.hover === "true",
+        seed: d.seed !== undefined ? parseInt(d.seed, 10) : undefined,
         quality: d.quality === "auto" ? "auto" : (d.quality !== undefined ? parseInt(d.quality, 10) : undefined),
         gpu: d.gpu !== "off", reducedMotion: mq ? mq.matches : false
       });
@@ -2255,9 +2439,10 @@
   }
   function get(canvas) { for (var i = 0; i < registry.length; i++) if (registry[i].canvas === canvas) return registry[i].field; return null; }
 
-  var Morphogen = { mount: mount, bind: bind, auto: auto, get: get, models: MODELS, modelOrder: MODEL_ORDER, families: FAMILIES, presets: PRESETS, palettes: PALETTES, ladder: LADDER, buildLut: buildLut, renderThumb: renderThumb, thumbJob: thumbJob, seedDiscList: seedDiscList, defineModel: defineModel, version: VERSION };
+  var Morphogen = { mount: mount, bind: bind, auto: auto, get: get, models: MODELS, modelOrder: MODEL_ORDER, categories: CATEGORIES, tiles: TILES, presets: PRESETS, palettes: PALETTES, ladder: LADDER, buildLut: buildLut, renderThumb: renderThumb, thumbJob: thumbJob, seedDiscList: seedDiscList, defineModel: defineModel, parseLifeRule: parseLifeRule, lifeRuleString: lifeRuleString, version: VERSION };
+  Morphogen.families = CATEGORIES;   // the 0.4–0.6 name of the top-level row, kept as an alias
   global.Morphogen = Morphogen;
-  global.ReactionDiffusion = Morphogen;   // the 1.x name, kept as an alias
+  global.ReactionDiffusion = Morphogen;   // the 0.1–0.3 name, kept as an alias
   if (global.document && global.document.querySelectorAll) { if (global.document.readyState === "loading") global.document.addEventListener("DOMContentLoaded", function () { auto(); }); else auto(); }
 })(typeof window !== "undefined" ? window : this);
 

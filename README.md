@@ -1,9 +1,9 @@
 # Morphogen
 
-**An engine of emergent pattern formation for the web.** Two families of models, eighteen named
-patterns, nine color ramps, one classic script with no dependencies and no build step for the page
-that uses it, the simulation on the graphics processor with the processor as fallback, and full
-keyboard, touch and screen-reader operation.
+**An engine of emergent pattern formation for the web.** Ten named models with their presets, sorted
+into three categories by the mathematics of their rules, nine color ramps, one classic script with no
+dependencies and no build step for the page that uses it, the simulation on the graphics processor with
+the processor as fallback, and full keyboard, touch and screen-reader operation.
 
 [**Live demo**](https://cs-training-systems.github.io/morphogen/) ·
 [Quick start](#quick-start) · [Families and patterns](#families-and-patterns) · [Controls](#controls) ·
@@ -21,14 +21,21 @@ word is Alan Turing's, for the chemicals he proposed in 1952 as the agents of li
 *morphogenesis*, the generation of form, it names the whole engine.
 
 The models are written from their published equations and rules, each cited in the source beside its
-code, with no borrowed code. They fall into two families, chosen so that every pattern in a family
-rests on the same kind of mathematics:
+code, with no borrowed code. Every model is placed in one of three categories by the mathematics of its
+rule as written, never by how it looks:
 
-- **Reaction–diffusion** — continuous fields on a plane, local kinetics plus diffusion. Gray–Scott in
-  eight regimes, and the phase-field dendrite of Kobayashi (a reaction–diffusion system in form).
-- **Cellular automata** — discrete states on a lattice, updated by local rules. A snow crystal, Lenia,
-  cyclic rotors, dielectric breakdown, falling sand, Rule 30, the forest fire, Potts grains, and a
-  lattice-Boltzmann fluid.
+- **Stepwise** — deterministic, discrete time: every bounded stretch of time holds finitely many steps.
+  Reiter's snow crystal, the cellular automaton (Wolfram's rules in 1-D, Life-like rules in 2-D), Lenia,
+  the lattice-Boltzmann fluid, the cyclic automaton.
+- **Flowing** — deterministic, continuous time: a differential equation, integrated in steps only to
+  compute it. Gray–Scott, the complex Ginzburg–Landau equation.
+- **Chance-driven** — the rule itself contains a probability law. Dielectric breakdown, the Potts model,
+  the forest fire.
+
+Randomness in a seed does not make a model chance-driven; the seed value in the controls makes every run
+repeatable. Where a model's look suggests another category (a stepwise rule that reproduces a continuous
+fluid, a continuous equation drawn frame by frame), that is the computation, not the model, and the
+model's note on the demo says so.
 
 ## Quick start
 
@@ -51,7 +58,7 @@ binds any controls you place inside the same `[data-rd-scope]` container by thei
 As a dependency, pinned to a release:
 
 ```
-npm install github:cs-training-systems/morphogen#v0.6.0
+npm install github:cs-training-systems/morphogen#v0.7.0
 ```
 
 Morphogen is in major version zero: the model set and the controls are still changing, and 1.0.0
@@ -78,27 +85,37 @@ fetched at run time, and the script makes no network request of any kind.
 | `data-brush` | the pointer's mark as a share of the field's height | 0.03 |
 | `data-fade-start` · `data-fade-end` | seconds after the pointer leaves at which a Gray–Scott pattern winds down and dies; unset = never | unset |
 
-## Families and patterns
+## Categories, models and presets
 
-A **preset** is a model, its parameter values, its seeding, its speed, its brush and its palette, all
-chosen so the pattern shows at its best; the two parameter sliders are centered on the preset's values.
-A **family** is the set of presets whose mathematics is one kind; the demo's family row swaps the
-tile set. A tile selects: the field clears to black and nothing appears until the visitor paints or
-presses Seed, which starts the pattern at the center (later presses add one point at random).
+A **tile** is a named model. A **preset** is one of its recipes: parameter values, seeding, speed,
+brush, palette and resolution, chosen so a regime shows at its best, with every slider centered on the
+preset's value. The demo's category row swaps the tile set; a tile selects its first preset; the chips
+under the mode line switch presets. The field clears to black and nothing appears until the visitor
+paints or presses Seed, which starts the pattern at the center (later presses add one point at random).
+The model's note stays on screen while settings change.
 
-### Reaction–diffusion
+| Category | Model | Presets |
+|---|---|---|
+| Flowing | Gray–Scott | Malachite, Meandric, Swarm, Xylem, Turbulence, Mitosis, Phyllotaxis, Vortex |
+| Flowing | Ginzburg–Landau | Antispiral, Defect turbulence |
+| Stepwise | Reiter snow crystal | Frost |
+| Stepwise | Cellular automaton | Rule 30, Rule 110, Rule 90 (1-D); Life, HighLife, Day and Night, Seeds, Brian's Brain (2-D) |
+| Stepwise | Lenia | Orbium |
+| Stepwise | Lattice Boltzmann | Wake |
+| Stepwise | Cyclic automaton | Rotor |
+| Chance-driven | Dielectric breakdown | Lightning, Aggregation (η = 1, diffusion-limited aggregation) |
+| Chance-driven | Potts model | Grain growth, Ising at criticality |
+| Chance-driven | Forest fire | Wildfire |
 
-| Preset | Model | Parameters | Looks like |
-|---|---|---|---|
-| ![](docs/media/preset-malachite.png) **Malachite** | Gray–Scott | feed 0.008 · kill 0.031 | concentric banded fronts from a pacemaker (target patterns) |
-| ![](docs/media/preset-meandric.png) **Meandric** | Gray–Scott | 0.024 · 0.054 | labyrinthine stripes (a Turing pattern) |
-| ![](docs/media/preset-swarm.png) **Swarm** | Gray–Scott | 0.013 · 0.054 | a crowd of travelling, dividing spots |
-| ![](docs/media/preset-xylem.png) **Xylem** | Gray–Scott | 0.039 · 0.058 | a sheet opening into a pore lattice |
-| **Antispiral** | complex Ginzburg–Landau | α 1.75 · β −0.65 (800 rung) | spiral waves whose phase runs inward to the core (antispirals), outward farther from onset; past the Benjamin–Feir line, defect turbulence |
-| ![](docs/media/preset-turbulence.png) **Turbulence** | Gray–Scott | 0.025 · 0.050 | spatiotemporal chaos that never settles |
-| ![](docs/media/preset-mitosis.png) **Mitosis** | Gray–Scott | 0.036 · 0.065 (240 rung) | self-replicating spots, close, forming colonies |
-| ![](docs/media/preset-phyllotaxis.png) **Phyllotaxis** | Gray–Scott | 0.030 · 0.062 | a sunflower head grown one spot at a time on the golden angle, to the frame's edge |
-| ![](docs/media/preset-vortex.png) **Vortex** | Gray–Scott | 0.008 · 0.039, diffusion × 3.2 | spiral waves from broken fronts; every Seed press and click fires a stir of five points and four curved slashes |
+### The flowing models
+
+The Gray–Scott presets (stills: `docs/media/preset-<id>.png`): Malachite, feed 0.008 · kill 0.031,
+concentric banded fronts from a pacemaker; Meandric, 0.026 · 0.055, labyrinthine stripes; Swarm, 0.013 ·
+0.054, a crowd of travelling, dividing spots; Xylem, 0.039 · 0.058, a sheet opening into a pore lattice;
+Turbulence, 0.025 · 0.050, spatiotemporal chaos; Mitosis, 0.037 · 0.065, self-replicating spots; Phyllotaxis,
+0.030 · 0.062, a sunflower head grown one spot at a time on the golden angle; Vortex, 0.008 · 0.039 at
+diffusion × 3.2, spiral waves from broken fronts, with a stir of five points and four curved slashes on
+every Seed press and click.
 
 **Gray–Scott** (Gray & Scott 1984; Pearson 1993), per step, with the 3×3 Laplacian (center −1,
 edges 0.2, corners 0.05) and dt = 1:
@@ -117,22 +134,25 @@ and near onset with α > β its phase velocity turns inward (Nicola, Brusch & B�
 
 The phase-field dendrite of Kobayashi (1993) remains in the registry as the model `dendrite`.
 
-### Cellular automata
+### The stepwise and chance-driven models
 
-| Preset | Model | Parameters | Looks like |
-|---|---|---|---|
-| **Frost** | Reiter's snow crystal (2005) | vapor 0.30 · growth 0.001 | a six-fold dendrite grown cell by cell on a hexagonal lattice; permanent; crystals grow together where they meet; the brush is a void with one pinpoint nucleus at its centre |
-| ![](docs/media/preset-lenia.png) **Lenia** | Chan 2019 | growth center 0.133 · width 0.011 | smooth, self-propelling creatures from a patch of soup |
-| **Rotor** | cyclic automaton (Griffeath) | 5 states · threshold 3 | spiral rotors self-organizing from noise |
-| **Lichtenberg** | dielectric breakdown (Niemeyer–Pietronero–Wiesmann 1984) | exponent 2.1 · rate 1.3 | lightning and Lichtenberg figures; exponent 1 is diffusion-limited aggregation |
-| ![](docs/media/preset-sandpile.png) **Sandpile** | falling sand (Toffoli–Margolus 1987) | grains 4 · slip 0.7 | a drop point pours sand that heaps at the angle of repose and avalanches |
-| ![](docs/media/preset-conus.png) **Conus** | elementary automaton (Wolfram) | rule 30 · density 0 | the cone-snail shell, rows laid down in time |
-| **Wildfire** | forest fire (Drossel–Schwabl 1992) | growth 0.005 · lightning 0.00002 | fractal fire fronts through a self-organizing forest |
-| **Grain** | Potts grain growth (Anderson et al. 1984) | 12 orientations · temperature 0.6 | polycrystalline coarsening, a moving micrograph |
-| **Wake** | lattice-Boltzmann fluid (D2Q9, BGK) | flow 0.115 · viscosity 0.005 | a von Kármán vortex street behind an obstacle you paint |
+Reiter's snow crystal (2005): vapor β 0.30, addition γ 0.001, diffusion α 1, a six-fold dendrite grown cell
+by cell on a hexagonal lattice, permanent, crystals growing together where they meet, the brush a void with
+one pinpoint nucleus at its centre. The cellular automaton: in 1-D a Wolfram rule number (Rule 30, 110, 90
+as presets), in 2-D a Life-like B/S/C rule (Life B3/S23, HighLife B36/S23, Day and Night B3678/S34678,
+Seeds B2/S, Brian's Brain B2/S/C3). Lenia (Chan 2019): growth centre μ 0.136, width σ 0.011, smooth
+self-propelling creatures from a patch of soup. The lattice-Boltzmann fluid (D2Q9, BGK): inlet speed 0.130,
+viscosity 0.02, a von Kármán vortex street behind an obstacle you paint. The cyclic automaton (Griffeath):
+5 states, threshold 2, spiral rotors self-organizing from noise. Dielectric breakdown (Niemeyer, Pietronero
+and Wiesmann 1984): exponent η 2.4 for lightning, η 1 for diffusion-limited aggregation. The Potts model:
+12 states at temperature 0.6 for grain growth; q = 2 near its critical temperature for the Ising critical
+fog. The forest fire (Drossel and Schwabl 1992): growth 0.005, lightning 0.00002, fractal fire fronts
+through a self-organizing forest. The falling-sand model and the Gravner–Griffeath crystal remain in the
+registry without tiles (`sand`, `snow`), as do the phase-field dendrite (`dendrite`) and the abelian
+sandpile (`sandpile`).
 
-Each automaton's rule is stated in the demo's note for its tile, with its law in MathML, and in the
-comment at the head of its source file.
+Each model's rule is stated in the demo's note for its tile, with its law in MathML, and in the comment
+at the head of its source file.
 
 The snow crystal is not a reaction–diffusion system — it has no local chemistry acting everywhere,
 only transport and a sharp interface that advances where mass arrives, a discrete Stefan problem kin
@@ -148,13 +168,17 @@ All of them are optional.
 
 | `data-rd` | Element | What it does |
 |---|---|---|
-| `family` | `<button data-rd-id="rd|ca">` | Shows that family's tiles and selects its default tile; `aria-pressed` tracks the active one; `data-rd-default` marks the initial family |
-| `preset` | `<button data-rd-id="…">`, optionally holding a `thumb` canvas | Selects a preset and clears the field (nothing is seeded until the visitor paints or presses Seed); `aria-pressed` tracks the active one; `data-rd-default` marks a family's initial tile |
-| `thumb` | `<canvas aria-hidden="true">` inside a preset button | Filled with a thumbnail of that preset, computed by the engine itself after the page has loaded; repainted when the colors change |
-| `note` | any element with `data-rd-for="<preset id>"` | Shown while that preset is active, hidden otherwise |
-| `p1-range` / `p1-number` (or `feed-*`) | `<input type="range">` / `<input type="number">` | The model's first parameter; the pair tracks itself; its label, range and step follow the preset |
-| `p2-range` / `p2-number` (or `kill-*`) | as above | The second parameter |
-| `p3-range` / `p3-number` | as above, inside a `.rd__param` row | A third parameter; the row is hidden while the model declares only two |
+| `category` | `<button data-rd-id="stepwise|flowing|chance">` | Shows that category's tiles and selects its default tile; `aria-pressed` tracks the active one; `data-rd-default` marks the initial category |
+| `tile` | `<button data-rd-id="<tile id>">`, optionally holding a `thumb` canvas | Selects a model and its first preset, clearing the field (nothing is seeded until the visitor paints or presses Seed); `aria-pressed` tracks the active one; `data-rd-default` marks a category's initial tile |
+| `chips` | an empty container | Receives one `chip` button per preset of the active tile; a chip applies its preset; hidden when a tile has one preset |
+| `preset-line` | any element | Receives the active preset's name, or "Custom settings", with a note when the preset's slider box is provisional |
+| `thumb` | `<canvas aria-hidden="true">` inside a tile button | Filled with a thumbnail of that tile's first preset, computed by the engine itself after the page has loaded; repainted when the colors change |
+| `note` | any element with `data-rd-for="<tile id>"` | Shown while that model is active and kept while settings change |
+| `p1-range` / `p1-number` / `p1-unit` (or `feed-*`) | `<input type="range">` / `<input type="number">` / any element | The model's first parameter; the pair tracks itself; its label, unit, range and step follow the model and the preset |
+| `p2-range` / `p2-number` / `p2-unit` (or `kill-*`) | as above | The second parameter |
+| `p3-range` / `p3-number` / `p3-unit` | as above, inside a `.rd__param` row | A third parameter; the row is hidden while the model declares fewer |
+| `model-controls` · `dimension` · `rule` · `rule-label` | a group · `<select>` (1 or 2) · `<input type="text">` · any element | The cellular automaton's own controls: the lattice dimension, and the rule as a Wolfram number (1-D) or a B/S/C string (2-D); hidden for models that declare no controls |
+| `seed-value` · `seed-reroll` | `<input type="number">` · `<button>` | The seed value every random choice is drawn from (0 to 999999); setting it clears the field; the button draws a new one |
 | `scale-range` / `scale-number` | as above | Speed, centered on the preset's own speed, a fifth to five times it: the track is logarithmic so the preset sits mid-track, and the real value is read from the number box, the labels under the track (`speed-ticks`) and the slider's value text |
 | `pause` | `<button>` | Pause / Play; its text and label follow the state |
 | `reset` | `<button>` | Clears the field to the ground color |
@@ -193,8 +217,11 @@ field.engine();                                              // the backend (dia
 field.destroy();
 ```
 
-`Morphogen.models`, `Morphogen.families`, `Morphogen.presets` and `Morphogen.palettes` expose the
-built-in sets; `Morphogen.defineModel(definition)` registers a model (see `src/`);
+`Morphogen.models`, `Morphogen.categories`, `Morphogen.tiles`, `Morphogen.presets` and
+`Morphogen.palettes` expose the built-in sets (`Morphogen.families` is an alias of the categories);
+`field.setSeed(n)`, `field.seedValue()` and `field.random()` are the seed value and its stream;
+`Morphogen.parseLifeRule("B3/S23")` and `Morphogen.lifeRuleString(b, s, c)` convert the 2-D rule;
+`Morphogen.defineModel(definition)` registers a model (see `src/`);
 `Morphogen.renderThumb(preset, { width, height, steps }, useGpu)` renders a preset offline.
 `ReactionDiffusion` is kept as an alias of the global for pages written against 1.x.
 
