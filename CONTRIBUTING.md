@@ -42,6 +42,24 @@ it that way are welcome.
 - A new palette needs: four colors (ground, trail, body, front) in `src/00-prelude.js` and a radio
   row with four swatches in `index.html`.
 
+## Versioning
+
+Morphogen follows [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html), and it is in
+**major version zero** until its public interface (the `data-rd` roles, the mount options, the
+global and the file names) is the one that will be kept. Until then:
+
+- a release that adds or changes behaviour takes a **minor** bump (0.6.0 → 0.7.0);
+- a release that only fixes takes a **patch** bump (0.7.0 → 0.7.1);
+- **1.0.0 is the release in which the full model set is signed off and the interface is declared
+  stable.** Nothing earlier is 1.0.0, however large.
+
+After 1.0.0 the standard applies as written: patch for fixes, minor for compatible additions, major
+only for an incompatible change to the public interface. A tag is never moved or reused; a
+correction is a new version. Every release is a GitHub Release whose notes are its CHANGELOG entry,
+so any earlier state of the engine, including a model later retired, is one checkout of its tag
+away. The six releases before this policy were renumbered once; the mapping is in CHANGELOG.md and
+is not to be repeated.
+
 ## Pull requests
 
 Open a pull request against `main` with a short description of what changed and why, and the

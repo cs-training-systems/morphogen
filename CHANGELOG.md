@@ -1,9 +1,38 @@
 # Changelog
 
 All notable changes to Morphogen are recorded here. The format follows Keep a Changelog; the
-project follows Semantic Versioning.
+project follows Semantic Versioning 2.0.0.
 
-## [2.0.0-beta.3] — 2026-10-10
+## Versioning policy (adopted 2026-10-12)
+
+Morphogen is in major version zero. The public interface (the `data-rd` roles, the mount options,
+the global and the file names) is not yet the one that will be kept, so every release before 1.0.0
+takes a **minor** bump when it adds or changes behaviour and a **patch** bump when it only fixes.
+**1.0.0 is the release in which the full model set is signed off and the public interface is
+declared stable; nothing earlier is 1.0.0.** After 1.0.0 the standard applies as written: patch for
+fixes, minor for compatible additions, major only for an incompatible change to the public
+interface. A tag is never moved or reused.
+
+### The six earlier releases, renumbered once
+
+The releases published as 1.0.0, 1.0.1, 1.0.2, 2.0.0-beta.1, 2.0.0-beta.2 and 2.0.0-beta.3 were
+numbered before this policy, and their major numbers overstated the interface's stability. They were
+renumbered once, on 2026-10-12, as a declared departure from the standard's rule that a released
+version is never modified: the old tags and GitHub Releases were deleted and recreated under the
+numbers below, on the same commits. Contents are unchanged except for 0.6.0, which is a new commit
+on top of the 2.0.0-beta.3 code carrying the renumbered metadata, this policy, and the versioning
+section of CONTRIBUTING.md. The entries below keep their original text under their new numbers.
+
+| Published as | Renumbered | Commit |
+|---|---|---|
+| 1.0.0 | 0.1.0 | `17a8885` |
+| 1.0.1 | 0.2.0 | `f3732a3` |
+| 1.0.2 | 0.3.0 | `704f8f2` |
+| 2.0.0-beta.1 | 0.4.0 | `4b323f5` |
+| 2.0.0-beta.2 | 0.5.0 | `7ba1c60` |
+| 2.0.0-beta.3 | 0.6.0 | the commit tagged `v0.6.0` (code of `125b20f`) |
+
+## [0.6.0] — 2026-10-12 · the code published 2026-10-10 as 2.0.0-beta.3, renumbered
 
 - **Frost is Reiter's crystal, polished.** The cellular Frost tile runs Reiter's rule as 1.0.2 did, on a hexagonal
   lattice drawn on the screen's own pixels by blending each pixel's three nearest cells, with the edge taken from the
@@ -37,9 +66,9 @@ project follows Semantic Versioning.
   the README's install line, which beta.2 had left at beta.1. **Open finding:** the Lichtenberg graphics and processor
   paths do not grow alike at equal relaxation sweeps; `sweepsCpu` 4 is a calibrated equivalence, not an explanation.
 
-## [2.0.0-beta.2] — 2026-10-09
+## [0.5.0] — 2026-10-09 · published as 2.0.0-beta.2
 
-A correction release within the beta.
+A correction release.
 
 - **Three paces restored.** Malachite, Meandric and Xylem default to a speed of 0.1. Their 0.04 in
   beta.1 was dictated against a build whose speed floor was 0.1, so they had run at 0.1 when approved;
@@ -55,10 +84,10 @@ A correction release within the beta.
   Coastal), applied when its tile is chosen, as the reaction–diffusion tiles already did.
 - README: Lenia and Rotor rows carry the released defaults (0.133 / 0.011; 5 states, threshold 3).
 
-## [2.0.0-beta.1] — 2026-10-09
+## [0.4.0] — 2026-10-09 · published as 2.0.0-beta.1
 
-The engine overhaul, as a pre-release: the architecture and the eighteen patterns are in place and
-calibration continues; 2.0.0 follows when the patterns are judged finished. Morphogen becomes an
+The engine overhaul: the architecture and the eighteen patterns are in place and
+calibration continues. Morphogen becomes an
 engine of emergent pattern formation: a model registry with two families, eighteen presets and nine
 palettes, one visual language for all of them.
 
@@ -103,7 +132,7 @@ palettes, one visual language for all of them.
   renders the reaction–diffusion media in Node and `tools/capture.html` the automata stills on the
   graphics processor.
 
-## [1.0.2] — 2026-10-08
+## [0.3.0] — 2026-10-08 · published as 1.0.2
 
 Frost becomes a real snow crystal.
 
@@ -127,7 +156,7 @@ Frost becomes a real snow crystal.
 - Thumbnails are resumable jobs advanced in idle slices (no long task); a preset may ask for its tile at a
   finer lattice (`thumbScale`): Frost's tile is computed at 240 × 135 and scaled down by the browser.
 
-## [1.0.1] — 2026-10-08
+## [0.2.0] — 2026-10-08 · published as 1.0.1
 
 Interaction and regime fixes after the first live review.
 
@@ -146,7 +175,7 @@ Interaction and regime fixes after the first live review.
 - The demo carries a photosensitivity notice.
 - Spelling: center, behavior.
 
-## [1.0.0] — 2026-10-08
+## [0.1.0] — 2026-10-08 · published as 1.0.0
 
 First release.
 
