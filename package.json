@@ -1,6 +1,6 @@
 {
   "name": "morphogen",
-  "version": "0.7.0",
+  "version": "0.1.0",
   "description": "Morphogen: an engine of emergent pattern formation for the web — named models sorted by the mathematics of their rules (stepwise, flowing, chance-driven), each with its presets, in one classic script, no dependencies, on the graphics processor.",
   "main": "morphogen.js",
   "style": "morphogen.css",

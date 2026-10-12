@@ -1,7 +1,7 @@
 /*!
  * Morphogen — morphogen.js — an engine of emergent pattern formation on a canvas.
  * Copyright (c) 2026 Christopher A. Stamplis. Released under the MIT License.
- * Source: https://github.com/cs-training-systems/morphogen   Version 0.7.0
+ * Source: https://github.com/cs-training-systems/morphogen   Version 0.1.0
  *
  * Every model is written from its published equations or rules with no borrowed code.
  * Visual inspiration: pmneila/jsexp (BSD-3-Clause). Sources are cited beside each model.
@@ -43,7 +43,7 @@
 (function (global) {
   "use strict";
 
-  var VERSION = "0.7.0";
+  var VERSION = "0.1.0";
   var GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 
   // Nine palettes, each four colours over the display scalar: the ground (black, so a decaying

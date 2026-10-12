@@ -5,7 +5,7 @@
   function $(scope, role) { return scope.querySelector("[data-rd='" + role + "']"); }
   function $$(scope, role) { return scope.querySelectorAll("[data-rd='" + role + "']"); }
 
-  // The page's control vocabulary (0.7.0, owner rulings 2026-10-11): `category` buttons (stepwise | flowing | chance), `tile`
+  // The page's control vocabulary (owner rulings 2026-10-11): `category` buttons (stepwise | flowing | chance), `tile`
   // buttons that are NAMED MODELS, `chips` holding one `chip` per preset of the active tile, `note` elements keyed by tile that
   // stay visible while the visitor changes settings, p1 … p3 rows that take each model's own variables with their units, a
   // `rule` box and `dimension` select for models that declare them, and a `seed-value` box with `seed-reroll`. The 0.4–0.6 roles

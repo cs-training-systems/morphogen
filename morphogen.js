@@ -1,7 +1,7 @@
 /*!
  * Morphogen — morphogen.js — an engine of emergent pattern formation on a canvas.
  * Copyright (c) 2026 Christopher A. Stamplis. Released under the MIT License.
- * Source: https://github.com/cs-training-systems/morphogen   Version 0.7.0
+ * Source: https://github.com/cs-training-systems/morphogen   Version 0.1.0
  *
  * Every model is written from its published equations or rules with no borrowed code.
  * Visual inspiration: pmneila/jsexp (BSD-3-Clause). Sources are cited beside each model.
@@ -43,7 +43,7 @@
 (function (global) {
   "use strict";
 
-  var VERSION = "0.7.0";
+  var VERSION = "0.1.0";
   var GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 
   // Nine palettes, each four colours over the display scalar: the ground (black, so a decaying
@@ -613,7 +613,7 @@
   // lattice is always shown on the canvas's device pixels by interpolating its three nearest cells (the backends), so no
   // cell is ever seen at any rung. The edge is drawn from the continuous water field: the quasi-liquid rim (receptive
   // cells rising toward 1) blends into the ice over the last 18 % of the climb, so the boundary is antialiased by the
-  // physics instead of thresholded (the ragged edge of 1.0.2 was a hard mask at s = 1).
+  // physics instead of thresholded (the earlier ragged edge was a hard mask at s = 1).
   // No size cap (owner 2026-10-09): the arms grow until they reach the edge of the field. `crystal`: the brush is a void
   // with one pinpoint nucleus at its centre, dropped once a second (see the field). Vapor default 0.30 (owner, same day).
   defineModel({
@@ -643,7 +643,7 @@
       ],
       // a seed value below zero is the eraser: the cell returns to vapour at the background level, no crystal, no origin
       seed: GLSL_SEED_ORIGIN + "if(uVal<0.0)c=vec4(uP.x,0.0,0.0,1.0);else c=vec4(1.0,sorigin,0.0,1.0);",
-      // the ice wears the ramp by AGE, as 1.0.2 did (owner, N-26): new ice in the front colour, fading through the body to the
+      // the ice wears the ramp by AGE, as the earlier Frost did (owner, N-26): new ice in the front colour, fading through the body to the
       // trail colour as its water keeps climbing past 1 (2.5 units, about 2,500 steps at γ 0.001); the rim blends in softly
       display: GLSL_HALO + "float display(vec4 c,ivec2 p){float s=c.r;float ice=smoothstep(0.82,1.0,s);float cr=0.4-0.28*min(1.0,max(s-1.0,0.0)/2.5);return mix(halo(s,uP.x),cr,ice);}",
       alive: "bool alive(vec4 c,ivec2 p){return c.r>=1.0;}"
@@ -1989,7 +1989,7 @@
   function $(scope, role) { return scope.querySelector("[data-rd='" + role + "']"); }
   function $$(scope, role) { return scope.querySelectorAll("[data-rd='" + role + "']"); }
 
-  // The page's control vocabulary (0.7.0, owner rulings 2026-10-11): `category` buttons (stepwise | flowing | chance), `tile`
+  // The page's control vocabulary (owner rulings 2026-10-11): `category` buttons (stepwise | flowing | chance), `tile`
   // buttons that are NAMED MODELS, `chips` holding one `chip` per preset of the active tile, `note` elements keyed by tile that
   // stay visible while the visitor changes settings, p1 … p3 rows that take each model's own variables with their units, a
   // `rule` box and `dimension` select for models that declare them, and a `seed-value` box with `seed-reroll`. The 0.4–0.6 roles
@@ -2370,7 +2370,7 @@
 
     // —— Lenia (owner 2026-10-10: Aurora, μ 0.136, σ 0.011, speed 0.250) ——
     // thumbScale 3: on the 96 × 54 tile grid the kernel (radius 13) spans half the height and the soup dies within the 300 steps,
-    // which is why the tile was black on the 0.6.0 demo; at 288 × 162 creatures emerge as on the field (finding, 2026-10-12)
+    // which is why the tile was black on the earlier demo; at 288 × 162 creatures emerge as on the field (finding, 2026-10-12)
     { id: "lenia", tile: "lenia", name: "Orbium", model: "lenia", params: { mu: 0.136, sigma: 0.011 }, palette: "aurora", timeScale: 0.25, seed: { type: "fill" }, firstSeed: "spec", brush: 0.08, stepScale: 0.1, thumbSeed: { type: "fill" }, thumbSteps: 300, thumbScale: 3, chrono: 600 },
 
     // —— lattice Boltzmann (owner 2026-10-10: Spectrum, flow 0.130, viscosity 0.005; speed 1.00 ruled 2026-10-11) ——

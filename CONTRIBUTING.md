@@ -48,8 +48,8 @@ Morphogen follows [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.htm
 **major version zero** until its public interface (the `data-rd` roles, the mount options, the
 global and the file names) is the one that will be kept. Until then:
 
-- a release that adds or changes behaviour takes a **minor** bump (0.6.0 → 0.7.0);
-- a release that only fixes takes a **patch** bump (0.7.0 → 0.7.1);
+- a release that adds or changes behaviour takes a **minor** bump (0.1.0 → 0.2.0);
+- a release that only fixes takes a **patch** bump (0.1.0 → 0.1.1);
 - **1.0.0 is the release in which the full model set is signed off and the interface is declared
   stable.** Nothing earlier is 1.0.0, however large.
 
@@ -57,8 +57,7 @@ After 1.0.0 the standard applies as written: patch for fixes, minor for compatib
 only for an incompatible change to the public interface. A tag is never moved or reused; a
 correction is a new version. Every release is a GitHub Release whose notes are its CHANGELOG entry,
 so any earlier state of the engine, including a model later retired, is one checkout of its tag
-away. The six releases before this policy were renumbered once; the mapping is in CHANGELOG.md and
-is not to be repeated.
+away.
 
 ## Pull requests
 

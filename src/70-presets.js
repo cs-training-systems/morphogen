@@ -75,7 +75,7 @@
 
     // —— Lenia (owner 2026-10-10: Aurora, μ 0.136, σ 0.011, speed 0.250) ——
     // thumbScale 3: on the 96 × 54 tile grid the kernel (radius 13) spans half the height and the soup dies within the 300 steps,
-    // which is why the tile was black on the 0.6.0 demo; at 288 × 162 creatures emerge as on the field (finding, 2026-10-12)
+    // which is why the tile was black on the earlier demo; at 288 × 162 creatures emerge as on the field (finding, 2026-10-12)
     { id: "lenia", tile: "lenia", name: "Orbium", model: "lenia", params: { mu: 0.136, sigma: 0.011 }, palette: "aurora", timeScale: 0.25, seed: { type: "fill" }, firstSeed: "spec", brush: 0.08, stepScale: 0.1, thumbSeed: { type: "fill" }, thumbSteps: 300, thumbScale: 3, chrono: 600 },
 
     // —— lattice Boltzmann (owner 2026-10-10: Spectrum, flow 0.130, viscosity 0.005; speed 1.00 ruled 2026-10-11) ——

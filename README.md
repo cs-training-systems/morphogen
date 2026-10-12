@@ -58,13 +58,11 @@ binds any controls you place inside the same `[data-rd-scope]` container by thei
 As a dependency, pinned to a release:
 
 ```
-npm install github:cs-training-systems/morphogen#v0.7.0
+npm install github:cs-training-systems/morphogen#v0.1.0
 ```
 
 Morphogen is in major version zero: the model set and the controls are still changing, and 1.0.0
-is the release in which they are signed off and the public interface is declared stable. Earlier
-releases are tagged `v0.1.0` to `v0.5.0`; they were published under other numbers and renumbered
-once, as recorded in [CHANGELOG.md](CHANGELOG.md).
+is the release in which they are signed off and the public interface is declared stable.
 
 The package ships the script and the stylesheet only. Serve them from your own origin; nothing is
 fetched at run time, and the script makes no network request of any kind.

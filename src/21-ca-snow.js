@@ -125,7 +125,7 @@
   // lattice is always shown on the canvas's device pixels by interpolating its three nearest cells (the backends), so no
   // cell is ever seen at any rung. The edge is drawn from the continuous water field: the quasi-liquid rim (receptive
   // cells rising toward 1) blends into the ice over the last 18 % of the climb, so the boundary is antialiased by the
-  // physics instead of thresholded (the ragged edge of 1.0.2 was a hard mask at s = 1).
+  // physics instead of thresholded (the earlier ragged edge was a hard mask at s = 1).
   // No size cap (owner 2026-10-09): the arms grow until they reach the edge of the field. `crystal`: the brush is a void
   // with one pinpoint nucleus at its centre, dropped once a second (see the field). Vapor default 0.30 (owner, same day).
   defineModel({
@@ -155,7 +155,7 @@
       ],
       // a seed value below zero is the eraser: the cell returns to vapour at the background level, no crystal, no origin
       seed: GLSL_SEED_ORIGIN + "if(uVal<0.0)c=vec4(uP.x,0.0,0.0,1.0);else c=vec4(1.0,sorigin,0.0,1.0);",
-      // the ice wears the ramp by AGE, as 1.0.2 did (owner, N-26): new ice in the front colour, fading through the body to the
+      // the ice wears the ramp by AGE, as the earlier Frost did (owner, N-26): new ice in the front colour, fading through the body to the
       // trail colour as its water keeps climbing past 1 (2.5 units, about 2,500 steps at γ 0.001); the rim blends in softly
       display: GLSL_HALO + "float display(vec4 c,ivec2 p){float s=c.r;float ice=smoothstep(0.82,1.0,s);float cr=0.4-0.28*min(1.0,max(s-1.0,0.0)/2.5);return mix(halo(s,uP.x),cr,ice);}",
       alive: "bool alive(vec4 c,ivec2 p){return c.r>=1.0;}"
