@@ -12,7 +12,8 @@
   ],
   "scripts": {
     "build": "node tools/build.js",
-    "test": "node tools/build.js && node tests/verify-fade.js"
+    "adr:index": "node tools/adr-index.js",
+    "test": "node tools/build.js && node tests/verify-fade.js && node tools/adr-index.js --check"
   },
   "repository": {
     "type": "git",

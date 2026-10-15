@@ -13,6 +13,26 @@ declared stable; nothing earlier is 1.0.0.** After 1.0.0 the standard applies as
 fixes, minor for compatible additions, major only for an incompatible change to the public
 interface. A tag is never moved or reused.
 
+## [Unreleased]
+
+### Added
+
+- Project records under `docs/`: decision records in `docs/adr/` with `ADR_README.md` (the rules: three tiers,
+  one headline per record, timestamped file names, front matter, approval by questionnaire) and a generated
+  `ADR_INDEX.md`; `STATUS.md` (priorities and the resume point), `PENDING.md`, `KNOWN-ISSUES.md`, `RISKS.md`,
+  `PROVENANCE.md`, `RELEASES.md`.
+- `tools/adr-index.js`: generates the record index from front matter, fails closed on a malformed record,
+  `--check` for the test script, `--hook` for Claude Code.
+- The project map in the README, directly under the introduction.
+- `docs/taxonomy/user-friendly-taxonomy.md`: the visual-type taxonomy draft, moved from the repository root
+  with its duplicated section and stray citation lines removed.
+- `.editorconfig` (from cs-web-folio) and `.claude/settings.json` (ask before commit, tag and push; deny edits
+  to CLAUDE.md; the record-index hook).
+
+### Changed
+
+- `npm test` also verifies that the record index is current.
+
 ## [0.1.0] — 2026-10-12
 
 First release: the framework of the 1.0 design on ten built models.
