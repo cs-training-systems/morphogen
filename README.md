@@ -43,6 +43,8 @@ Every item in the project, with its purpose, how deeply a session reads it, who 
 | Package | `package.json` | Name, version, scripts | 2 | user approves a version | a script or the version changes |
 | Editor conventions | `.editorconfig` | Indent, line endings, charset, copied from cs-web-folio | 2 | user approves | never expected |
 | Claude Code settings | `.claude/settings.json` | Ask before commit, tag, push; deny edits to CLAUDE.md; the record-index hook | 2 | user approves | a rule or hook changes |
+| Ignore list | `.gitignore` | Keeps `temp/` out of every commit | 2 | user approves | a folder or file is excluded from the repository |
+| Scratch space | `temp/` | The shared scratch space of the user and Claude, and where proposed edits wait for approval; not tracked; emptied by the user | none | user | never; its contents are not the map's concern |
 | Morphospaces Atlas | `C:\dev\morphospaces-atlas` (separate repository) | The technical generator library and classification scheme; priority 1 in STATUS | external | its own records | its own |
 | n-cell-tessellata | `C:\dev\n-cell-tessellata` (separate repository) | Non-square-cell 1-D and 2-D automata, to be integrated into Morphogen | external | its own records | its own |
 | cs-web-folio | `C:\dev\cs-web-folio` (separate repository) | The site that consumes Morphogen as a dependency; priority 4 in STATUS | external | its own records | its own |

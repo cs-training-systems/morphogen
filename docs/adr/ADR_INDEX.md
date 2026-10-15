@@ -5,7 +5,20 @@ newest first. The rules are in [ADR_README.md](ADR_README.md).
 
 | Made | Record | Tier | Status | Headline | Supersedes |
 |---|---|---|---|---|---|
-| 202610151127 | [adr-202610151127](adr-202610151127-no-attribution-in-commits.md) | decision | accepted | No attribution line in commits or pull requests | none |
+| 202610151838 | [adr-M202610151838](adr-M202610151838-questions-plain-and-readable.md) | mandate | accepted | Every question to the user is short, plain and readable, with pros and cons for every option | none |
+| 202610151608 | [adr-MC202610151608](adr-MC202610151608-claude-offers-decision-support.md) | mandate (CLAUDE.md) | accepted | Claude checks, explains, recommends and offers decision support; the user decides as absolute authority | none |
+| 202610151607 | [adr-MC202610151607](adr-MC202610151607-do-not-assume-user-intent-ask-for-context.md) | mandate (CLAUDE.md) | accepted | Claude does not assume the purpose, intent, or relevance of what the user does or asks; it asks for context when comprehension is needed | none |
+| 202610151606 | [adr-MC202610151606](adr-MC202610151606-project-folder-holds-everything.md) | mandate (CLAUDE.md) | accepted | Nothing in the project is measured against or synchronised with anything outside it; the project folder holds everything related to the project | none |
+| 202610151605 | [adr-MC202610151605](adr-MC202610151605-no-claude-attribution-in-commits.md) | mandate (CLAUDE.md) | accepted | No "Co-Authored-By" attribution line in commits or pull requests | adr-202610151127 |
+| 202610151604 | [adr-MC202610151604](adr-MC202610151604-temp-is-the-shared-scratch-space.md) | mandate (CLAUDE.md) | accepted | temp is the shared scratch space; nothing in it is a source or assumed relevant; proposed edits wait there | none |
+| 202610151603 | [adr-MC202610151603](adr-MC202610151603-decisions-in-one-declared-place.md) | mandate (CLAUDE.md) | accepted | Decisions are recorded in one declared place, in the format the project section names | none |
+| 202610151602 | [adr-MC202610151602](adr-MC202610151602-test-harness-checked-before-its-verdict.md) | mandate (CLAUDE.md) | accepted | A test harness is checked before its verdict is stated or believed | none |
+| 202610151601 | [adr-MC202610151601](adr-MC202610151601-reads-outside-the-folder-need-a-yes.md) | mandate (CLAUDE.md) | accepted | Reads outside the project folder need the user's explicit yes, each time | none |
+| 202610151600 | [adr-MC202610151600](adr-MC202610151600-generated-files-current-only-after-rerun.md) | mandate (CLAUDE.md) | accepted | A generated file is current only after its generator was re-run and compared | none |
+| 202610151559 | [adr-MC202610151559](adr-MC202610151559-rulings-recorded-in-the-turn.md) | mandate (CLAUDE.md) | accepted | A ruling is recorded as soon as it is made, in the very same turn, timestamped from a checked clock. | none |
+| 202610151558 | [adr-MC202610151558](adr-MC202610151558-boot-never-passes-missing-infrastructure.md) | mandate (CLAUDE.md) | accepted | Boot never passes missing infrastructure, and the opening questionnaire is never silently skipped | none |
+| 202610151557 | [adr-MC202610151557](adr-MC202610151557-commit-proposals-state-the-version.md) | mandate (CLAUDE.md) | accepted | Commit, tag, push and release proposals state the version in so many words | none |
+| 202610151127 | [adr-202610151127](adr-202610151127-no-claude-attribution-in-commits.md) | decision | superseded | No attribution line in commits or pull requests | none |
 | 202610150313 | [adr-202610150313](adr-202610150313-taxonomy-homes.md) | decision | accepted | The visual taxonomy lives at docs/taxonomy/; the technical taxonomy lives in the Atlas | none |
 | 202610150312 | [adr-202610150312](adr-202610150312-programme-priorities-in-status.md) | decision | accepted | Programme priorities live in Morphogen's docs/STATUS.md, in this order | none |
 | 202610150311 | [adr-202610150311](adr-202610150311-presets-json-single-source.md) | decision | accepted | Presets have one source, a JSON data file, and the catalog is generated from it | none |

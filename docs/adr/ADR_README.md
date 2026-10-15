@@ -74,7 +74,7 @@ Sentence case throughout, titles included. Concise, with every nuance kept: what
 
 ## 8. Approval
 
-No record text is written to disk until the user has approved it through the questionnaire: the tier, the parent if it is a Correction, and the exact text. This applies to headlines and Corrections alike.
+No record text is written to disk until the user has approved it through the questionnaire: the tier, the parent if it is a Correction, and the exact text. This applies to headlines and Corrections alike. A ruling is recorded in the turn it is made, and this is checked again at session end. A record's draft may wait in the project's `temp` folder for that approval; it is written to the records folder only after it has been approved by the user.
 
 ## 9. Status
 
