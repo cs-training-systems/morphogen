@@ -5,13 +5,7 @@ project follows Semantic Versioning 2.0.0.
 
 ## Versioning policy
 
-Morphogen is in major version zero. The public interface (the `data-rd` roles, the mount options,
-the global and the file names) is not yet the one that will be kept, so every release before 1.0.0
-takes a **minor** bump when it adds or changes behaviour and a **patch** bump when it only fixes.
-**1.0.0 is the release in which the full model set is signed off and the public interface is
-declared stable; nothing earlier is 1.0.0.** After 1.0.0 the standard applies as written: patch for
-fixes, minor for compatible additions, major only for an incompatible change to the public
-interface. A tag is never moved or reused.
+In [CONTRIBUTING.md](CONTRIBUTING.md), Versioning.
 
 ## [Unreleased]
 
@@ -28,10 +22,18 @@ interface. A tag is never moved or reused.
   with its duplicated section and stray citation lines removed.
 - `.editorconfig` (from cs-web-folio) and `.claude/settings.json` (ask before commit, tag and push; deny edits
   to CLAUDE.md; the record-index hook).
+- `atlas/`: the Morphospaces Atlas, migrated on 2026-10-16 from its own folder into this repository: the canonical record database `atlas/data/atlas.json` (v0.1.6 edition, 766 records), the 29 validated archetype thumbnails, the imported renderer and build script, and the edition's README and changelog as provenance. The HTML drafts were not imported; the Atlas is versioned with Morphogen.
+- `docs/ARCHITECTURE.md`: one page on the parts, the direction of dependence, the two classifications and where things live.
 
 ### Changed
 
 - `npm test` also verifies that the record index is current.
+- Boot cost no longer grows with the project's age: no record is read at boot (records are consulted by area through the index); `docs/STATUS.md` is the resume point only, its session log removed; `docs/PENDING.md`, `docs/KNOWN-ISSUES.md` and `docs/RISKS.md` hold one row per matter and open rows only; the versioning policy is stated once, in CONTRIBUTING; the model sources once, in `CITATION.cff` and the source headers. Record timestamps are military time, EST.
+- Records: a Mandate fixes the Atlas as a faceted classification with a law-first citation order; a Decision places the Morphospaces Atlas inside this repository; Corrections on the record system (timestamps on the Eastern wall clock, named EST; a rule placed in CLAUDE.md is recorded by its commit; no record read at boot), on the presets record (preset rulings are provenance) and on the taxonomy-homes record (one copy); ADR_README gains an editing rule (section 12) and allows deletion of superseded text on the user's approval.
+
+### Removed
+
+- The twelve promoted-Mandate records (`adr-MC` files): a rule placed in CLAUDE.md is recorded by the commit that places it. The must-read list. The superseded attribution record, and from four records the passages their Corrections had overtaken and the declined or rejected alternatives they named.
 
 ## [0.1.0] — 2026-10-12
 

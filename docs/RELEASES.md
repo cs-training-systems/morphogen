@@ -1,6 +1,6 @@
 # Releases
 
-Every release is a GitHub Release whose notes are its CHANGELOG entry. A tag is never moved or reused.
+Every release is a GitHub Release whose notes are its CHANGELOG entry. The versioning and tag rules are in [CONTRIBUTING.md](../CONTRIBUTING.md), Versioning.
 
 | Version | Date | Tag | Commit | Notes |
 |---|---|---|---|---|

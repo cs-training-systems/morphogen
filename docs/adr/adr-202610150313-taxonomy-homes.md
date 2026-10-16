@@ -13,4 +13,13 @@ supersedes: none
 
 `generator-classification.txt`, the law-first generator taxonomy of 2026-10-13, was deleted permanently on 2026-10-15 as superseded by the Morphospaces Atlas, which is the home of the technical classification.
 
-Undecided: whether the Atlas links to or copies the visual taxonomy (see `docs/PENDING.md`).
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Correction 202610161306: the taxonomy-copies question is settled
+
+- Refines: adr-202610150313
+- Status: accepted
+- Source: the user, 2026-10-16; ratified by questionnaire the same day.
+
+The question whether the Atlas links to or copies the visual taxonomy is settled by adr-202610161023: the Atlas lives in this repository, so there is one copy, in docs/taxonomy/.

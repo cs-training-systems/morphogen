@@ -1,6 +1,6 @@
 # How decisions are recorded
 
-Every consequential decision in this project is recorded as an architecture decision record (ADR) in this folder. This file states how records are named, structured, written and read. It is Layer 3: read in full at the start of every session. The generated list of every record is [ADR_INDEX.md](ADR_INDEX.md).
+Every consequential decision in this project is recorded as an architecture decision record (ADR) in this folder. This file states how records are named, structured, written and read. It is Layer 2: read when a record is written or consulted. The generated list of every record is [ADR_INDEX.md](ADR_INDEX.md).
 
 ## 1. Three tiers
 
@@ -30,11 +30,11 @@ Each record holds exactly one Mandate or one Decision: its headline. A Correctio
 - `adr-202610151430-presets-single-source.md` (a Decision)
 - `adr-M202610151430-abandon-es5.md` (a Mandate)
 
-The timestamp is year, month, day, hour, minute in the America/New_York time zone, twenty-four-hour clock. Lowercase letters, digits and hyphens only; no parentheses. The slug is at most fifty characters and the whole file name at most eighty.
+The timestamp is year, month, day, hour, minute in EST, twenty-four-hour (military) clock. Lowercase letters, digits and hyphens only; no parentheses. The slug is at most fifty characters and the whole file name at most eighty.
 
-## 5. Promoted Mandates
+## 5. Rules that live in CLAUDE.md
 
-When a Mandate's text also goes into CLAUDE.md or README.md, its file name carries a second letter after the M: `adr-MC…` for CLAUDE.md, `adr-MR…` for README.md. Such a record holds the headline only, no Corrections. The record is written first; the copy into CLAUDE.md is the user's to make, since only the user edits that file.
+A rule that governs how Claude works is placed in CLAUDE.md by the user and is recorded by the commit that places it. It has no record in this folder. A Mandate here is a long-lived ruling about the project that does not belong in CLAUDE.md.
 
 ## 6. Inside a record
 
@@ -78,7 +78,7 @@ No record text is written to disk until the user has approved it through the que
 
 ## 9. Status
 
-One of `proposed`, `accepted`, `superseded`. Nothing is deleted.
+One of `proposed`, `accepted`, `superseded`. Superseded or deprecated text and documents are deleted on the user's approval; git holds every past version. Retiring a kind of record, as the promoted Mandates were retired on 2026-10-15, is done by commit; git holds the files.
 
 ## 10. The index
 
@@ -88,12 +88,13 @@ One of `proposed`, `accepted`, `superseded`. Nothing is deleted.
 
 Any other document is assessed when it is written or changed: does it contain a ruling? If so, the ruling gets a record and the document links to it.
 
+## 12. Editing a record
+
+Upon editing any ADR, always read that ADR and any it refers to in full, carefully looking for any superseded or deprecated ruling. When any is found or discovered, output the full list as proposed for deletion/removal of the superseded or deprecated sections and/or documents. Do this in the questionnaire for the user's approval.
+
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-## Must-read records
+## Reading
 
-The records every session reads in full. Most are Mandates; a Decision is listed when it governs daily work. This list is re-cut whenever boot cost grows.
-
-- [adr-M202610150306](adr-M202610150306-decisions-recorded-as-adrs.md): decisions are recorded as architecture decision records in docs/adr/ (with its Correction on the generated index).
-- [adr-M202610150307](adr-M202610150307-one-code-standard-es5-abandoned.md): one code standard for Morphogen, the Atlas and the folio; ES5 abandoned.
+No record is read at boot. A session consults [ADR_INDEX.md](ADR_INDEX.md) and reads the records whose headlines touch its task. This file is read when a record is written.
