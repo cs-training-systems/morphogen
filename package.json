@@ -1,0 +1,41 @@
+{
+  "name": "morphogen",
+  "version": "0.1.0",
+  "description": "Morphogen: an engine of emergent pattern formation for the web — named models sorted by the mathematics of their rules (stepwise, flowing, chance-driven), each with its presets, in one classic script, no dependencies, on the graphics processor.",
+  "main": "morphogen.js",
+  "style": "morphogen.css",
+  "files": [
+    "morphogen.js",
+    "morphogen.css",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node tools/build.js",
+    "adr:index": "node tools/adr-index.js",
+    "test": "node tools/build.js && node tests/verify-fade.js && node tools/adr-index.js --check"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cs-training-systems/morphogen.git"
+  },
+  "homepage": "https://cs-training-systems.github.io/morphogen/",
+  "keywords": [
+    "reaction-diffusion",
+    "gray-scott",
+    "cellular-automata",
+    "lenia",
+    "lattice-boltzmann",
+    "snow-crystal",
+    "phase-field",
+    "turing-pattern",
+    "morphogenesis",
+    "emergence",
+    "canvas",
+    "webgl2",
+    "simulation",
+    "complex-systems"
+  ],
+  "author": "Christopher A. Stamplis",
+  "license": "MIT"
+}

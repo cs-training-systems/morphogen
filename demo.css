@@ -1,0 +1,62 @@
+/* demo.css: the page style of the Morphogen demo and of the Morphospaces Atlas page (atlas/index.html),
+   which links this sheet for the same variables, header and footer. The component (morphogen.css) falls
+   back to its own defaults; this sheet supplies the page and the variables the component reads. */
+:root {
+  --paper: #121212; --surface: #12161E; --canvas: #090B10; --ink: #E8E8E8;
+  --text-1: #E8E8E8; --text-2: #A6ADB5; --text-3: #8A9199;
+  --hair: rgba(232,232,232,0.14); --struct-med: rgba(232,232,232,0.42); --struct-card: rgba(232,232,232,0.20);
+  --embed-frame: rgba(232,232,232,0.54);
+  --green: #009149; --green-10: rgba(0,145,73,0.12); --green-05: rgba(0,145,73,0.06); --gray-10: rgba(166,173,181,0.12);
+  --font-display: system-ui, sans-serif;
+  --font-mono: ui-monospace, Consolas, monospace;
+  --btn: 38px; --corner-size: 38px; --corner-w: 2px;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --paper: #FFFDF3; --surface: #EDF1F4; --canvas: #F4F7F9; --ink: #1B1B1B;
+    --text-1: #1A1A1A; --text-2: #4A4A4A; --text-3: #6B6B6B;
+    --hair: rgba(26,26,26,0.10); --struct-med: rgba(26,26,26,0.50); --struct-card: rgba(26,26,26,0.20);
+    --embed-frame: rgba(26,26,26,0.60);
+    --green: #008432; --green-10: rgba(0,132,50,0.10); --green-05: rgba(0,132,50,0.05); --gray-10: rgba(74,74,74,0.10);
+    color-scheme: light;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--paper); color: var(--text-1); font-family: var(--font-display); font-size: 16px; line-height: 1.5; }
+.page { max-width: 1100px; margin: 0 auto; padding: 34px 16px 68px; }
+header { margin-bottom: 34px; padding-bottom: 13px; border-bottom: 1px solid var(--struct-med); }
+h1 { margin: 0 0 4px; font-size: 28px; font-weight: 600; letter-spacing: .02em; }
+.tagline { margin: 0 0 13px; color: var(--text-2); }
+.links { font-family: var(--font-mono); font-size: 13px; }
+.links a { color: var(--text-1); }
+.sitelink { float: right; display: flex; align-items: center; gap: 8px; min-height: var(--btn); margin: 2px 0 4px 17px; padding: 0 13px; font-family: var(--font-mono); font-size: 12px; letter-spacing: .05em; text-transform: uppercase; text-decoration: none; color: var(--text-1); background: var(--surface); border: 1px solid var(--struct-med); }
+.sitelink:hover, .sitelink:focus-visible { border-color: var(--green); background: var(--green-10); color: var(--ink); }
+.kicker { font-family: var(--font-mono); font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: var(--text-3); margin: 0 0 13px; }
+/* ---- the loop banner: two rows of seven 16:9 tiles on the 17px gutter, each a 1px frame; the control bar beneath ---- */
+.loops { margin: 21px 0 8px; }
+.loops__grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 17px; }
+.loops__tile { margin: 0; min-width: 0; aspect-ratio: 16 / 9; overflow: hidden; background: #000; border: 1px solid var(--struct-card); }
+.loops__tile video { display: block; width: 100%; height: 100%; object-fit: cover; }
+.loops__bar { display: flex; flex-wrap: wrap; align-items: center; gap: 13px 17px; margin-top: 13px; }
+.loops__btn { min-width: 24px; min-height: 38px; padding: 0 13px; font-family: var(--font-mono); font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--text-1); background: var(--surface); border: 1px solid var(--struct-med); cursor: pointer; }
+.loops__btn:hover, .loops__btn:focus-visible, .loops__btn[aria-pressed="true"] { border-color: var(--green); background: var(--green-10); color: var(--ink); }
+.loops__btn[aria-pressed="true"] { box-shadow: inset 0 0 0 1px var(--green); }
+.loops__note { margin: 0; flex: 1 1 40ch; font-family: var(--font-mono); font-size: 12px; letter-spacing: .03em; line-height: 1.5; color: var(--text-3); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (max-width: 768px) { .loops__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.instructions { margin: 0 0 34px; font-size: 15px; line-height: 1.55; color: var(--text-2); max-width: 90ch; }
+.demo-only { margin-top: 34px; padding: 17px; border: 1px dashed var(--struct-med); background: var(--surface); }
+.demo-only h3 { margin: 0 0 13px; font-family: var(--font-mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); }
+.demo-only .row { display: flex; flex-wrap: wrap; gap: 13px 34px; align-items: center; }
+.demo-only label { font-family: var(--font-mono); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-2); display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; max-width: 100%; }
+.demo-only select, .demo-only button { font-family: var(--font-mono); font-size: 13px; min-height: 38px; padding: 0 13px; max-width: 100%; color: var(--text-1); background: var(--paper); border: 1px solid var(--struct-med); cursor: pointer; }
+@media (max-width: 640px) {
+  .demo-only .row, .demo-only label { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .demo-only select { width: 100%; min-width: 0; }
+}
+.demo-only output { font-family: var(--font-mono); font-size: 12px; color: var(--text-3); }
+.demo-only p { margin: 13px 0 0; font-size: 14px; color: var(--text-2); }
+footer { margin-top: 55px; padding-top: 13px; border-top: 1px solid var(--struct-med); font-size: 14px; color: var(--text-2); }
+:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }

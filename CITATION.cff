@@ -1,0 +1,220 @@
+cff-version: 1.2.0
+message: "If you use Morphogen in work you publish, please cite it as below."
+title: "Morphogen: an engine of emergent pattern formation for the web"
+type: software
+version: 0.1.0
+date-released: 2026-10-12
+license: MIT
+repository-code: "https://github.com/cs-training-systems/morphogen"
+url: "https://cs-training-systems.github.io/morphogen/"
+authors:
+  - family-names: Stamplis
+    given-names: Christopher A.
+keywords:
+  - reaction-diffusion
+  - Gray-Scott
+  - cellular automata
+  - Lenia
+  - lattice Boltzmann
+  - snow crystal
+  - phase field
+  - Turing pattern
+  - Ginzburg-Landau
+  - spiral waves
+  - morphogenesis
+  - canvas
+  - simulation
+references:
+  - type: article
+    title: "Autocatalytic reactions in the isothermal, continuous stirred tank reactor: oscillations and instabilities in the system A + 2B → 3B; B → C"
+    authors:
+      - family-names: Gray
+        given-names: P.
+      - family-names: Scott
+        given-names: S. K.
+    journal: "Chemical Engineering Science"
+    volume: 39
+    year: 1984
+  - type: article
+    title: "Complex patterns in a simple system"
+    authors:
+      - family-names: Pearson
+        given-names: John E.
+    journal: "Science"
+    volume: 261
+    year: 1993
+  - type: article
+    title: "Modeling and numerical simulations of dendritic crystal growth"
+    authors:
+      - family-names: Kobayashi
+        given-names: Ryo
+    journal: "Physica D"
+    volume: 63
+    start: 410
+    end: 423
+    year: 1993
+  - type: article
+    title: "Modeling snow crystal growth II: a mesoscopic lattice map with plausible dynamics"
+    authors:
+      - family-names: Gravner
+        given-names: Janko
+      - family-names: Griffeath
+        given-names: David
+    journal: "Physica D"
+    volume: 237
+    issue: 3
+    start: 385
+    end: 404
+    year: 2008
+  - type: article
+    title: "A local cellular model for snow crystal growth"
+    authors:
+      - family-names: Reiter
+        given-names: Clifford A.
+    journal: "Chaos, Solitons & Fractals"
+    volume: 23
+    issue: 4
+    start: 1111
+    end: 1119
+    year: 2005
+    doi: 10.1016/s0960-0779(04)00374-1
+  - type: article
+    title: "The world of the complex Ginzburg–Landau equation"
+    authors:
+      - family-names: Aranson
+        given-names: Igor S.
+      - family-names: Kramer
+        given-names: Lorenz
+    journal: "Reviews of Modern Physics"
+    volume: 74
+    start: 99
+    end: 143
+    year: 2002
+    doi: 10.1103/RevModPhys.74.99
+  - type: article
+    title: "Antispiral waves as sources in oscillatory reaction–diffusion media"
+    authors:
+      - family-names: Nicola
+        given-names: Ernesto M.
+      - family-names: Brusch
+        given-names: Lutz
+      - family-names: Bär
+        given-names: Markus
+    journal: "The Journal of Physical Chemistry B"
+    volume: 108
+    year: 2004
+    doi: 10.1021/jp049213r
+  - type: article
+    title: "Lenia — Biology of Artificial Life"
+    authors:
+      - family-names: Chan
+        given-names: Bert Wang-Chak
+    journal: "Complex Systems"
+    volume: 28
+    issue: 3
+    year: 2019
+    doi: 10.25088/ComplexSystems.28.3.251
+  - type: article
+    title: "Cyclic cellular automata in two dimensions"
+    authors:
+      - family-names: Fisch
+        given-names: Robert
+      - family-names: Gravner
+        given-names: Janko
+      - family-names: Griffeath
+        given-names: David
+    journal: "Statistics and Computing"
+    volume: 1
+    start: 23
+    end: 39
+    year: 1991
+  - type: article
+    title: "Fractal dimension of dielectric breakdown"
+    authors:
+      - family-names: Niemeyer
+        given-names: L.
+      - family-names: Pietronero
+        given-names: L.
+      - family-names: Wiesmann
+        given-names: H. J.
+    journal: "Physical Review Letters"
+    volume: 52
+    start: 1033
+    end: 1036
+    year: 1984
+    doi: 10.1103/PhysRevLett.52.1033
+  - type: book
+    title: "Cellular Automata Machines: A New Environment for Modeling"
+    authors:
+      - family-names: Toffoli
+        given-names: Tommaso
+      - family-names: Margolus
+        given-names: Norman
+    publisher: "MIT Press"
+    year: 1987
+  - type: article
+    title: "Self-organized criticality: an explanation of the 1/f noise"
+    authors:
+      - family-names: Bak
+        given-names: Per
+      - family-names: Tang
+        given-names: Chao
+      - family-names: Wiesenfeld
+        given-names: Kurt
+    journal: "Physical Review Letters"
+    volume: 59
+    start: 381
+    end: 384
+    year: 1987
+  - type: article
+    title: "Statistical mechanics of cellular automata"
+    authors:
+      - family-names: Wolfram
+        given-names: Stephen
+    journal: "Reviews of Modern Physics"
+    volume: 55
+    start: 601
+    end: 644
+    year: 1983
+  - type: article
+    title: "Self-organized critical forest-fire model"
+    authors:
+      - family-names: Drossel
+        given-names: Barbara
+      - family-names: Schwabl
+        given-names: Franz
+    journal: "Physical Review Letters"
+    volume: 69
+    start: 1629
+    end: 1632
+    year: 1992
+  - type: article
+    title: "Computer simulation of grain growth — I. Kinetics"
+    authors:
+      - family-names: Anderson
+        given-names: M. P.
+      - family-names: Srolovitz
+        given-names: D. J.
+      - family-names: Grest
+        given-names: G. S.
+      - family-names: Sahni
+        given-names: P. S.
+    journal: "Acta Metallurgica"
+    volume: 32
+    start: 783
+    end: 791
+    year: 1984
+  - type: article
+    title: "Lattice BGK models for Navier–Stokes equation"
+    authors:
+      - family-names: Qian
+        given-names: Y. H.
+      - family-names: d'Humières
+        given-names: D.
+      - family-names: Lallemand
+        given-names: P.
+    journal: "Europhysics Letters"
+    volume: 17
+    start: 479
+    end: 484
+    year: 1992

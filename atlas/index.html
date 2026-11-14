@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Morphospaces Atlas: a classification of computational visual generators</title>
+<meta name="description" content="Morphospaces Atlas: a faceted classification of the mathematical rules and objects a computer can turn into a picture. Every entry has an address: its law architecture, then its substrate, then its mechanism family and subtype.">
+<link rel="stylesheet" href="../demo.css">
+<link rel="stylesheet" href="atlas.css">
+</head>
+<body class="at" data-atlas-src="data/atlas.json">
+<main class="page">
+  <header>
+    <a class="sitelink" href="../">Morphogen <span aria-hidden="true">→</span></a>
+    <h1>Morphospaces Atlas</h1>
+    <p class="tagline">A classification of the mathematical rules and objects a computer can turn into a picture, still or moving. Every entry has an address: the kind of rule first, then what the rule acts on.</p>
+    <p class="links"><a href="https://github.com/cs-training-systems/morphogen/tree/main/atlas">Source and data on GitHub ↗</a> · <a href="data/atlas.json">The data file (JSON)</a></p>
+    <p class="at__statusline" data-at="statusline">Reading the data file…</p>
+  </header>
+
+  <noscript><p class="at__error">This page reads its data with JavaScript, which is switched off in this browser. The data is in <a href="data/atlas.json">the data file</a>, and the Atlas is described in <a href="https://github.com/cs-training-systems/morphogen/tree/main/atlas">its README on GitHub</a>.</p></noscript>
+  <p class="at__error" data-at="error" role="alert" hidden></p>
+
+  <div data-at="content" hidden>
+
+    <section class="at__section" aria-label="Every entry, in order of name">
+      <div class="at__wall" data-at="wall">
+        <ul class="at__gallery" data-at="gallery"></ul>
+        <div class="at__pager" data-at="pager" hidden>
+          <button type="button" class="at__turn at__turn--back" data-at="turn-back" aria-label="Previous squares"></button>
+          <div class="at__dots" data-at="dots" aria-hidden="true"></div>
+          <button type="button" class="at__turn" data-at="turn-on" aria-label="Next squares"></button>
+          <p class="visually-hidden" data-at="page-note" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="at__section" aria-labelledby="at-h-address">
+      <h2 class="at__h" id="at-h-address">How an address works</h2>
+      <p class="at__lead">Every entry answers four questions, always in this order.</p>
+      <p class="at__example-name"><span class="kicker">Example</span> <span data-at="ex-name"></span></p>
+      <ol class="at__address">
+        <li class="at__step">
+          <p class="at__step-facet">1 · Law architecture</p>
+          <p class="at__step-q">What kind of rule is it?</p>
+          <p class="at__step-a" data-at="ex-law"></p>
+          <p class="at__step-plain" data-at="ex-law-plain"></p>
+        </li>
+        <li class="at__step">
+          <p class="at__step-facet">2 · Substrate</p>
+          <p class="at__step-q">What does the rule act on?</p>
+          <p class="at__step-a" data-at="ex-sub"></p>
+          <p class="at__step-plain" data-at="ex-sub-plain"></p>
+        </li>
+        <li class="at__step">
+          <p class="at__step-facet">3 · Mechanism family</p>
+          <p class="at__step-q">Which mechanism carries it out?</p>
+          <p class="at__step-a" data-at="ex-fam"></p>
+          <p class="at__step-plain">The formalism that implements that rule on that carrier. It depends on the first two answers.</p>
+        </li>
+        <li class="at__step">
+          <p class="at__step-facet">4 · Subtype</p>
+          <p class="at__step-q">Which group within the family?</p>
+          <p class="at__step-a" data-at="ex-st"></p>
+          <p class="at__step-plain">A grouping for browsing. It is not a further axis.</p>
+        </li>
+      </ol>
+      <ul class="at__points">
+        <li><b>Mathematics first.</b> The first two answers are the mathematics of the entry and always come first. The mechanism comes third.</li>
+        <li><b>The rule, not the look.</b> An entry is filed by its rule as written, never by how its picture looks.</li>
+      </ul>
+      <p class="at__actions"><button type="button" class="at__btn" data-at="ex-open">Open this entry</button></p>
+    </section>
+
+    <section class="at__section" aria-labelledby="at-h-map">
+      <h2 class="at__h" id="at-h-map">The map</h2>
+      <p class="at__lead">The Atlas has <span data-at="n-laws"></span> kinds of rule and <span data-at="n-subs"></span> kinds of state carrier, which makes <span data-at="n-routes"></span> routes. Every entry sits on exactly one. Select a square, a row or a column.</p>
+      <div class="at__frame">
+        <div data-at="map"></div>
+        <span class="corner corner--tl" aria-hidden="true"></span><span class="corner corner--tr" aria-hidden="true"></span>
+        <span class="corner corner--bl" aria-hidden="true"></span><span class="corner corner--br" aria-hidden="true"></span>
+      </div>
+      <div class="at__sel" data-at="selection"></div>
+      <div class="at__legends">
+        <section class="at__panel" aria-labelledby="at-h-laws">
+          <h3 class="at__panel-h" id="at-h-laws">Rows: the kind of rule <span>Law architecture</span></h3>
+          <div data-at="legend-law"></div>
+        </section>
+        <section class="at__panel" aria-labelledby="at-h-subs">
+          <h3 class="at__panel-h" id="at-h-subs">Columns: what the rule acts on <span>Substrate</span></h3>
+          <div data-at="legend-sub"></div>
+        </section>
+      </div>
+    </section>
+
+    <section class="at__section" aria-labelledby="at-h-entries">
+      <h2 class="at__h" id="at-h-entries" tabindex="-1">The entries</h2>
+      <p class="at__lead">Search by name, or narrow the list with the map. Open an entry for its full record.</p>
+      <div class="at__controls">
+        <label class="at__field"><span>Search the entries</span><input type="search" data-at="q" autocomplete="off" spellcheck="false" placeholder="A name, a word or a record id"></label>
+        <label class="at__field"><span>Kind of entry</span><select data-at="type"></select></label>
+        <label class="at__field"><span>Order</span><select data-at="sort"><option value="name">By name</option><option value="address">By address</option></select></label>
+        <label class="at__toggle"><input type="checkbox" data-at="img"><span>Only entries with a picture (<span data-at="n-img"></span>)</span></label>
+        <label class="at__toggle at__toggle--b" title="Old ids and alternate names that point at an entry"><input type="checkbox" data-at="alias"><span>Also list alias redirects (<span data-at="n-alias"></span>)</span></label>
+      </div>
+      <div class="at__crumbs" data-at="crumbs"></div>
+      <div class="at__chiprow" data-at="fam-row" hidden>
+        <p class="at__chiplabel">Mechanism family</p>
+        <div class="at__chips" data-at="fam-chips"></div>
+      </div>
+      <div class="at__chiprow" data-at="st-row" hidden>
+        <p class="at__chiplabel">Subtype</p>
+        <div class="at__chips" data-at="st-chips"></div>
+      </div>
+      <p class="at__count" data-at="count" tabindex="-1"></p>
+      <p class="visually-hidden" data-at="live" aria-live="polite"></p>
+      <ul class="at__entries" data-at="entries"></ul>
+      <p class="at__more" data-at="more"></p>
+    </section>
+
+    <section class="at__section" aria-labelledby="at-h-methods">
+      <h2 class="at__h" id="at-h-methods">Methods are kept apart</h2>
+      <p class="at__lead">A solver, a sampler, a renderer or a notation is not a generator. These are listed apart, so that a way of computing something is never mistaken for the thing computed.</p>
+      <ul class="at__entries" data-at="methods"></ul>
+    </section>
+
+    <section class="at__section" aria-labelledby="at-h-about">
+      <h2 class="at__h" id="at-h-about">About the Atlas</h2>
+      <details class="at__fold">
+        <summary>How entries are filed</summary>
+        <div class="at__fold-body">
+          <p class="at__lead">The Atlas is a <b>faceted classification</b>: each entry carries one value for each facet, always cited in the same order. An entry is one precisely specified generator or mathematical object, not an informal model name. Each generator has its own space of parameter settings, its morphospace. The Atlas is the index of those spaces, which is where its name comes from.</p>
+          <ul class="at__points">
+            <li><b>The rule, not the solver.</b> A numerical method that approximates an equation is not the equation. A drawing method is not the object it draws.</li>
+            <li><b>The model, not one output.</b> A rule and one particular pattern it produces are separate entries, linked to each other.</li>
+            <li><b>The state, not the display.</b> An equation for a continuous field stays a continuous-field entry when a computer evaluates it on a grid, unless the grid rule itself is the model.</li>
+            <li><b>Chance only when it is in the rule.</b> A rule without chance that starts from a random state is still deterministic.</li>
+            <li><b>One address per entry.</b> A named model with several valid formulations gets one entry for each formulation.</li>
+            <li><b>The kind of entry is an attribute.</b> Whether an entry is a model, an equation, a static object or a family of models is recorded beside the address, not inside it.</li>
+            <li><b>Not a complete list.</b> No finite list of mechanism families can be proved complete. The Atlas is a curated map with room for new mechanisms.</li>
+          </ul>
+        </div>
+      </details>
+      <details class="at__fold">
+        <summary>Sources</summary>
+        <div class="at__fold-body">
+          <p class="at__lead">The data file keeps <span data-at="n-sources"></span> references. An entry cites a reference by its position in that list, counted from 0.</p>
+          <ol class="at__srclist" data-at="sources"></ol>
+        </div>
+      </details>
+      <details class="at__fold">
+        <summary>State of the data</summary>
+        <div class="at__fold-body">
+          <p class="at__lead">A working classification, still under review. Every number on this page is read from the data file each time the page loads.</p>
+          <table class="at__facts" data-at="facts"></table>
+        </div>
+      </details>
+    </section>
+
+  </div>
+
+  <footer>
+    <p>Morphospaces Atlas is part of Morphogen. MIT License, © <span data-year>2026</span> Christopher A. Stamplis.</p>
+  </footer>
+</main>
+<script type="module" src="atlas.js"></script>
+<script>
+  // The copyright notice shows the range from the year of first publication to the current year.
+  (function () { var y = new Date().getFullYear(), s = document.querySelector("[data-year]"); if (s && y > 2026) s.textContent = "2026–" + y; }());
+</script>
+</body>
+</html>

@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Morphogen: an engine of emergent pattern formation</title>
+<meta name="description" content="Morphogen: an engine of emergent pattern formation for the web. Ten named models (Gray–Scott, Ginzburg–Landau, Reiter's snow crystal, the cellular automaton, Lenia, lattice Boltzmann, the cyclic automaton, dielectric breakdown, the Potts model, the forest fire) in one classic script, no dependencies, on the graphics processor, sorted by the mathematics of their rules.">
+<link rel="stylesheet" href="demo.css">
+<link rel="stylesheet" href="morphogen.css">
+</head>
+<body>
+<main class="page">
+  <header>
+    <a class="sitelink" href="atlas/">Morphospaces Atlas <span aria-hidden="true">→</span></a>
+    <h1>Morphogen</h1>
+    <p class="tagline">An engine of emergent pattern formation for the web. Ten named models with their presets, one classic script, no dependencies, no build step.</p>
+    <p class="links"><a href="https://github.com/cs-training-systems/morphogen">Source and README on GitHub ↗</a></p>
+
+    <!-- The loop banner: fourteen silent recorded loops of the engine's patterns, each a distinct prime number of sixths of a
+         second long so no two ever restart together; one control plays them all from their first frame and Stop returns every
+         one to its still. Each poster is a still; nothing plays until the visitor presses Play. -->
+    <div class="loops" data-loops>
+      <div class="loops__grid" aria-hidden="true">
+        <figure class="loops__tile"><video muted loop playsinline preload="metadata" poster="docs/media/banner/antispiral-canopy.png"><source src="docs/media/banner/antispiral-canopy.webm" type="video/webm"></video></figure>
+        <figure class="loops__tile"><video muted loop playsinline preload="metadata" poster="docs/media/banner/frost.png"><source src="docs/media/banner/frost.webm" type="video/webm"></video></figure>
+        <figure class="loops__tile"><video muted loop playsinline preload="metadata" poster="docs/media/banner/meandric.png"><source src="docs/media/banner/meandric.webm" type="video/webm"></video></figure>
+        <figure class="loops__tile"><video muted loop playsinline preload="metadata" poster="docs/media/banner/lenia.png"><source src="docs/media/banner/lenia.webm" type="video/webm"></video></figure>
+        <figure class="loops__tile"><video muted loop playsinline preload="metadata" poster="docs/media/banner/antispiral-neon.png"><source src="docs/media/banner/antispiral-neon.webm" type="video/webm"></video></figure>
+        <figure class="loops__tile"><video muted loop playsinline preload="metadata" poster="docs/media/banner/lichtenberg.png"><source src="docs/media/banner/lichtenberg.webm" type="video/webm"></video></figure>
+        <figure class="loops__tile"><video muted loop playsinline preload="metadata" poster="docs/media/banner/malachite.png"><source src="docs/media/banner/malachite.webm" type="video/webm"></video></figure>
+        <figure class="loops__tile"><video muted loop playsinline preload="metadata" poster="docs/media/banner/swarm.png"><source src="docs/media/banner/swarm.webm" type="video/webm"></video></figure>
+        <figure class="loops__tile"><video muted loop playsinline preload="metadata" poster="docs/media/banner/wake.png"><source src="docs/media/banner/wake.webm" type="video/webm"></video></figure>
+        <figure class="loops__tile"><video muted loop playsinline preload="metadata" poster="docs/media/banner/vortex.png"><source src="docs/media/banner/vortex.webm" type="video/webm"></video></figure>
+        <figure class="loops__tile"><video muted loop playsinline preload="metadata" poster="docs/media/banner/rotor.png"><source src="docs/media/banner/rotor.webm" type="video/webm"></video></figure>
+        <figure class="loops__tile"><video muted loop playsinline preload="metadata" poster="docs/media/banner/mitosis.png"><source src="docs/media/banner/mitosis.webm" type="video/webm"></video></figure>
+        <figure class="loops__tile"><video muted loop playsinline preload="metadata" poster="docs/media/banner/turbulence.png"><source src="docs/media/banner/turbulence.webm" type="video/webm"></video></figure>
+        <figure class="loops__tile"><video muted loop playsinline preload="metadata" poster="docs/media/banner/xylem.png"><source src="docs/media/banner/xylem.webm" type="video/webm"></video></figure>
+      </div>
+      <div class="loops__bar">
+        <button type="button" class="loops__btn" data-loops-toggle aria-pressed="false">▶ PLAY</button>
+        <p class="loops__note">Fourteen patterns from the engine, each a silent recorded loop of its own prime length, so no two ever restart together. Play starts all fourteen from their first frame; Stop returns each to its still.</p>
+        <p class="visually-hidden" data-loops-status aria-live="polite"></p>
+      </div>
+    </div>
+  </header>
+
+  <p class="instructions">Choose a category, then a model, then one of its presets. Click and drag on the field to paint it, or switch on Hover mode and just move the pointer; on a touch screen, touch and drag. Seed starts the pattern at the center (later presses add one point at random); Reset clears. The sliders are the model's own variables, in their own units; Speed sets the pace; Resolution sets the grid, lower for bigger features; Brush width sets the pointer's mark, which on the snow crystal is a void with one tiny seed at its centre. The seed value makes a run repeatable: the same value, the same actions, the same pattern. Reduced motion shows one still: seed at the left, full pattern at the right.</p>
+  <p class="instructions notice" id="rd-notice"><b>Photosensitivity notice.</b> The field animates and can flicker or pulse. Its Reduced motion control shows a still image instead.</p>
+
+  <section class="rd" data-rd-scope aria-labelledby="rd-heading">
+    <p class="kicker" id="rd-heading">Interactive · Emergent patterns</p>
+
+    <div class="rd__categories" role="group" aria-label="Categories">
+      <div class="rd__catgroup" role="group" aria-labelledby="rd-cat-det">
+        <p class="rd__cathead" id="rd-cat-det">Deterministic</p>
+        <div class="rd__catbtns">
+          <button type="button" class="rd__family" data-rd="category" data-rd-id="stepwise" aria-pressed="false">Stepwise<span class="rd__cat-sub">(discrete time)</span></button>
+          <button type="button" class="rd__family" data-rd="category" data-rd-id="flowing" data-rd-default aria-pressed="true">Flowing<span class="rd__cat-sub">(continuous time)</span></button>
+        </div>
+      </div>
+      <div class="rd__catdivider" aria-hidden="true"></div>
+      <div class="rd__catgroup" role="group" aria-labelledby="rd-cat-sto">
+        <p class="rd__cathead" id="rd-cat-sto">Stochastic</p>
+        <div class="rd__catbtns">
+          <button type="button" class="rd__family" data-rd="category" data-rd-id="chance" aria-pressed="false">Chance-driven<span class="rd__cat-sub">(probabilistic)</span></button>
+        </div>
+      </div>
+    </div>
+    <div class="rd__catnote">
+      <ul class="rd__catlist">
+        <li><b>Stepwise</b>: deterministic; every bounded stretch of time holds finitely many steps.</li>
+        <li><b>Flowing</b>: deterministic; a differential equation in continuous time.</li>
+        <li><b>Chance-driven</b>: the rule itself contains a probability law.</li>
+      </ul>
+      <p class="rd__catrule">Each model is placed by the mathematics of its rule as written, never by how it looks. A look that seems to belong elsewhere is the computation, not the model; the model's note says so. Randomness in a seed does not count; the seed value makes every run repeatable.</p>
+    </div>
+
+    <p class="rd__mode" data-rd="mode">FLOWING · GRAY–SCOTT</p>
+
+    <!-- Nine slots per category. A built model is a live tile; a slot whose model is not yet built is a greyed, unclickable
+         tile naming the model, "(in development)". -->
+    <ul class="rd__presets" aria-label="Models">
+      <li><button type="button" class="rd__preset" data-rd="tile" data-rd-id="gray-scott" data-rd-default aria-pressed="true"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Gray–Scott</button></li>
+      <li><button type="button" class="rd__preset" data-rd="tile" data-rd-id="ginzburg-landau" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Ginzburg–Landau</button></li>
+      <li><button type="button" class="rd__preset rd__preset--planned" data-rd="planned" data-rd-category="flowing" disabled aria-disabled="true"><span class="rd__thumb rd__thumb--planned" aria-hidden="true"></span>Quasicrystal<span class="rd__planned">(in development)</span></button></li>
+      <li><button type="button" class="rd__preset rd__preset--planned" data-rd="planned" data-rd-category="flowing" disabled aria-disabled="true"><span class="rd__thumb rd__thumb--planned" aria-hidden="true"></span>Gross–Pitaevskii<span class="rd__planned">(in development)</span></button></li>
+      <li><button type="button" class="rd__preset rd__preset--planned" data-rd="planned" data-rd-category="flowing" disabled aria-disabled="true"><span class="rd__thumb rd__thumb--planned" aria-hidden="true"></span>Strange attractors<span class="rd__planned">(in development)</span></button></li>
+      <li><button type="button" class="rd__preset rd__preset--planned" data-rd="planned" data-rd-category="flowing" disabled aria-disabled="true"><span class="rd__thumb rd__thumb--planned" aria-hidden="true"></span>Neural field<span class="rd__planned">(in development)</span></button></li>
+      <li><button type="button" class="rd__preset rd__preset--planned" data-rd="planned" data-rd-category="flowing" disabled aria-disabled="true"><span class="rd__thumb rd__thumb--planned" aria-hidden="true"></span>N-body gravitation<span class="rd__planned">(in development)</span></button></li>
+      <li><button type="button" class="rd__preset rd__preset--planned" data-rd="planned" data-rd-category="flowing" disabled aria-disabled="true"><span class="rd__thumb rd__thumb--planned" aria-hidden="true"></span>Wrinkling<span class="rd__planned">(in development)</span></button></li>
+      <li><button type="button" class="rd__preset rd__preset--planned" data-rd="planned" data-rd-category="flowing" disabled aria-disabled="true"><span class="rd__thumb rd__thumb--planned" aria-hidden="true"></span>Spin field<span class="rd__planned">(in development)</span></button></li>
+      <li hidden><button type="button" class="rd__preset" data-rd="tile" data-rd-id="reiter" data-rd-default aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Reiter snow crystal</button></li>
+      <li hidden><button type="button" class="rd__preset" data-rd="tile" data-rd-id="cellular-automaton" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Cellular automaton</button></li>
+      <li hidden><button type="button" class="rd__preset" data-rd="tile" data-rd-id="lenia" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Lenia</button></li>
+      <li hidden><button type="button" class="rd__preset" data-rd="tile" data-rd-id="lattice-boltzmann" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Lattice Boltzmann</button></li>
+      <li hidden><button type="button" class="rd__preset" data-rd="tile" data-rd-id="cyclic-automaton" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Cyclic automaton</button></li>
+      <li hidden><button type="button" class="rd__preset rd__preset--planned" data-rd="planned" data-rd-category="stepwise" disabled aria-disabled="true"><span class="rd__thumb rd__thumb--planned" aria-hidden="true"></span>Fractals<span class="rd__planned">(in development)</span></button></li>
+      <li hidden><button type="button" class="rd__preset rd__preset--planned" data-rd="planned" data-rd-category="stepwise" disabled aria-disabled="true"><span class="rd__thumb rd__thumb--planned" aria-hidden="true"></span>Particle rules<span class="rd__planned">(in development)</span></button></li>
+      <li hidden><button type="button" class="rd__preset rd__preset--planned" data-rd="planned" data-rd-category="stepwise" disabled aria-disabled="true"><span class="rd__thumb rd__thumb--planned" aria-hidden="true"></span>Abelian sandpile<span class="rd__planned">(in development)</span></button></li>
+      <li hidden><button type="button" class="rd__preset rd__preset--planned" data-rd="planned" data-rd-category="stepwise" disabled aria-disabled="true"><span class="rd__thumb rd__thumb--planned" aria-hidden="true"></span>Area-preserving maps<span class="rd__planned">(in development)</span></button></li>
+      <li hidden><button type="button" class="rd__preset" data-rd="tile" data-rd-id="dielectric-breakdown" data-rd-default aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Dielectric breakdown</button></li>
+      <li hidden><button type="button" class="rd__preset" data-rd="tile" data-rd-id="potts" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Potts model</button></li>
+      <li hidden><button type="button" class="rd__preset" data-rd="tile" data-rd-id="forest-fire" aria-pressed="false"><canvas class="rd__thumb" data-rd="thumb" aria-hidden="true"></canvas>Forest fire</button></li>
+      <li hidden><button type="button" class="rd__preset rd__preset--planned" data-rd="planned" data-rd-category="chance" disabled aria-disabled="true"><span class="rd__thumb rd__thumb--planned" aria-hidden="true"></span>Physarum network<span class="rd__planned">(in development)</span></button></li>
+      <li hidden><button type="button" class="rd__preset rd__preset--planned" data-rd="planned" data-rd-category="chance" disabled aria-disabled="true"><span class="rd__thumb rd__thumb--planned" aria-hidden="true"></span>Active matter<span class="rd__planned">(in development)</span></button></li>
+      <li hidden><button type="button" class="rd__preset rd__preset--planned" data-rd="planned" data-rd-category="chance" disabled aria-disabled="true"><span class="rd__thumb rd__thumb--planned" aria-hidden="true"></span>Random walks<span class="rd__planned">(in development)</span></button></li>
+      <li hidden><button type="button" class="rd__preset rd__preset--planned" data-rd="planned" data-rd-category="chance" disabled aria-disabled="true"><span class="rd__thumb rd__thumb--planned" aria-hidden="true"></span>Gaussian random fields<span class="rd__planned">(in development)</span></button></li>
+      <li hidden><button type="button" class="rd__preset rd__preset--planned" data-rd="planned" data-rd-category="chance" disabled aria-disabled="true"><span class="rd__thumb rd__thumb--planned" aria-hidden="true"></span>Network growth<span class="rd__planned">(in development)</span></button></li>
+      <li hidden><button type="button" class="rd__preset rd__preset--planned" data-rd="planned" data-rd-category="chance" disabled aria-disabled="true"><span class="rd__thumb rd__thumb--planned" aria-hidden="true"></span>Dune field<span class="rd__planned">(in development)</span></button></li>
+    </ul>
+
+    <div class="rd__chips" role="group" aria-label="Presets" data-rd="chips"></div>
+    <p class="rd__preset-line" data-rd="preset-line"></p>
+
+    <div class="rd__stage">
+      <figure class="rd__frame">
+        <canvas id="rd-field" class="rd__canvas" data-morphogen data-preset="malachite" data-palette="canopy" data-steps="8"
+          role="img" aria-describedby="rd-notice" aria-label="An emergent-pattern simulation. A black field; click and drag on it, touch and drag, or move the pointer over it in hover mode, to seed a pattern that grows and spreads. The category buttons, the model tiles, the preset chips, the parameter sliders, speed, resolution and the color options change its behavior and look."></canvas>
+        <span class="corner corner--tl" aria-hidden="true"></span><span class="corner corner--tr" aria-hidden="true"></span>
+        <span class="corner corner--bl" aria-hidden="true"></span><span class="corner corner--br" aria-hidden="true"></span>
+        <div class="rd__loading" data-rd="loading" role="status" hidden><span>Loading…</span></div>
+        <div class="rd__hud">
+          <button type="button" class="rd__ctl" data-rd="pause">⏸ PAUSE</button>
+          <button type="button" class="rd__ctl" data-rd="reset">⏹ RESET</button>
+          <button type="button" class="rd__ctl" data-rd="seed">Seed</button>
+          <div class="rd__colors">
+            <button type="button" class="rd__ctl" data-rd="colors-toggle" aria-expanded="false" aria-controls="rd-colors">Colors</button>
+            <fieldset class="rd__colors-menu" id="rd-colors" data-rd="colors-menu">
+              <legend>Colors</legend>
+              <label class="rd__palette"><input type="radio" name="rd-palette" value="canopy" data-rd="palette-option" data-rd-name="Canopy" checked><span class="rd__swatches" aria-hidden="true"><span class="rd__sw rd__sw--black"></span><span class="rd__sw rd__sw--blue"></span><span class="rd__sw rd__sw--green"></span><span class="rd__sw rd__sw--buff"></span></span>Canopy</label>
+              <label class="rd__palette"><input type="radio" name="rd-palette" value="aurora" data-rd="palette-option" data-rd-name="Aurora"><span class="rd__swatches" aria-hidden="true"><span class="rd__sw rd__sw--black"></span><span class="rd__sw rd__sw--green"></span><span class="rd__sw rd__sw--violet"></span><span class="rd__sw rd__sw--white"></span></span>Aurora</label>
+              <label class="rd__palette"><input type="radio" name="rd-palette" value="spectrum" data-rd="palette-option" data-rd-name="Spectrum"><span class="rd__swatches" aria-hidden="true"><span class="rd__sw rd__sw--black"></span><span class="rd__sw rd__sw--blue"></span><span class="rd__sw rd__sw--red"></span><span class="rd__sw rd__sw--white"></span></span>Spectrum</label>
+              <label class="rd__palette"><input type="radio" name="rd-palette" value="neon" data-rd="palette-option" data-rd-name="Neon"><span class="rd__swatches" aria-hidden="true"><span class="rd__sw rd__sw--black"></span><span class="rd__sw rd__sw--red"></span><span class="rd__sw rd__sw--green"></span><span class="rd__sw rd__sw--white"></span></span>Neon</label>
+              <label class="rd__palette"><input type="radio" name="rd-palette" value="accretion" data-rd="palette-option" data-rd-name="Accretion"><span class="rd__swatches" aria-hidden="true"><span class="rd__sw rd__sw--black"></span><span class="rd__sw rd__sw--blue"></span><span class="rd__sw rd__sw--orange"></span><span class="rd__sw rd__sw--white"></span></span>Accretion</label>
+              <label class="rd__palette"><input type="radio" name="rd-palette" value="physarum" data-rd="palette-option" data-rd-name="Physarum"><span class="rd__swatches" aria-hidden="true"><span class="rd__sw rd__sw--black"></span><span class="rd__sw rd__sw--blue"></span><span class="rd__sw rd__sw--yellow"></span><span class="rd__sw rd__sw--white"></span></span>Physarum</label>
+              <label class="rd__palette"><input type="radio" name="rd-palette" value="cherenkov" data-rd="palette-option" data-rd-name="Cherenkov"><span class="rd__swatches" aria-hidden="true"><span class="rd__sw rd__sw--black"></span><span class="rd__sw rd__sw--violet"></span><span class="rd__sw rd__sw--cyan"></span><span class="rd__sw rd__sw--white"></span></span>Cherenkov</label>
+              <label class="rd__palette"><input type="radio" name="rd-palette" value="orodruin" data-rd="palette-option" data-rd-name="Orodruin"><span class="rd__swatches" aria-hidden="true"><span class="rd__sw rd__sw--black"></span><span class="rd__sw rd__sw--red"></span><span class="rd__sw rd__sw--orange"></span><span class="rd__sw rd__sw--yellow"></span></span>Orodruin</label>
+              <label class="rd__palette"><input type="radio" name="rd-palette" value="coastal" data-rd="palette-option" data-rd-name="Coastal"><span class="rd__swatches" aria-hidden="true"><span class="rd__sw rd__sw--black"></span><span class="rd__sw rd__sw--blue"></span><span class="rd__sw rd__sw--cyan"></span><span class="rd__sw rd__sw--buff"></span></span>Coastal</label>
+            </fieldset>
+          </div>
+        </div>
+      </figure>
+
+      <section class="rd__panel" aria-labelledby="rd-controls-h">
+        <h3 class="rd__panel-h" id="rd-controls-h">Controls</h3>
+        <div class="rd__group" role="group" aria-labelledby="rd-acc-h">
+          <h4 class="rd__group-h" id="rd-acc-h">Accessibility</h4>
+          <div class="rd__pair rd__pair--acc">
+            <label class="rd__toggle"><input type="checkbox" data-rd="motion-check" aria-describedby="rd-acc-hint">Reduced motion</label>
+            <label class="rd__toggle"><input type="checkbox" data-rd="hover-check" aria-describedby="rd-hover-hint">Hover mode</label>
+          </div>
+          <p class="rd__hint" id="rd-acc-hint">Reduced motion: show a still image view instead of a dynamic view.</p>
+          <p class="rd__hint" id="rd-hover-hint">Hover mode: paint by moving the pointer, no button held. Off, the field answers click and drag only.</p>
+        </div>
+        <div class="rd__group" role="group" aria-label="Model" data-rd="model-controls" hidden>
+          <div class="rd__modelrow">
+            <label>Dimension
+              <select id="rd-dimension" class="rd__select" data-rd="dimension" aria-label="Dimension of the lattice">
+                <option value="1">1-D, rows in time</option><option value="2">2-D, the plane</option>
+              </select>
+            </label>
+            <label><span data-rd="rule-label">Rule (0–255)</span>
+              <input id="rd-rule" type="text" data-rd="rule" inputmode="text" spellcheck="false" aria-label="The rule: a number from 0 to 255 in one dimension, or B/S/C in two">
+            </label>
+          </div>
+        </div>
+        <div class="rd__group" role="group" aria-label="Parameters">
+          <div class="rd__param">
+            <label for="rd-p1-range">Feed:</label>
+            <input id="rd-p1-range" type="range" min="0.008" max="0.070" step="0.001" value="0.010" data-rd="p1-range">
+            <label class="rd__number-label" for="rd-p1-number">Feed, exact value</label>
+            <input id="rd-p1-number" type="number" min="0.008" max="0.070" step="0.001" value="0.010" inputmode="decimal" data-rd="p1-number">
+            <span class="rd__unit" data-rd="p1-unit" aria-hidden="true"></span>
+          </div>
+          <div class="rd__param">
+            <label for="rd-p2-range">Kill:</label>
+            <input id="rd-p2-range" type="range" min="0.030" max="0.066" step="0.001" value="0.035" data-rd="p2-range">
+            <label class="rd__number-label" for="rd-p2-number">Kill, exact value</label>
+            <input id="rd-p2-number" type="number" min="0.030" max="0.066" step="0.001" value="0.035" inputmode="decimal" data-rd="p2-number">
+            <span class="rd__unit" data-rd="p2-unit" aria-hidden="true"></span>
+          </div>
+          <div class="rd__param" hidden>
+            <label for="rd-p3-range">Third:</label>
+            <input id="rd-p3-range" type="range" min="0" max="1" step="0.01" value="0.5" data-rd="p3-range">
+            <label class="rd__number-label" for="rd-p3-number">Third, exact value</label>
+            <input id="rd-p3-number" type="number" min="0" max="1" step="0.01" value="0.5" inputmode="decimal" data-rd="p3-number">
+            <span class="rd__unit" data-rd="p3-unit" aria-hidden="true"></span>
+          </div>
+          <div class="rd__param">
+            <label for="rd-scale-range">Speed:</label>
+            <input id="rd-scale-range" type="range" min="0" max="1" step="0.005" value="0.5" data-rd="scale-range" aria-valuetext="0.5">
+            <label class="rd__number-label" for="rd-scale-number">Speed, exact value: steps per frame are 8 × speed × the model's pace</label>
+            <input id="rd-scale-number" type="number" min="0.1" max="2.5" step="0.005" value="0.5" inputmode="decimal" data-rd="scale-number">
+            <span class="rd__unit" aria-hidden="true">speed × 8 × the model's pace = steps per frame (read below)</span>
+          </div>
+          <div class="rd__seedrow">
+            <label for="rd-seed-value">Seed value:</label>
+            <input id="rd-seed-value" type="number" min="0" max="999999" step="1" value="1" inputmode="numeric" data-rd="seed-value" aria-describedby="rd-seed-hint">
+            <button type="button" class="rd__ctl rd__ctl--small" data-rd="seed-reroll">Reroll</button>
+          </div>
+          <p class="rd__hint" id="rd-seed-hint">0 to 999999. Every random choice the engine makes comes from this value, so the same value with the same actions repeats the same pattern.</p>
+        </div>
+        <div class="rd__group" role="group" aria-label="Resolution">
+          <div class="rd__pair">
+            <label>Resolution
+              <select id="rd-quality" class="rd__select" data-rd="quality" aria-label="Resolution: the cells across the field, or a crystal's size">
+                <option value="240">240</option><option value="320" selected>320</option><option value="400">400</option><option value="480">480</option><option value="560">560</option>
+                <option value="640">640</option><option value="800">800</option><option value="1000">1000</option><option value="1200">1200</option><option value="1600">1600</option>
+                <option value="auto">Automatic</option>
+              </select>
+            </label>
+            <label>Brush width
+              <select id="rd-brush" class="rd__select" data-rd="brush" aria-label="Brush width, the pointer's mark as a share of the field's height">
+                <option value="0.002">0.2%</option><option value="0.004">0.4%</option><option value="0.01">1%</option><option value="0.02">2%</option><option value="0.03" selected>3%</option><option value="0.04">4%</option><option value="0.05">5%</option><option value="0.06">6%</option>
+                <option value="0.08">8%</option><option value="0.10">10%</option><option value="0.12">12%</option><option value="0.14">14%</option><option value="0.20">20%</option>
+              </select>
+            </label>
+          </div>
+          <p class="rd__measure" data-rd="measure" aria-live="off">—</p>
+        </div>
+      </section>
+    </div>
+    <p class="rd__state" data-rd="state"></p>
+    <p class="visually-hidden" data-rd="status" aria-live="polite"></p>
+
+    <!-- One note per model, kept visible while settings change. Each states the mechanism, the
+         category it is placed in and why, and, where the look could suggest another category, that the difference is the
+         computation, not the model. -->
+    <div class="rd__notes">
+      <p class="rd__note" data-rd="note" data-rd-for="gray-scott"><b>Malachite banding, mazes, dividing cells, pores:</b> one chemistry, many regimes. Two concentrations <math><mi>U</mi></math> and <math><mi>V</mi></math> on a plane: <math><mi>V</mi></math> makes more of itself where it already is, <math><mrow><mi>U</mi><mo>+</mo><mn>2</mn><mi>V</mi><mo>→</mo><mn>3</mn><mi>V</mi></mrow></math>; <math><mi>U</mi></math> is fed in at the rate <math><mi>F</mi></math> and <math><mi>V</mi></math> removed at <math><mrow><mi>F</mi><mo>+</mo><mi>k</mi></mrow></math>; both diffuse, <math><mi>V</mi></math> more slowly (Gray and Scott 1984). Which pattern forms depends only on <math><mi>F</mi></math> and <math><mi>k</mi></math>, which is why one model holds eight presets: Pearson mapped the regimes in 1993, from target waves through labyrinths and self-replicating spots to spatiotemporal chaos. Deterministic and continuous in time: the model is a pair of differential equations, and the computer advances them in small steps only to draw them.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="ginzburg-landau"><b>Spiral waves that run inward, then tear into turbulence:</b> the complex Ginzburg–Landau equation, the universal form every reaction–diffusion system takes just past the onset of oscillation (Aranson and Kramer 2002). One complex amplitude <math><mi>A</mi></math> carries the oscillation's strength and phase: <math><mrow><mfrac><mrow><mo>∂</mo><mi>A</mi></mrow><mrow><mo>∂</mo><mi>t</mi></mrow></mfrac><mo>=</mo><mi>A</mi><mo>+</mo><mo>(</mo><mn>1</mn><mo>+</mo><mi>i</mi><mi>α</mi><mo>)</mo><msup><mi>∇</mi><mn>2</mn></msup><mi>A</mi><mo>−</mo><mo>(</mo><mn>1</mn><mo>+</mo><mi>i</mi><mi>β</mi><mo>)</mo><msup><mrow><mo>|</mo><mi>A</mi><mo>|</mo></mrow><mn>2</mn></msup><mi>A</mi></mrow></math>. Where the phase winds around a point the amplitude must vanish, and that point is a spiral wave; near onset the waves run inward toward the core, an antispiral (Nicola, Brusch and Bär 2004). Plane waves hold while <math><mrow><mn>1</mn><mo>+</mo><mi>α</mi><mi>β</mi><mo>&gt;</mo><mn>0</mn></mrow></math>, the Benjamin–Feir line; past it the field breaks into defect turbulence, spirals born and annihilated without end. Deterministic and continuous in time, drawn frame by frame.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="reiter"><b>A snow crystal grown cell by cell:</b> Reiter's model of 2005 on a hexagonal lattice. Each cell holds an amount of water; a cell that is ice, or touches ice, keeps its water and gains <math><mi>γ</mi></math> each step; everywhere else the water diffuses toward its six neighbors' mean at the rate <math><mi>α</mi></math>, <math><mrow><msup><mi>u</mi><mo>′</mo></msup><mo>=</mo><mi>u</mi><mo>+</mo><mfrac><mi>α</mi><mn>2</mn></mfrac><mo>(</mo><mover><mi>u</mi><mo>¯</mo></mover><mo>−</mo><mi>u</mi><mo>)</mo></mrow></math>, with the background held at <math><mi>β</mi></math>; a cell freezes when its water reaches 1. The six arms are the lattice's own symmetry, the one real snowflakes inherit from ice; the branching is the Mullins–Sekerka instability, a tip fed fastest where it is most exposed. Formally this is a cellular automaton with a continuous state, a real number per cell, the same kind of object as Lenia; it stands as its own model because its rule is a growth rule, permanent freezing from a seed. Deterministic and stepwise, with no noise term: crystals differ through the seed value. Not reaction–diffusion: only transport and a sharp interface, a discrete Stefan problem kin to diffusion-limited aggregation.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="cellular-automaton"><b>Scrolling triangles in one dimension; gliders and guns in two:</b> a lookup table on a lattice. Each cell's next state is a fixed function of its neighbors' present states. In one dimension (Wolfram 1983) the neighborhood is three cells and the table is a number from 0 to 255; rows stack in time, the newest at the bottom. In two dimensions (Conway's Life, Gardner 1970) the table is written B/S/C: a dead cell is born with B live neighbors, a live cell survives with S, otherwise it dies, through <math><mrow><mi>C</mi><mo>−</mo><mn>2</mn></mrow></math> dying states when <math><mrow><mi>C</mi><mo>&gt;</mo><mn>2</mn></mrow></math>. The two are one mathematical object: every continuous rule that commutes with shifts is such a table (the Curtis–Hedlund–Lyndon theorem, Hedlund 1969). Deterministic and stepwise; the step is the rule. The presets are rules; the Rule box takes any other.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="lenia"><b>Soft creatures that swim and heal:</b> a cellular automaton with continuous state, space and time (Chan 2019). Each cell's potential is a ring-weighted average of its neighborhood, and the cell grows or decays by how close that potential sits to <math><mi>μ</mi></math>, within a width <math><mi>σ</mi></math>: <math><mrow><mi>A</mi><mo>←</mo><mi>A</mi><mo>+</mo><mfrac><mn>1</mn><mi>T</mi></mfrac><mi>G</mi><mo>(</mo><mi>K</mi><mo>∗</mo><mi>A</mi><mo>)</mo><mo>,</mo><mspace width="0.5em"/><mi>G</mi><mo>(</mo><mi>u</mi><mo>)</mo><mo>=</mo><mn>2</mn><msup><mi>e</mi><mrow><mo>−</mo><mo>(</mo><mi>u</mi><mo>−</mo><mi>μ</mi><msup><mo>)</mo><mn>2</mn></msup><mo>/</mo><mn>2</mn><msup><mi>σ</mi><mn>2</mn></msup></mrow></msup><mo>−</mo><mn>1</mn></mrow></math>. From a patch of random soup, self-propelling, self-repairing organisms emerge; Orbium lives near <math><mrow><mi>μ</mi><mo>=</mo><mn>0.15</mn></mrow></math>, <math><mrow><mi>σ</mi><mo>=</mo><mn>0.016</mn></mrow></math>. Deterministic and stepwise: the update is a discrete step of size <math><mrow><mn>1</mn><mo>/</mo><mi>T</mi></mrow></math>. The field looks continuous because the state and the kernel are smooth, not because time is.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="lattice-boltzmann"><b>Eddies peeling off an obstacle:</b> the lattice Boltzmann method (D2Q9 with BGK collision; Qian, d'Humières and Lallemand 1992). Nine particle populations per cell stream along the lattice directions and relax toward a local equilibrium, <math><mrow><msubsup><mi>f</mi><mi>i</mi><mi>eq</mi></msubsup><mo>=</mo><msub><mi>w</mi><mi>i</mi></msub><mi>ρ</mi><mo>(</mo><mn>1</mn><mo>+</mo><mn>3</mn><msub><mi>e</mi><mi>i</mi></msub><mo>·</mo><mi>u</mi><mo>+</mo><mfrac><mn>9</mn><mn>2</mn></mfrac><mo>(</mo><msub><mi>e</mi><mi>i</mi></msub><mo>·</mo><mi>u</mi><msup><mo>)</mo><mn>2</mn></msup><mo>−</mo><mfrac><mn>3</mn><mn>2</mn></mfrac><msup><mi>u</mi><mn>2</mn></msup><mo>)</mo></mrow></math>, which recovers the Navier–Stokes equations with viscosity <math><mrow><mi>ν</mi><mo>=</mo><mo>(</mo><mi>τ</mi><mo>−</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>)</mo><mo>/</mo><mn>3</mn></mrow></math>. Flow enters at the left at the inlet speed; painted cells are solid and bounce the populations back; behind an obstacle the wake rolls into a von Kármán vortex street once the Reynolds number passes about fifty. Deterministic and stepwise: the method is a discrete-time rule on a lattice, even though the fluid it reproduces is a continuous flow. That is why a fluid sits under Stepwise.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="cyclic-automaton"><b>Spiral rotors self-organizing from noise:</b> Griffeath's cyclic automaton (Fisch, Gravner and Griffeath 1991). Every cell holds one of <math><mi>n</mi></math> states arranged in a ring, and advances to the next, <math><mrow><mi>s</mi><mo>←</mo><mo>(</mo><mi>s</mi><mo>+</mo><mn>1</mn><mo>)</mo><mspace width="0.3em"/><mi>mod</mi><mspace width="0.3em"/><mi>n</mi></mrow></math>, when at least the threshold number of its eight neighbors already hold it. Blocks consume blocks, then cycles of adjacent cells holding every state emit spiral waves that take over the field: the discrete excitable medium. Deterministic and stepwise. The seed is random; the rule is not.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="dielectric-breakdown"><b>Lightning, and at <math><mrow><mi>η</mi><mo>=</mo><mn>1</mn></mrow></math> the coral of diffusion-limited aggregation:</b> the dielectric-breakdown model (Niemeyer, Pietronero and Wiesmann 1984). The electric potential obeys Laplace's equation, <math><mrow><msup><mi>∇</mi><mn>2</mn></msup><mi>φ</mi><mo>=</mo><mn>0</mn></mrow></math>, zero on the discharge and one at the far edge, and a site next to the discharge breaks down with probability proportional to the field there raised to a power, <math><mrow><msub><mi>p</mi><mi>i</mi></msub><mo>∝</mo><msup><msub><mi>φ</mi><mi>i</mi></msub><mi>η</mi></msup></mrow></math>. Chance-driven: the rule itself is a probability. <math><mrow><mi>η</mi><mo>=</mo><mn>1</mn></mrow></math> is diffusion-limited aggregation by definition, a dense coral of dimension about 1.7; higher exponents starve the side channels into the sparse forks of lightning and of the figures burned into acrylic by a captured charge.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="potts"><b>Grains coarsening, and at the critical point clusters of every size:</b> the Potts model (Potts 1952; Anderson, Srolovitz, Grest and Sahni 1984 for grain growth). Each cell holds one of <math><mi>q</mi></math> states; its energy is the number of unlike neighbors, <math><mrow><mi>E</mi><mo>=</mo><munder><mo>∑</mo><mrow><mo>⟨</mo><mi>i</mi><mi>j</mi><mo>⟩</mo></mrow></munder><mo>(</mo><mn>1</mn><mo>−</mo><msub><mi>δ</mi><mrow><msub><mi>s</mi><mi>i</mi></msub><msub><mi>s</mi><mi>j</mi></msub></mrow></msub><mo>)</mo></mrow></math>, and it proposes a random neighbor's state and accepts it by the Metropolis rule: always when the energy falls, otherwise with probability <math><mrow><msup><mi>e</mi><mrow><mo>−</mo><mi>Δ</mi><mi>E</mi><mo>/</mo><mi>T</mi></mrow></msup></mrow></math>. <math><mrow><mi>q</mi><mo>=</mo><mn>2</mn></mrow></math> is the Ising model, and near its critical temperature fluctuations appear at every scale at once. Chance-driven: both the proposal and the acceptance are random draws. Updated on a checkerboard so no cell reads a neighbor changed in the same half-step.</p>
+      <p class="rd__note" data-rd="note" data-rd-for="forest-fire"><b>Fire fronts through a forest that tunes itself:</b> the Drossel–Schwabl model (1992). A cell is bare, a tree, or burning; each step a burning cell burns out, a tree beside fire catches, lightning ignites a tree with probability <math><mi>f</mi></math>, and a tree grows on bare ground with probability <math><mi>p</mi></math>. With <math><mrow><mi>f</mi><mo>≪</mo><mi>p</mi><mo>≪</mo><mn>1</mn></mrow></math> the forest tunes itself to the density where fires come in every size, the signature of self-organized criticality, and the fronts are fractal. Chance-driven: growth and lightning are probabilities. Read the trees as the susceptible and the fire as the infected, and it is the SIR epidemic with regrowth.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>Morphogen is written from the published equations and rules, cited beside each model in the source, with no borrowed code except the public-domain random-number routine mulberry32, credited in the source. Visual inspiration: pmneila/jsexp (BSD-3-Clause). MIT License, © <span data-year>2026</span> Christopher A. Stamplis.</p>
+  </footer>
+</main>
+<script src="morphogen.js" defer></script>
+<script src="banner.js" defer></script>
+<script>
+  // The copyright notice shows the range from the year of first publication to the current year.
+  (function () { var y = new Date().getFullYear(), s = document.querySelector("[data-year]"); if (s && y > 2026) s.textContent = "2026–" + y; }());
+</script>
+</body>
+</html>

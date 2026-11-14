@@ -1,0 +1,17 @@
+#!/bin/sh
+# tools/githooks/pre-commit: refuse any commit whose author or committer is not the project identity.
+# Turned on once per clone by: git config core.hooksPath tools/githooks
+# Prints no name and no address.
+NAME='CS - Training Systems'
+MAIL='257541440+cs-training-systems@users.noreply.github.com'
+fail=0
+for v in GIT_AUTHOR_IDENT GIT_COMMITTER_IDENT; do
+  ident=$(git var "$v")
+  n=${ident%% <*}
+  m=${ident#*<}; m=${m%%>*}
+  if [ "$n" != "$NAME" ] || [ "$m" != "$MAIL" ]; then
+    echo "pre-commit: $v is not the project identity; commit refused." >&2
+    fail=1
+  fi
+done
+exit $fail

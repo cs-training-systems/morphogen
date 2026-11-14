@@ -1,0 +1,7 @@
+# Risks
+
+| Risk | Likelihood | Impact | Mitigation | Owner |
+|---|---|---|---|---|
+| A tag is deleted or moved again, breaking a downstream pin. | low now that the rule is written | a dependent site fails to build | CONTRIBUTING's rule; the settings file asks before every `git tag`; RELEASES records every tag. | user |
+| The engine rewrite changes the public interface (global, data attributes, `data-rd` roles) and breaks the folio or a host page. | medium | the course page stops working | The classic bundle keeps the global and roles; the folio is re-pinned only after `npm test` and a page check. | Claude proposes, user approves |
+| A session exhausts the weekly allowance, with helper agents or without them. Every tool call re-sends the whole conversation, so a session costs its size multiplied by its number of calls, and the figures a helper reports hide this. Measured on another of the user's projects: seven helpers at once took more than 90 percent of a week in one session, and one session of about three hundred calls on a half-million-token conversation did the same with no helpers. | medium: the written rules were in place both times and were skipped, and an interactive session has no automatic stop | the week is lost and cannot be recovered | CLAUDE.md's research section and session economy; the settings file asks before every agent; each session's measured size is kept in `docs/USAGE.md`. | Claude; the user rules every exception |

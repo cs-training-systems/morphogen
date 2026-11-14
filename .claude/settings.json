@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "ask": [
+      "Bash(git commit)",
+      "Bash(git commit *)",
+      "Bash(git tag)",
+      "Bash(git tag *)",
+      "Bash(git push)",
+      "Bash(git push *)",
+      "Bash(bump-my-version *)",
+      "Agent",
+      "Workflow"
+    ],
+    "deny": [
+      "Edit(CLAUDE.md)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/tools/adr-index.js\" --hook",
+            "timeout": 30,
+            "statusMessage": "Regenerating the ADR index"
+          }
+        ]
+      }
+    ]
+  },
+  "idleCompaction": false,
+  "attribution": false
+}

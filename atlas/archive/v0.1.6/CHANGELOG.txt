@@ -1,0 +1,13 @@
+Pattern Generator Atlas — Changelog v0.1.6
+=========================================
+
+- Kept edition numbering on the 0.0.X track; current edition is v0.1.6.
+- Recomputed 14 previously active archetype assets using explicit equation/rule/construction implementations.
+- Added seven specific computed archetypes: Mandelbrot set, Sierpiński triangle, Koch snowflake, Gray–Scott, DLA, Lorenz system, and Poisson–Voronoi tessellation.
+- Corrected Gray–Scott parameter/time setup to produce visible spots under a stable explicit-Euler finite-difference integration.
+- Expanded DLA cluster display through a documented square crop centered on the computed aggregate.
+- Refined BML diagonal jamming band crop, NaSch space-time density rendering, Ikeda orbit-density contours, Wireworld signal-state rendering, medial-axis sheet silhouette, and Thomas point-process visibility.
+- Preserved the previous Lozi, HighLife, Seeds, Thue–Morse, Peano and Matérn archetypes unchanged; Baker’s map and Circle map are also carried forward unchanged.
+- Enforced square 118×118 thumbnail assets with 59×59 GUI displays.
+- Added an algorithmic manifest, a contact sheet for all active archetypes, build/validation scripts, and stronger README hard rules.
+- All legacy records without record-specific validated images remain withheld; no generic placeholder has been substituted.

@@ -1,0 +1,8 @@
+#!/bin/sh
+# tools/githooks/commit-msg: refuse a commit message that carries an attribution trailer or line.
+# Turned on once per clone by: git config core.hooksPath tools/githooks
+if grep -qiE '^(Co-Authored-By|Co-authored-by):|Generated with \[?Claude' "$1"; then
+  echo "commit-msg: attribution line found; commit refused." >&2
+  exit 1
+fi
+exit 0

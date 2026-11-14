@@ -1,0 +1,226 @@
+/* atlas.css: the Morphospaces Atlas page.
+   The page tokens (colors and fonts), the header, .kicker, .sitelink, the footer and the focus ring come from
+   Morphogen's demo.css, which this page links first. This sheet adds the Atlas's own components on those
+   tokens and in the same conventions: a 17px gutter, the 8 / 13 / 21 / 34 / 55 spacing scale, square
+   corners, mono uppercase labels, and the green border + green-10 fill + inset ring for anything pressed.
+   Text that comes from the data file is never upper-cased: a sign such as ∂ or σ must stay as written. */
+
+.at [hidden] { display: none !important; }
+.at a { color: var(--text-1); }
+.at code { font-family: var(--font-mono); font-size: .92em; }
+.at small { display: block; font-size: 13px; line-height: 1.5; color: var(--text-2); }
+
+/* ---- sections, headings, leads, buttons, panels ---- */
+.at__section { margin: 0 0 55px; }
+.at__h { margin: 0 0 13px; font-family: var(--font-mono); font-size: 14px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--text-1); }
+.at__lead { margin: 0 0 21px; max-width: 90ch; font-size: 15px; line-height: 1.55; color: var(--text-2); }
+.at__lead b { font-weight: 600; color: var(--text-1); }
+.at__statusline { margin: 13px 0 0; font-family: var(--font-mono); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-2); }
+.at__error { margin: 0 0 34px; padding: 13px 17px; border: 1px dashed var(--struct-med); background: var(--surface); font-size: 15px; line-height: 1.55; color: var(--text-1); }
+.at__actions { margin: 0; }
+.at__btn { min-height: 38px; padding: 0 13px; font-family: var(--font-mono); font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--text-1); background: var(--surface); border: 1px solid var(--struct-med); cursor: pointer; }
+.at__btn:hover, .at__btn:focus-visible { border-color: var(--green); background: var(--green-10); color: var(--ink); }
+.at__panel { padding: 17px; border: 1px solid var(--struct-card); background: var(--surface); }
+.at__panel-h { margin: 0 0 13px; font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; color: var(--text-1); }
+.at__panel-h span { display: block; margin-top: 3px; letter-spacing: .12em; color: var(--text-3); }
+
+/* ---- every disclosure carries the same mark: ▸ closed, ▾ open ---- */
+:where(.at) details > summary { position: relative; cursor: pointer; list-style: none; }
+:where(.at) details > summary::-webkit-details-marker { display: none; }
+:where(.at) details > summary::before { content: "▸"; position: absolute; left: 0; top: 0; color: var(--text-3); }
+:where(.at) details[open] > summary::before { content: "▾"; color: var(--green); }
+
+/* ---- pictures: the data file stores each as an opacity mask, filled here with the theme's ink, on a card's ground and
+        border; where a picture is a control, hovering lays the green wash over the ink and leaves the ground alone ---- */
+.at__pic { position: relative; display: block; width: 100%; aspect-ratio: 1 / 1; background: var(--surface); border: 1px solid var(--struct-card); }
+.at__pic::before { content: ""; position: absolute; inset: 0; background-color: var(--ink); -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat; }
+.at__pic--s { width: 59px; }
+.at__pic--l { width: 118px; }
+.at__tile:hover .at__pic::before, .at__tile:focus-visible .at__pic::before, .at__entry > summary:hover .at__pic::before { background-image: linear-gradient(var(--green-10), var(--green-10)); }
+
+/* ---- the wall: every entry as one square, in order of name. A square is one 38px module on every screen. The page
+        column is a whole number of squares wide and leaves the same share of the window free on each side (--mat); the
+        wall with its arrows leaves that share free above and below, so it is never taller than one screen. What does
+        not fit goes to further pages, turned with the arrows beneath: the pictures change and the grid stays put ---- */
+.at .page { --sq: var(--btn); --gap: 8px; --mat: .08; max-width: var(--col-w, 1100px); padding-left: var(--col-pad, 16px); padding-right: var(--col-pad, 16px); }
+.at__probe { position: fixed; top: 0; left: 0; width: 0; height: 100vh; height: 100svh; visibility: hidden; pointer-events: none; }
+.at__wall { margin: var(--mat-v, 34px) 0; }
+.at__gallery { display: grid; grid-template-columns: repeat(auto-fill, var(--sq)); gap: var(--gap); margin: 0; padding: 0; list-style: none; }
+.at__tile { display: block; width: var(--sq); height: var(--sq); padding: 0; background: none; border: 0; cursor: pointer; }
+.at__tile[data-off] { visibility: hidden; }
+.at__tile:hover .at__pic, .at__tile:focus-visible .at__pic { border-color: var(--green); }
+.at__pic--blank::before { content: none; }
+.at__pager { --dot: 8px; display: flex; align-items: center; justify-content: center; gap: 13px; height: var(--btn); margin-top: var(--gap); }
+.at__pager[hidden] { display: none; }
+.at__turn { position: relative; flex: none; width: var(--btn); height: var(--btn); padding: 0; color: var(--text-1); background: var(--surface); border: 1px solid var(--struct-med); cursor: pointer; }
+.at__turn::before { content: ""; position: absolute; top: 50%; left: 50%; width: 8px; height: 8px; border: solid currentColor; border-width: 2px 2px 0 0; transform: translate(-70%, -50%) rotate(45deg); }
+.at__turn--back::before { transform: translate(-30%, -50%) rotate(-135deg); }
+.at__turn:hover:not(:disabled), .at__turn:focus-visible:not(:disabled) { border-color: var(--green); background: var(--green-10); color: var(--ink); }
+.at__turn:disabled { opacity: .4; cursor: not-allowed; }
+.at__dots { display: flex; gap: var(--dot); }
+.at__dots > i { width: var(--dot); height: var(--dot); border: 1px solid var(--text-3); border-radius: 50%; }
+.at__dots > i[data-on] { background: var(--ink); border-color: var(--ink); }
+
+/* ---- the worked address: four questions in the fixed order; the example's answers are not controls, so they are set off in gray ---- */
+.at__example-name { margin: 0 0 13px; font-size: 15px; color: var(--text-1); }
+.at__example-name .kicker { margin: 0 8px 0 0; }
+.at__address { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 17px; margin: 0 0 21px; padding: 0; list-style: none; }
+.at__step { display: grid; align-content: start; gap: 8px; padding: 13px 17px 17px; border: 1px solid var(--struct-card); background: var(--surface); }
+.at__step p { margin: 0; }
+.at__step-facet { font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--text-3); }
+.at__step-q { font-size: 15px; font-weight: 600; color: var(--text-1); }
+.at__step-a { padding: 7px 10px; font-size: 15px; line-height: 1.4; color: var(--text-1); background: var(--gray-10); border: 1px solid var(--text-2); box-shadow: inset 0 0 0 1px var(--text-2); }
+.at__step-plain { font-size: 14px; line-height: 1.5; color: var(--text-2); }
+@media (max-width: 900px) { .at__address { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .at__address { grid-template-columns: minmax(0, 1fr); } }
+.at__points { display: grid; gap: 8px; max-width: 100ch; margin: 0 0 21px; padding: 0; list-style: none; font-size: 14px; line-height: 1.55; color: var(--text-2); }
+.at__points li { position: relative; padding-left: 17px; }
+.at__points li::before { content: "▸"; position: absolute; left: 0; color: var(--text-3); }
+.at__points b { font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; color: var(--text-1); }
+
+/* ---- the map: law architectures down, substrates across, a count in every square; framed like Morphogen's field ---- */
+.at__frame { position: relative; margin: 0 0 13px; padding: 17px; background: var(--canvas); border: 1px solid var(--embed-frame); }
+.at__frame > .corner { position: absolute; width: var(--corner-size); height: var(--corner-size); border: 0 solid var(--ink); pointer-events: none; }
+.at__frame > .corner--tl { top: 0; left: 0; border-top-width: var(--corner-w); border-left-width: var(--corner-w); }
+.at__frame > .corner--tr { top: 0; right: 0; border-top-width: var(--corner-w); border-right-width: var(--corner-w); }
+.at__frame > .corner--bl { bottom: 0; left: 0; border-bottom-width: var(--corner-w); border-left-width: var(--corner-w); }
+.at__frame > .corner--br { bottom: 0; right: 0; border-bottom-width: var(--corner-w); border-right-width: var(--corner-w); }
+.at__frame:hover > .corner, .at__frame:focus-within > .corner { border-color: var(--green); }
+.at__map { width: 100%; border-collapse: separate; border-spacing: 4px; table-layout: fixed; }
+.at__map th, .at__map td { position: relative; padding: 0; font-weight: 400; }
+.at__map thead th, .at__map thead td { height: 104px; }
+.at__map tr > :first-child { width: 29%; }
+.at__cell { position: absolute; inset: 0; display: grid; align-content: center; justify-items: center; gap: 2px; width: 100%; padding: 6px 4px; overflow: hidden; font-family: var(--font-mono); font-size: 14px; line-height: 1.25; color: var(--text-1); background: var(--surface); border: 1px solid var(--struct-card); cursor: pointer; }
+.at__cell--head { border-color: var(--struct-med); }
+.at__map thead .at__cell { align-content: end; padding-bottom: 8px; text-align: center; }
+.at__map tbody th .at__cell { position: static; min-height: 48px; grid-template-columns: 3.4ch minmax(0, 1fr) auto; justify-items: start; align-items: center; gap: 10px; padding: 7px 10px; text-align: left; }
+.at__cell b { font-size: 14px; font-weight: 600; letter-spacing: .04em; }
+.at__map-name { font-family: var(--font-display); font-size: 11px; line-height: 1.3; color: var(--text-2); overflow-wrap: anywhere; hyphens: auto; }
+.at__map-total { font-size: 11px; color: var(--text-3); }
+.at__cell-bar { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--struct-med); }
+.at__cell:hover, .at__cell:focus-visible { border-color: var(--green); background: var(--green-10); color: var(--ink); }
+.at__cell[aria-pressed="true"] { border-color: var(--green); box-shadow: inset 0 0 0 1px var(--green); background: var(--green-10); color: var(--ink); }
+.at__cell.is-in { border-color: var(--green); }
+.at__cell[aria-pressed="true"] .at__cell-bar, .at__cell.is-in .at__cell-bar { background: var(--green); }
+.at__cell:disabled { cursor: default; opacity: .5; }
+@media (max-width: 900px) {
+  .at__frame { padding: 8px; }
+  .at__frame > .corner { width: calc(var(--corner-size) / 2); height: calc(var(--corner-size) / 2); }
+  .at__map { border-spacing: 2px; }
+  .at__map tr > :first-child { width: 16%; }
+  .at__map thead th, .at__map thead td { height: 46px; }
+  .at__map-name { display: none; }
+  .at__cell { padding: 2px 1px; font-size: 12px; }
+  .at__map thead .at__cell { align-content: center; padding-bottom: 2px; }
+  .at__map tbody th .at__cell { min-height: 42px; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 1px; padding: 4px 2px; text-align: center; }
+  .at__cell b { font-size: 12px; letter-spacing: 0; }
+  .at__map-total { font-size: 10px; }
+}
+.at__sel { display: grid; gap: 5px; margin: 0 0 21px; padding: 13px 17px; font-size: 14px; line-height: 1.55; color: var(--text-2); background: var(--surface); border: 1px solid var(--struct-card); }
+.at__sel p { margin: 0; }
+.at__sel b { font-weight: 600; color: var(--text-1); }
+.at__sel .at__btn { margin-top: 5px; }
+
+/* ---- the two legends: one short line per code; the longer explanation and the data file's definition open on demand ---- */
+.at__legends { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 17px; align-items: start; }
+@media (max-width: 860px) { .at__legends { grid-template-columns: minmax(0, 1fr); } }
+.at__term { border-top: 1px solid var(--hair); }
+.at__term > summary { display: grid; grid-template-columns: 4ch minmax(0, 1fr); gap: 2px 13px; padding: 10px 0 10px 17px; }
+.at__term > summary::before { top: 10px; }
+.at__term-code { font-family: var(--font-mono); font-size: 14px; font-weight: 600; color: var(--text-1); }
+.at__term-name { font-size: 14px; font-weight: 600; color: var(--text-1); }
+.at__term-plain { grid-column: 2; font-size: 14px; line-height: 1.5; color: var(--text-2); }
+.at__term-body { padding: 0 0 13px calc(17px + 4ch + 13px); font-size: 13px; line-height: 1.55; color: var(--text-2); }
+.at__term-body p { margin: 0 0 8px; }
+.at__src { display: block; font-family: var(--font-mono); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-3); }
+@media (max-width: 560px) { .at__term-body { padding-left: 17px; } }
+
+/* ---- the entries: search, filters, chips, then the list; an entry opens in place ---- */
+.at__controls { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 13px 17px; align-items: end; margin: 0 0 13px; }
+.at__field { display: grid; gap: 5px; min-width: 0; font-family: var(--font-mono); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-2); }
+.at__field input, .at__field select { width: 100%; min-width: 0; height: 38px; padding: 0 10px; font-family: var(--font-display); font-size: 15px; letter-spacing: normal; text-transform: none; color: var(--text-1); background: var(--paper); border: 1px solid var(--struct-med); }
+.at__field select { font-family: var(--font-mono); font-size: 13px; cursor: pointer; }
+.at__toggle { display: flex; align-items: center; gap: 10px; min-height: 38px; min-width: 0; padding: 7px 13px; font-family: var(--font-mono); font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--text-1); background: var(--paper); border: 1px solid var(--struct-med); cursor: pointer; }
+.at__toggle input { flex: none; width: 18px; height: 18px; margin: 0; accent-color: var(--green); cursor: pointer; }
+.at__toggle:hover, .at__toggle:has(input:focus-visible) { border-color: var(--green); background: var(--green-10); color: var(--ink); }
+.at__toggle:has(input:checked) { border-color: var(--green); box-shadow: inset 0 0 0 1px var(--green); background: var(--green-10); color: var(--ink); }
+.at__toggle--b { grid-column: 2 / 4; }
+@media (max-width: 760px) {
+  .at__controls { grid-template-columns: minmax(0, 1fr); }
+  .at__toggle--b { grid-column: auto; }
+}
+.at__crumbs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 13px; }
+.at__crumbs:empty { display: none; }
+.at__chiprow { margin: 0 0 13px; }
+.at__chiplabel { margin: 0 0 6px; font-family: var(--font-mono); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-3); }
+.at__chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.at__chip { min-height: 26px; padding: 4px 11px; font-family: var(--font-mono); font-size: 12px; line-height: 1.35; text-align: left; color: var(--text-2); background: var(--surface); border: 1px solid var(--struct-med); cursor: pointer; }
+.at__chip i { margin-left: 8px; font-style: normal; color: var(--text-3); }
+.at__chip:hover, .at__chip:focus-visible { border-color: var(--green); background: var(--green-10); color: var(--ink); }
+.at__chip[aria-pressed="true"], .at__crumb { border-color: var(--green); box-shadow: inset 0 0 0 1px var(--green); background: var(--green-10); color: var(--ink); }
+.at__count { margin: 0 0 8px; font-family: var(--font-mono); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-2); }
+.at__entries { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--struct-card); }
+.at__entries > li { border-bottom: 1px solid var(--hair); }
+.at__entry > summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 13px; align-items: center; padding: 13px 8px 13px 21px; }
+.at__entry > summary::before { left: 4px; top: 13px; }
+.at__entry > summary:hover { background: var(--green-05); }
+.at__entry[open] { background: var(--surface); box-shadow: inset 2px 0 0 var(--green); }
+.at__entry-text { display: grid; gap: 3px; min-width: 0; }
+.at__entry-name { font-size: 15px; line-height: 1.4; color: var(--text-2); overflow-wrap: anywhere; }
+.at__entry-name b { font-weight: 600; color: var(--text-1); }
+.at__entry-gloss { font-size: 14px; line-height: 1.5; color: var(--text-2); overflow-wrap: anywhere; }
+.at__entry-addr { font-family: var(--font-mono); font-size: 11px; letter-spacing: .02em; line-height: 1.4; color: var(--text-3); }
+.at__record { padding: 4px 21px 21px; }
+.at__dl { display: grid; grid-template-columns: minmax(0, 200px) minmax(0, 1fr); gap: 8px 17px; margin: 0 0 13px; }
+.at__dl dt { padding-top: 3px; font-family: var(--font-mono); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-3); }
+.at__dl dd { margin: 0; font-size: 14px; line-height: 1.55; color: var(--text-1); overflow-wrap: anywhere; }
+.at__dl dd ul { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.at__dl dd b { font-weight: 600; }
+.at__figure { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 13px; align-items: start; margin: 0; }
+.at__figure figcaption { font-size: 13px; line-height: 1.5; color: var(--text-2); }
+.at__figure figcaption p { margin: 0 0 5px; }
+.at__route { display: flex; align-items: center; gap: 13px; }
+.at__locator { display: grid; grid-template-columns: repeat(var(--n), 8px); gap: 2px; flex: none; }
+.at__locator > i { width: 8px; height: 8px; border: 1px solid var(--struct-card); }
+.at__locator > i[data-here] { background: var(--text-2); border-color: var(--text-2); }
+.at__link { padding: 0; font: inherit; text-align: left; text-decoration: underline; color: var(--text-1); background: none; border: 0; cursor: pointer; }
+.at__link:hover { color: var(--green); }
+.at__raw > summary { padding: 5px 0 5px 17px; font-family: var(--font-mono); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-3); }
+.at__raw > summary::before { top: 5px; }
+.at__raw table { width: 100%; margin-top: 8px; border-collapse: collapse; table-layout: fixed; font-family: var(--font-mono); font-size: 12px; line-height: 1.45; }
+.at__raw th, .at__raw td { padding: 4px 8px 4px 0; text-align: left; vertical-align: top; font-weight: 400; overflow-wrap: anywhere; border-top: 1px solid var(--hair); }
+.at__raw th { width: 200px; color: var(--text-3); }
+.at__raw td { color: var(--text-2); }
+.at__more { display: flex; flex-wrap: wrap; gap: 13px; margin: 17px 0 0; }
+.at__more:empty { display: none; }
+@media (max-width: 640px) {
+  .at__record { padding: 4px 13px 17px 21px; }
+  .at__dl { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .at__dl dd { margin-bottom: 8px; }
+  .at__figure { grid-template-columns: minmax(0, 1fr); }
+  .at__raw th { width: 38%; }
+}
+
+/* ---- about the Atlas: the filing rules, the sources and the state of the data, each closed until asked for ---- */
+.at__fold { border-top: 1px solid var(--hair); }
+.at__fold:last-of-type { border-bottom: 1px solid var(--hair); }
+.at__fold > summary { padding: 13px 0 13px 17px; font-family: var(--font-mono); font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--text-1); }
+.at__fold > summary::before { top: 13px; }
+.at__fold-body { padding: 4px 0 21px; }
+.at__fold-body .at__points { margin: 0; }
+.at__srclist { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; font-size: 14px; line-height: 1.5; color: var(--text-2); }
+.at__srclist li { display: grid; grid-template-columns: 5ch minmax(0, 1fr); gap: 8px; overflow-wrap: anywhere; }
+.at__srcnum { padding-top: 2px; font-family: var(--font-mono); font-size: 12px; color: var(--text-3); }
+.at__facts { width: 100%; max-width: 760px; border-collapse: collapse; font-size: 14px; line-height: 1.5; }
+.at__facts th, .at__facts td { padding: 7px 0; text-align: left; vertical-align: top; font-weight: 400; color: var(--text-2); border-top: 1px solid var(--hair); }
+.at__facts td { width: 11ch; text-align: right; font-family: var(--font-mono); color: var(--text-1); }
+.at__facts-head th { padding-top: 21px; font-family: var(--font-mono); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-3); border-top: 0; }
+.at__facts tr:first-child th { padding-top: 0; }
+
+/* Windows high contrast: keep the frames and the pictures visible, and mark what is pressed by width, not by color alone */
+@media (forced-colors: active) {
+  .at__frame, .at__frame > .corner, .at__pic, .at__step-a { border-color: CanvasText; }
+  .at__pic::before { forced-color-adjust: none; background: CanvasText; }
+  .at__dots > i[data-on], .at__locator > i[data-here] { forced-color-adjust: none; background: CanvasText; border-color: CanvasText; }
+  .at__cell[aria-pressed="true"], .at__chip[aria-pressed="true"], .at__crumb, .at__toggle:has(input:checked) { border-width: 3px; }
+}
