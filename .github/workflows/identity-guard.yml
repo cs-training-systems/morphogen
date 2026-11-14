@@ -1,0 +1,46 @@
+name: identity-guard
+# Refuses, on every push and pull request, any commit whose author is not the project identity or whose
+# message carries an attribution line. Uses no third-party action: the repository is fetched with git and
+# the run's own token. While main is not locked behind this check it is an alarm, not a gate
+# (docs/PENDING.md).
+on:
+  pull_request:
+  push:
+jobs:
+  identity-guard:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      NAME: CS - Training Systems
+      MAIL: 257541440+cs-training-systems@users.noreply.github.com
+    steps:
+      - name: Fetch the repository with git, no third-party action
+        run: |
+          git init -q .
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          git fetch -q --no-tags origin "${{ github.event.pull_request.head.sha || github.sha }}"
+          if [ -n "${{ github.event.pull_request.base.sha }}" ]; then
+            git fetch -q --no-tags origin "${{ github.event.pull_request.base.sha }}"
+          fi
+      - name: Refuse any commit not under the project identity or carrying an attribution line
+        run: |
+          HEAD_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
+          BASE_SHA="${{ github.event.pull_request.base.sha || github.event.before }}"
+          CHECK_COMMITTER="${{ github.event_name == 'pull_request' }}"
+          if [ -z "$BASE_SHA" ] || ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+            RANGE="$HEAD_SHA"
+          else
+            RANGE="$BASE_SHA..$HEAD_SHA"
+          fi
+          fail=0
+          for c in $(git rev-list "$RANGE"); do
+            an=$(git log -1 --format=%an "$c"); ae=$(git log -1 --format=%ae "$c")
+            if [ "$an" != "$NAME" ] || [ "$ae" != "$MAIL" ]; then echo "::error::$c: author is not the project identity"; fail=1; fi
+            if [ "$CHECK_COMMITTER" = "true" ]; then
+              cn=$(git log -1 --format=%cn "$c"); ce=$(git log -1 --format=%ce "$c")
+              if [ "$cn" != "$NAME" ] || [ "$ce" != "$MAIL" ]; then echo "::error::$c: committer is not the project identity"; fail=1; fi
+            fi
+            if git log -1 --format=%B "$c" | grep -qiE '^(Co-Authored-By|Co-authored-by):|Generated with \[?Claude'; then echo "::error::$c: attribution line in message"; fail=1; fi
+          done
+          exit $fail

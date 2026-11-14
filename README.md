@@ -38,6 +38,7 @@ Every item in the project, with its purpose, how deeply a session reads it, who 
 | Visual taxonomy | `docs/taxonomy/user-friendly-taxonomy.md` | The visual-type catalog Morphogen is built from, with its critiques and the governing response | 2 (in full when working on it) | user; Claude proposes | priority 2 in STATUS |
 | Engine source | `src/` | One file per model or group; the registry, backends, field, controls, presets | 2 | Claude proposes | engine work |
 | Tools | `tools/` | Build, media renderer, capture page, record index | 2 | Claude proposes | tooling work |
+| Identity check on GitHub | `.github/workflows/identity-guard.yml` | Runs on every push and pull request: fails if a commit's author is not the project identity or its message carries an attribution line; an alarm until `main` is locked behind it | 2 | Claude proposes, user approves | the commit-identity rule changes |
 | Commit guard | `tools/githooks/` | Two git hooks: `pre-commit` refuses a commit whose author or committer is not the project identity; `commit-msg` refuses an attribution line; switched on per clone by `git config core.hooksPath tools/githooks` | 2 | Claude proposes, user approves | the commit-identity rule changes |
 | Tests | `tests/` | The fade verifier; `npm test` also checks the record index | 2 | Claude proposes | engine work |
 | Demo page | `index.html`, `demo.css`, `banner.js` | The live demo with the full control set; `demo.css` also styles the Atlas page | 2 | Claude proposes | a model or control changes |
