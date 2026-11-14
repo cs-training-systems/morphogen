@@ -12,7 +12,12 @@
       "Workflow"
     ],
     "deny": [
-      "Edit(CLAUDE.md)"
+      "Edit(CLAUDE.md)",
+      "Bash(git commit --no-verify*)",
+      "Bash(git commit --author*)",
+      "Bash(git -c *)",
+      "Bash(git config user.*)",
+      "Bash(git config core.hooksPath*)"
     ]
   },
   "hooks": {
@@ -28,8 +33,26 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{let c='';try{c=JSON.parse(d).tool_input.command||''}catch(e){}if(/--no-verify|-c\\s+user\\.|user\\.(name|email)\\s+\\S|--author|GIT_(AUTHOR|COMMITTER)_|hooksPath\\s+\\S|Co-Authored-By/i.test(c)){console.error('git-guard: command sets commit identity, skips hooks or adds attribution; blocked.');process.exit(2)}})\"",
+            "timeout": 10,
+            "statusMessage": "Checking the command for identity, hook or attribution changes"
+          }
+        ]
+      }
     ]
   },
   "idleCompaction": false,
-  "attribution": false
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
+  "includeCoAuthoredBy": false
 }
